@@ -1,0 +1,105 @@
+// -------------------------------------------------------------
+// This file contains generic styles for inline dropdown menus,
+// which are searchable and involve making a "selection".
+// -------------------------------------------------------------
+
+@import 'mixins';
+
+.dropdown-inline {
+    position: relative;
+    cursor: pointer;
+    width: 150px;
+    outline: 1px solid #eee;
+    outline-offset: -1px;
+
+    .offset {
+        color: #999;
+        margin-left: 5px;
+    }
+
+    &.active {
+        outline: 1px solid #ddd;
+    }
+
+    .menu {
+        border: 1px solid #ddd;
+        border-top: 1px solid #eee;
+        top: 98%;
+        z-index: 1;
+
+        .item.button {
+            width: 100%;
+            box-sizing: content-box;
+
+            & > .inner {
+                width: 100%;
+                @include backgroundHover(#fff);
+                @include backgroundClick(#fff);
+            }
+        }
+    } // & > .menu
+
+    &.active .inner > .menu {
+        display: flex;
+    }
+
+    .inner {
+        background: #fff;
+        display: flex;
+        padding: 0 10px;
+        height: 40px;
+        align-items: center;
+
+        & > .text {
+            flex-grow: 1;
+        }
+
+        & > input {
+            flex-grow: 1;
+            border: none;
+            font: 200 14px 'Open Sans';
+        }
+
+        & > .icon {
+            font-size: 16px;
+            color: #555;
+        }
+
+        & > .menu {
+            background: #fff;
+            z-index: 12;
+            cursor: auto;
+            display: none;
+            position: absolute;
+            box-sizing: border-box;
+            top: 100%;
+            right: 0;
+            flex-direction: column;
+            max-height: 200px;
+            width: 100%;
+            overflow-y: scroll;
+            border-top: 1px solid #eee;
+
+            .item {
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+                height: 40px;
+                border-bottom: 1px solid #f5f5f5;
+                cursor: pointer;
+                font: 200 14px 'Open Sans';
+                color: #555;
+                width: 100%;
+                padding: 0 10px;
+                @include backgroundHover(#fff, 3%);
+                @include backgroundClick(#fff, 6%);
+
+                i {
+                    font-size: 17px;
+                    color: #555;
+                    width: 30px;
+                }
+            } // .item
+        } // & > .menu
+    } // .inner
+} // .dropdown

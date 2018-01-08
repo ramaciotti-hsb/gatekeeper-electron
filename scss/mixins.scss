@@ -1,0 +1,96 @@
+@mixin backgroundHover($backgroundColor, $percentage:5%) {
+    background: $backgroundColor;
+
+    &:hover {
+        background: darken($backgroundColor, $percentage);
+    }
+}
+
+@mixin backgroundClick($backgroundColor, $percentage:10%) {
+    background: $backgroundColor;
+
+    &:active {
+        background: darken($backgroundColor, $percentage);
+    }
+}
+
+@mixin foregroundHover($foregroundColor, $percentage:5%) {
+    color: $foregroundColor;
+
+    &:hover {
+        color: darken($foregroundColor, $percentage);
+    }
+}
+
+@mixin foregroundClick($foregroundColor, $percentage:10%) {
+    color: $foregroundColor;
+
+    &:active {
+        color: darken($foregroundColor, $percentage);
+    }
+}
+
+@-webkit-keyframes load8 {
+    0% {
+        -webkit-transform: rotate(0deg);
+        transform: rotate(0deg);
+    }
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes load8 {
+    0% {
+        -webkit-transform: rotate(0deg);
+        transform: rotate(0deg);
+    }
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+
+
+.loader-outer {
+    position: absolute;
+    display: none;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    background: inherit;
+    z-index: 1;
+
+    &.active {
+        display: flex;
+    }
+
+    .loader {
+        font-size: 10px;
+        position: relative;
+        box-sizing: border-box;
+        text-indent: 9999em;
+        border: 2px solid rgba(120, 120, 120, 0.2);
+        border-left: 2px solid #fff;
+        transform: translateZ(0);
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        -webkit-animation: load8 0.7s infinite linear;
+        animation: load8 0.7s infinite linear;
+    }
+
+    .small {
+        width: 16px;
+        height: 16px;
+    }
+
+    .inverted {
+        border-color: rgba(255, 255, 255, 0.3);
+        border-left-color: #eee;
+    }
+}

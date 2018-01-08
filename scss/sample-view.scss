@@ -1,0 +1,17 @@
+// ----------------------------------------------
+// Styles for the react sample-view.jsx component
+// ----------------------------------------------
+
+.panel.sample {
+
+    .panel-inner {
+
+        .axis-selection {
+            padding: 0 0 15px 15px;
+
+            .dropdown-inline {
+                margin-right: 15px;
+            }
+        } // .axis-selection
+    } // .panel-inner
+} // .panel.sample

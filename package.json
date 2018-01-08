@@ -1,0 +1,60 @@
+{
+  "name": "gatekeeper",
+  "version": "0.0.1",
+  "author": "Nic Barker",
+  "description": "An atom based graphical interface for running command line utilities.",
+  "main": "main.js",
+  "scripts": {
+    "start": "webpack-dev-server --open --config webpack.dev.js",
+    "dist": "webpack --config webpack.production.js",
+    "pack": "electron-builder --dir",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "command.line.runner",
+    "asar": false,
+    "mac": {
+      "category": "utilities"
+    },
+    "files": [
+      "*",
+      "webpack-build/*"
+    ]
+  },
+  "license": "ISC",
+  "dependencies": {
+    "d3": "^4.12.0",
+    "electron-is-dev": "^0.3.0",
+    "electron-sudo": "^4.0.12",
+    "fcs": "^0.0.7",
+    "lodash": "^4.17.4",
+    "marked": "^0.3.6",
+    "open": "^0.0.5",
+    "path": "^0.12.7",
+    "react": "^15.6.1",
+    "react-dom": "^15.6.1",
+    "react-onclickoutside": "^6.7.0",
+    "shell-path": "^2.1.0",
+    "tree-kill": "^1.2.0",
+    "user-home": "^2.0.0",
+    "uuid": "^3.1.0"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.2",
+    "babel-minify-webpack-plugin": "^0.2.0",
+    "babel-preset-es2017": "^6.24.1",
+    "babel-preset-react": "^6.24.1",
+    "css-loader": "^0.28.7",
+    "electron-builder": "^19.34.1",
+    "electron-osx-sign": "^0.4.7",
+    "extract-text-webpack-plugin": "^3.0.0",
+    "html-webpack-plugin": "^2.30.1",
+    "node-sass": "^4.5.3",
+    "sass-loader": "^6.0.6",
+    "style-loader": "^0.18.2",
+    "webpack": "^3.6.0",
+    "webpack-dev-server": "^2.8.2",
+    "webpack-merge": "^4.1.0"
+  }
+}
