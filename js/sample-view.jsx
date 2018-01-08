@@ -1,12 +1,14 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { Component } from 'react'
-import { shell } from 'electron'
 import _ from 'lodash'
 import path from 'path'
 import * as d3 from "d3"
 import Dropdown from './dropdown-inline.jsx'
 import '../scss/sample-view.scss'
+import sessionHelper from './session-helper.js'
+import fs from 'fs'
+import FCS from 'fcs'
 
 // function kernelDensityEstimator(kernel, X) {
 //   return function(V) {
@@ -31,8 +33,8 @@ export default class SampleView extends Component {
     constructor(props) {
         super(props)
         this.state = {
-            selectedXParameterIndex: 0,
-            selectedYParameterIndex: 1,
+            selectedXParameterIndex: this.props.selectedXParameterIndex || 0,
+            selectedYParameterIndex: this.props.selectedYParameterIndex || 1,
             compressedPoints: []
         }
     }
@@ -42,15 +44,15 @@ export default class SampleView extends Component {
         outputContainer.scrollTop = outputContainer.scrollHeight
     }
 
-    redrawGraph (props) {
-        if (!props.FCSFile) { return }
+    redrawGraph () {
+        if (!this.state.FCSFile) { return }
 
-        const columnWidth = 50
-        const rowWidth = 50
+        const columnWidth = 80
+        const rowWidth = 80
 
-        for (let i = 0; i < props.FCSFile.dataAsNumbers.length; i++) {
-            const xValue = props.FCSFile.dataAsNumbers[i][this.state.selectedXParameterIndex]
-            const yValue = props.FCSFile.dataAsNumbers[i][this.state.selectedYParameterIndex]
+        for (let i = 0; i < this.state.FCSFile.dataAsNumbers.length; i++) {
+            const xValue = this.state.FCSFile.dataAsNumbers[i][this.state.selectedXParameterIndex]
+            const yValue = this.state.FCSFile.dataAsNumbers[i][this.state.selectedYParameterIndex]
             const row = (yValue - (yValue % rowWidth))
             const column = (xValue - (xValue % columnWidth))
             
@@ -94,8 +96,8 @@ export default class SampleView extends Component {
             yAxis = d3.axisLeft().scale(yScale);
 
         // don't want dots overlapping axis, so add in buffer to data domain
-        xScale.domain(d3.extent(props.FCSFile.dataAsNumbers, d => d[this.state.selectedXParameterIndex]));
-        yScale.domain(d3.extent(props.FCSFile.dataAsNumbers, d => d[this.state.selectedYParameterIndex]));
+        xScale.domain(d3.extent(this.state.FCSFile.dataAsNumbers, d => d[this.state.selectedXParameterIndex]));
+        yScale.domain(d3.extent(this.state.FCSFile.dataAsNumbers, d => d[this.state.selectedYParameterIndex]));
 
         const color = d3.scaleOrdinal(d3.schemeCategory10)
         const svg = d3.select("svg")
@@ -127,7 +129,7 @@ export default class SampleView extends Component {
 
         // draw dots
         custom.selectAll(".rect")
-            .data(props.FCSFile.dataAsNumbers)
+            .data(this.state.FCSFile.dataAsNumbers)
             .enter().append("rect")
             .attr("class", "rect")
             .attr("width", 1)
@@ -149,8 +151,8 @@ export default class SampleView extends Component {
             //       .style("opacity", 0);
             // });
 
-        // window.densX = kernelDensityEstimator(kernelEpanechnikov(7), props.FCSFile.dataAsNumbers.map(d => d => d[this.state.selectedXParameterIndex]))(props.FCSFile.dataAsNumbers.map(d => d => d[this.state.selectedXParameterIndex]))
-        // window.densY = kernelDensityEstimator(kernelEpanechnikov(7), props.FCSFile.dataAsNumbers.map(d => d => d[this.state.selectedYParameterIndex]))(props.FCSFile.dataAsNumbers.map(d => d => d[this.state.selectedYParameterIndex]))
+        // window.densX = kernelDensityEstimator(kernelEpanechnikov(7), this.state.FCSFile.dataAsNumbers.map(d => d => d[this.state.selectedXParameterIndex]))(this.state.FCSFile.dataAsNumbers.map(d => d => d[this.state.selectedXParameterIndex]))
+        // window.densY = kernelDensityEstimator(kernelEpanechnikov(7), this.state.FCSFile.dataAsNumbers.map(d => d => d[this.state.selectedYParameterIndex]))(this.state.FCSFile.dataAsNumbers.map(d => d => d[this.state.selectedYParameterIndex]))
 
         // Draw each individual custom element with their properties.
         var canvas = d3.select('#graph .canvas')
@@ -175,14 +177,34 @@ export default class SampleView extends Component {
         }); // Loop through each element.
     }
 
+    readFCSFileData (filePath) {
+        if (!filePath) { console.log("Error: undefined FCS file passed to readFCSFileData"); return }
+        // Read in the data from the FCS file
+        fs.readFile(filePath, (error, buffer) => {
+            if (error) {
+                console.log('Error reading FCS file: ', error)
+            } else {
+                this.setState({
+                    FCSFile: new FCS({ dataFormat: 'asNumber', eventsToRead: -1 }, buffer),
+                    compressedPoints: []
+                }, () => {
+                    this.redrawGraph()
+                })
+            }
+        })
+    }
+
     componentDidMount() {
-        this.redrawGraph(this.props)
+        this.readFCSFileData(this.props.filePath)
     }
 
     componentWillReceiveProps(newProps) {
-        // If it's a new sample or the FCS file finished loading, re render the graph
-        if (newProps.id !== this.props.id || (!this.props.FCSFile && newProps.FCSFile)) {
-            this.redrawGraph(newProps)
+        // If it's a new sample, re render the graph
+        if (newProps.id !== this.props.id) {
+            this.setState({
+                selectedXParameterIndex: newProps.selectedXParameterIndex || 0,
+                selectedYParameterIndex: newProps.selectedYParameterIndex || 1
+            }, () => { this.readFCSFileData(newProps.filePath) })
         }
     }
 
@@ -191,7 +213,8 @@ export default class SampleView extends Component {
         this.setState({
             selectedXParameterIndex: value
         }, () => {
-            this.redrawGraph(this.props)
+            sessionHelper.saveSessionStateToDisk()
+            this.redrawGraph()
         })
     }
 
@@ -200,8 +223,22 @@ export default class SampleView extends Component {
         this.setState({
             selectedYParameterIndex: value
         }, () => {
-            this.redrawGraph(this.props)
+            sessionHelper.saveSessionStateToDisk()
+            this.redrawGraph()
         })
+    }
+
+    // Roll up the data that needs to be saved from this object and any children
+    getDataRepresentation () {
+        return {
+            id: this.props.id,
+            title: this.props.title,
+            description: this.props.description,
+            type: this.props.type,
+            filePath: this.props.filePath,
+            selectedXParameterIndex: this.state.selectedXParameterIndex,
+            selectedYParameterIndex: this.state.selectedYParameterIndex
+        }
     }
 
     render () {
@@ -211,10 +248,10 @@ export default class SampleView extends Component {
         let parametersY = []
         let parametersYRendered = []
 
-        if (this.props.FCSFile) {
-            _.keys(this.props.FCSFile.text).map((param) => {
+        if (this.state.FCSFile) {
+            _.keys(this.state.FCSFile.text).map((param) => {
                 if (param.match(/^\$P.+N$/)) { // Get parameter names
-                    const parameterName = this.props.FCSFile.text[param]
+                    const parameterName = this.state.FCSFile.text[param]
                     parametersX.push(parameterName)
                     parametersXRendered.push({
                         value: parameterName,
@@ -223,9 +260,9 @@ export default class SampleView extends Component {
                 }
             })
 
-            _.keys(this.props.FCSFile.text).map((param) => {
+            _.keys(this.state.FCSFile.text).map((param) => {
                 if (param.match(/^\$P.+N$/)) { // Get parameter names
-                    const parameterName = this.props.FCSFile.text[param]
+                    const parameterName = this.state.FCSFile.text[param]
                     parametersY.push(parameterName)
                     parametersYRendered.push({
                         value: parameterName,
