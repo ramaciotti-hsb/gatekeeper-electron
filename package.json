@@ -36,6 +36,7 @@
     "react-onclickoutside": "^6.7.0",
     "shell-path": "^2.1.0",
     "tree-kill": "^1.2.0",
+    "ulp": "^1.0.1",
     "user-home": "^2.0.0",
     "uuid": "^3.1.0"
   },

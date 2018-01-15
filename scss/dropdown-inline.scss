@@ -46,9 +46,11 @@
     .inner {
         background: #fff;
         display: flex;
+        flex-grow: 1;
         padding: 0 10px;
         height: 40px;
         align-items: center;
+        width: 1px;
 
         & > .text {
             flex-grow: 1;
@@ -58,6 +60,7 @@
             flex-grow: 1;
             border: none;
             font: 200 14px 'Open Sans';
+            width: 1px;
         }
 
         & > .icon {

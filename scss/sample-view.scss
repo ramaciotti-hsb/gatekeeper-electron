@@ -5,12 +5,44 @@
 .panel.sample {
 
     .panel-inner {
+        background: #f5f5f5;
+        
+        .graph {
+            background: #fff;
+            margin: 15px 15px 15px 15px;
+            border-radius: 10px;
+
+            svg {
+
+                .domain {
+                    stroke: #ccc;
+                    stroke-width: 2;
+                }
+
+                .tick {
+
+                    line {
+                        stroke: #ccc;
+                    }
+
+                    text {
+                        fill: #999;
+                        font: 200 12px 'Open Sans';
+                    }
+                } // .tick
+            } // svg
+        } // .graph
 
         .axis-selection {
             padding: 0 0 15px 15px;
+            align-items: center;
 
-            .dropdown-inline {
-                margin-right: 15px;
+            .dropdown-inline.scale {
+                margin-left: 10px;
+            }
+
+            .versus {
+                margin: 0 15px;
             }
         } // .axis-selection
     } // .panel-inner
