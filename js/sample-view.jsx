@@ -278,7 +278,9 @@ export default class SampleView extends Component {
         if (newProps.id !== this.props.id) {
             this.setState({
                 selectedXParameterIndex: newProps.selectedXParameterIndex || 0,
-                selectedYParameterIndex: newProps.selectedYParameterIndex || 1
+                selectedYParameterIndex: newProps.selectedYParameterIndex || 1,
+                selectedXScaleId: newProps.selectedXScaleId || 0,
+                selectedYScaleId: newProps.selectedYScaleId || 0
             }, () => { this.readFCSFileData(newProps.filePath) })
         }
     }
