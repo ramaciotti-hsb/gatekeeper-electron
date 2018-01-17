@@ -42,17 +42,42 @@ export default class SampleView extends Component {
             selectedYParameterIndex: this.props.selectedYParameterIndex || 1,
             selectedXScaleId: this.props.selectedXScaleId || 0,
             selectedYScaleId: this.props.selectedYScaleId || 0,
-            compressedPoints: [],
+            pointDensityBins: [],
+            pointCache: [], // All samples arranged in 2d array by currently selected parameters
             gates: [],
-            gateSelection: null
+            gateSelection: null,
+            subSamples: this.props.subSamples || []
         }
+    }
+
+    // Creates a 2d map of the samples according to the currently selected parameters
+    createPointCache (d3OuterElement) {
+        this.state.pointCache = []
+        const state = this.state
+        const points = d3OuterElement.selectAll('rect');
+        points.each(function (data, index) { // For each virtual/custom element...
+            const node = d3.select(this)            
+            // console.log(d)
+            const yVal = Math.floor(node.attr('y'))
+            const xVal = Math.floor(node.attr('x'))
+            if (!state.pointCache[yVal]) {
+                state.pointCache[yVal] = []
+            }
+            if (!state.pointCache[yVal][xVal]) {
+                state.pointCache[yVal][xVal] = []
+            }
+            state.pointCache[yVal][xVal].push({
+                x: node.attr('x'),
+                y: node.attr('y'),
+                data: data
+            })
+        });
     }
 
     redrawGraph () {
         if (!this.state.FCSFile) { return }
 
-        this.state.compressedPoints = []
-
+        this.state.pointDensityBins = []
 
         let xMin = 263000
         let xMax = 0
@@ -60,7 +85,7 @@ export default class SampleView extends Component {
         let yMin = 263000
         let yMax = 0
 
-        // Put the data into square bins to calculate 2d density
+        // Calculate minimum and maximum parameter values for the selected channels
         for (let i = 0; i < this.state.FCSFile.dataAsNumbers.length; i++) {
             const xValue = this.state.FCSFile.dataAsNumbers[i][this.state.selectedXParameterIndex]
             const yValue = this.state.FCSFile.dataAsNumbers[i][this.state.selectedYParameterIndex]
@@ -129,44 +154,10 @@ export default class SampleView extends Component {
         const columnWidth = 1
         const rowWidth = 10
 
-        // Put the data into square bins to calculate 2d density
-        for (let i = 0; i < this.state.FCSFile.dataAsNumbers.length; i++) {
-            let xValue
-            if (this.state.selectedXScaleId === SCALE_BIEXP) {
-                xValue = Math.floor(xScale(this.state.FCSFile.dataAsNumbers[i][this.state.selectedXParameterIndex]))
-            } else {
-                xValue = this.state.FCSFile.dataAsNumbers[i][this.state.selectedXParameterIndex]
-            }
-
-            let yValue
-            if (this.state.selectedYScaleId === SCALE_BIEXP) {
-                yValue = Math.floor(yScale(this.state.FCSFile.dataAsNumbers[i][this.state.selectedYParameterIndex]))
-            } else {
-                yValue = this.state.FCSFile.dataAsNumbers[i][this.state.selectedYParameterIndex]
-            }
-
-            const row = (yValue - (yValue % rowWidth))
-            const column = (xValue - (xValue % columnWidth))
-            
-            if (!this.state.compressedPoints[row]) {
-                this.state.compressedPoints[row] = []
-            }
-
-            if (!this.state.compressedPoints[row][column]) {
-                this.state.compressedPoints[row][column] = {
-                    xbin: column,
-                    ybin: row,
-                    value: 1
-                }
-            } else {
-                this.state.compressedPoints[row][column].value++
-            }
-        }
-
         const color = d3.scaleOrdinal(d3.schemeCategory10)
         const svg = d3.select("svg")
         const custom = d3.select(document.createElement('custom'))
-        const tooltip = d3.select("#tooltip")
+        // const tooltip = d3.select("#tooltip")
         // x-axis
         svg.append("g")
           .attr("class", "x axis")
@@ -214,6 +205,8 @@ export default class SampleView extends Component {
             //       .style("opacity", 0);
             // });
 
+        this.createPointCache(custom)
+
         // window.densX = kernelDensityEstimator(kernelEpanechnikov(7), this.state.FCSFile.dataAsNumbers.map(d => d => d[this.state.selectedXParameterIndex]))(this.state.FCSFile.dataAsNumbers.map(d => d => d[this.state.selectedXParameterIndex]))
         // window.densY = kernelDensityEstimator(kernelEpanechnikov(7), this.state.FCSFile.dataAsNumbers.map(d => d => d[this.state.selectedYParameterIndex]))(this.state.FCSFile.dataAsNumbers.map(d => d => d[this.state.selectedYParameterIndex]))
 
@@ -228,64 +221,111 @@ export default class SampleView extends Component {
             var elements = custom.selectAll('rect');
             // Grab all elements you bound data to in the databind() function.
             const state = this.state
-            elements.each(function (d,i) { // For each virtual/custom element...
-                // console.log(d)
-                var node = d3.select(this); 
-                let binYValue
-                if (state.selectedYScaleId === SCALE_BIEXP) {
-                    binYValue = Math.floor(yScale(d[state.selectedYParameterIndex])) - (Math.floor(yScale(d[state.selectedYParameterIndex])) % rowWidth)
-                } else {
-                    binYValue = d[state.selectedYParameterIndex] - (d[state.selectedYParameterIndex] % rowWidth)
-                }
+            context.fillStyle = '#999'
+            if (this.state.gates.length > 0) {
+                // First, render all points in grey
+                for (let y = 0; y < this.state.pointCache.length; y++) {
+                    const column = this.state.pointCache[y]
+                    if (!column || column.length === 0) { continue }
+                    for (let x = 0; x < column.length; x++) {
+                        const row = column[x]
+                        if (!row || row.length === 0) { continue }
 
-                let binXValue
-                if (state.selectedXScaleId === SCALE_BIEXP) {
-                    binXValue = Math.floor(xScale(d[state.selectedXParameterIndex])) - (Math.floor(xScale(d[state.selectedXParameterIndex])) % columnWidth)
-                } else {
-                    binXValue = d[state.selectedXParameterIndex] - (d[state.selectedXParameterIndex] % columnWidth)
-                }
-
-                const binValue = state.compressedPoints[binYValue][binXValue]
-
-                // If there is a gate, grey out things outside it
-                if (state.gates.length > 0) {
-                    let shouldDisplay = false
-                    for (let i = 0; i < state.gates.length; i++) {
-                        const gate = state.gates[i]
-                        const minX = Math.min(gate.x1, gate.x2) - 70
-                        const minY = Math.min(gate.y1, gate.y2) - 20
-                        const maxX = Math.max(gate.x1, gate.x2) - 70
-                        const maxY = Math.max(gate.y1, gate.y2) - 20
-                        if (node.attr('x') >= minX && node.attr('x') <= maxX
-                            && node.attr('y') > minY && node.attr('y') < maxY) {
-                            shouldDisplay = true
+                        for (let p = 0; p < row.length; p++) {
+                            const point = row[p]
+                            context.fillRect(point.x, point.y, 1, 1)
                         }
                     }
-
-                    if (shouldDisplay) {
-                        context.fillStyle = heatMapColorforValue(Math.min(binValue.value / 10, 1))
-                    } else {
-                        context.fillStyle = '#999'
-                    }
-                } else {
-                    context.fillStyle = heatMapColorforValue(Math.min(binValue.value / 10, 1))
                 }
 
-                // console.log(node.style('fill'))
-                // Here you retrieve the colour from the individual in-memory node and set the fillStyle for the canvas paint
-                context.fillRect(node.attr('x'), node.attr('y'), node.attr('width'), node.attr('height'));
-            }); // Loop through each element.
+                // Then go through all gates and render points inside them as blue
+                let shouldDisplay = false
+                for (let i = 0; i < state.gates.length; i++) {
+                    const gate = state.gates[i]
+                    const minX = Math.floor(Math.min(gate.x1, gate.x2) - 70)
+                    const minY = Math.floor(Math.min(gate.y1, gate.y2) - 20)
+                    const maxX = Math.floor(Math.max(gate.x1, gate.x2) - 70)
+                    const maxY = Math.floor(Math.max(gate.y1, gate.y2) - 20)
 
-            // Draw existing gate outlines
-            for (let i = 0; i < this.state.gates.length; i++) {
-                const gate = this.state.gates[i]
-                const minX = Math.min(gate.x1, gate.x2)
-                const minY = Math.min(gate.y1, gate.y2)
-                const maxX = Math.max(gate.x1, gate.x2)
-                const maxY = Math.max(gate.y1, gate.y2)
-                gate.outline = svg.append("path")
-                  .attr("class", "gate")
-                  .attr("d", rect(minX, minY, maxX - minX, maxY - minY))
+                    for (let y = minY; y < maxY; y++) {
+                        const column = this.state.pointCache[y]
+                        if (!column) { continue }
+
+                        for (let x = minX; x < maxX; x++) {
+                            let row = column[x]
+                            if (!row) { continue }
+
+                            let density = 0
+                            let densityWidth = 1
+
+                            // Calculate the density of neighbouring points
+                            for (let i = y - densityWidth; i < y + densityWidth; i++) {
+                                const columnDens = this.state.pointCache[i]
+                                if (!columnDens) { continue }
+
+                                for (let j = x - densityWidth; j < x + densityWidth; j++) {
+                                    const rowDens = this.state.pointCache[i][j]
+                                    if (!rowDens) { continue }
+
+                                    density += rowDens.length
+                                }
+                            }
+
+                            for (let p = 0; p < row.length; p++) {
+                                const point = row[p]
+
+                                context.fillStyle = heatMapColorforValue(Math.min(density / 40, 1))
+                                context.fillRect(point.x, point.y, 1, 1)
+                            }
+                        }
+                    }
+                }
+
+                // Draw existing gate outlines
+                for (let i = 0; i < this.state.gates.length; i++) {
+                    const gate = this.state.gates[i]
+                    const minX = Math.min(gate.x1, gate.x2)
+                    const minY = Math.min(gate.y1, gate.y2)
+                    const maxX = Math.max(gate.x1, gate.x2)
+                    const maxY = Math.max(gate.y1, gate.y2)
+                    gate.outline = svg.append("path")
+                      .attr("class", "gate")
+                      .attr("d", rect(minX, minY, maxX - minX, maxY - minY))
+                }
+            } else {
+                // Render all points based on density
+                for (let y = 0; y < this.state.pointCache.length; y++) {
+                    const column = this.state.pointCache[y]
+                    if (!column || column.length === 0) { continue }
+
+                    for (let x = 0; x < column.length; x++) {
+                        const row = column[x]
+                        if (!row || row.length === 0) { continue }
+
+                        let density = 0
+                        let densityWidth = 1
+
+                        // Calculate the density of neighbouring points
+                        for (let i = y - densityWidth; i < y + densityWidth; i++) {
+                            const columnDens = this.state.pointCache[i]
+                            if (!columnDens) { continue }
+
+                            for (let j = x - densityWidth; j < x + densityWidth; j++) {
+                                const rowDens = this.state.pointCache[i][j]
+                                if (!rowDens) { continue }
+
+                                density += rowDens.length
+                            }
+                        }
+
+                        for (let p = 0; p < row.length; p++) {
+                            const point = row[p]
+
+                            context.fillStyle = heatMapColorforValue(Math.min(density / 40, 1))
+                            context.fillRect(point.x, point.y, 1, 1)
+                        }
+                    }
+                }
             }
         }
 
@@ -339,7 +379,10 @@ export default class SampleView extends Component {
 
         var endSelection = (start, end) => {
             selection.attr("visibility", "hidden");
-            console.log(Math.min(Math.max(0, end[0]), width))
+            this.state.subSamples.push({
+                type: '2d',
+                parameterIndices: [this.state.selectedXParameterIndex, this.state.selectedYParameterIndex]
+            })
             this.state.gates.push({
                 x1: start[0],
                 y1: start[1],
@@ -379,7 +422,7 @@ export default class SampleView extends Component {
             } else {
                 this.setState({
                     FCSFile: new FCS({ dataFormat: 'asNumber', eventsToRead: -1 }, buffer),
-                    compressedPoints: []
+                    pointDensityBins: []
                 }, () => {
                     this.redrawGraph()
                 })
