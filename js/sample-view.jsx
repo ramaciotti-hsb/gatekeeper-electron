@@ -42,7 +42,9 @@ export default class SampleView extends Component {
             selectedYParameterIndex: this.props.selectedYParameterIndex || 1,
             selectedXScaleId: this.props.selectedXScaleId || 0,
             selectedYScaleId: this.props.selectedYScaleId || 0,
-            compressedPoints: []
+            compressedPoints: [],
+            gates: [],
+            gateSelection: null
         }
     }
 
@@ -71,7 +73,7 @@ export default class SampleView extends Component {
 
         d3.selectAll("svg > *").remove();
 
-        const margin = {top: 20, right: 20, bottom: 30, left: 40},
+        const margin = {top: 20, right: 20, bottom: 20, left: 70},
             width = 600 - margin.left - margin.right,
             height = 460 - margin.top - margin.bottom;
         /* 
@@ -215,41 +217,157 @@ export default class SampleView extends Component {
         // window.densX = kernelDensityEstimator(kernelEpanechnikov(7), this.state.FCSFile.dataAsNumbers.map(d => d => d[this.state.selectedXParameterIndex]))(this.state.FCSFile.dataAsNumbers.map(d => d => d[this.state.selectedXParameterIndex]))
         // window.densY = kernelDensityEstimator(kernelEpanechnikov(7), this.state.FCSFile.dataAsNumbers.map(d => d => d[this.state.selectedYParameterIndex]))(this.state.FCSFile.dataAsNumbers.map(d => d => d[this.state.selectedYParameterIndex]))
 
-        // Draw each individual custom element with their properties.
-        var canvas = d3.select('#graph .canvas')
-          .attr('width', width)
-          .attr('height', height);
-        var context = canvas.node().getContext('2d');
-        var elements = custom.selectAll('rect');
-        // Grab all elements you bound data to in the databind() function.
-        const state = this.state
-        elements.each(function (d,i) { // For each virtual/custom element...
-            // console.log(d)
-            var node = d3.select(this); 
-            // This is each individual element in the loop. 
-            // console.log(xScale(d[xIndex]))
-            let binYValue
-            if (state.selectedYScaleId === SCALE_BIEXP) {
-                binYValue = Math.floor(yScale(d[state.selectedYParameterIndex])) - (Math.floor(yScale(d[state.selectedYParameterIndex])) % rowWidth)
+        let selectionMinX, selectionMaxX, selectionMinY, selectionMaxY
+
+        const redrawCanvasPoints = () => {
+            // Draw each individual custom element with their properties.
+            var canvas = d3.select('#graph .canvas')
+              .attr('width', width)
+              .attr('height', height);
+            var context = canvas.node().getContext('2d');
+            var elements = custom.selectAll('rect');
+            // Grab all elements you bound data to in the databind() function.
+            const state = this.state
+            elements.each(function (d,i) { // For each virtual/custom element...
+                // console.log(d)
+                var node = d3.select(this); 
+                let binYValue
+                if (state.selectedYScaleId === SCALE_BIEXP) {
+                    binYValue = Math.floor(yScale(d[state.selectedYParameterIndex])) - (Math.floor(yScale(d[state.selectedYParameterIndex])) % rowWidth)
+                } else {
+                    binYValue = d[state.selectedYParameterIndex] - (d[state.selectedYParameterIndex] % rowWidth)
+                }
+
+                let binXValue
+                if (state.selectedXScaleId === SCALE_BIEXP) {
+                    binXValue = Math.floor(xScale(d[state.selectedXParameterIndex])) - (Math.floor(xScale(d[state.selectedXParameterIndex])) % columnWidth)
+                } else {
+                    binXValue = d[state.selectedXParameterIndex] - (d[state.selectedXParameterIndex] % columnWidth)
+                }
+
+                const binValue = state.compressedPoints[binYValue][binXValue]
+
+                // If there is a gate, grey out things outside it
+                if (state.gates.length > 0) {
+                    let shouldDisplay = false
+                    for (let i = 0; i < state.gates.length; i++) {
+                        const gate = state.gates[i]
+                        const minX = Math.min(gate.x1, gate.x2) - 70
+                        const minY = Math.min(gate.y1, gate.y2) - 20
+                        const maxX = Math.max(gate.x1, gate.x2) - 70
+                        const maxY = Math.max(gate.y1, gate.y2) - 20
+                        if (node.attr('x') >= minX && node.attr('x') <= maxX
+                            && node.attr('y') > minY && node.attr('y') < maxY) {
+                            shouldDisplay = true
+                        }
+                    }
+
+                    if (shouldDisplay) {
+                        context.fillStyle = heatMapColorforValue(Math.min(binValue.value / 10, 1))
+                    } else {
+                        context.fillStyle = '#999'
+                    }
+                } else {
+                    context.fillStyle = heatMapColorforValue(Math.min(binValue.value / 10, 1))
+                }
+
+                // console.log(node.style('fill'))
+                // Here you retrieve the colour from the individual in-memory node and set the fillStyle for the canvas paint
+                context.fillRect(node.attr('x'), node.attr('y'), node.attr('width'), node.attr('height'));
+            }); // Loop through each element.
+
+            // Draw existing gate outlines
+            for (let i = 0; i < this.state.gates.length; i++) {
+                const gate = this.state.gates[i]
+                const minX = Math.min(gate.x1, gate.x2)
+                const minY = Math.min(gate.y1, gate.y2)
+                const maxX = Math.max(gate.x1, gate.x2)
+                const maxY = Math.max(gate.y1, gate.y2)
+                gate.outline = svg.append("path")
+                  .attr("class", "gate")
+                  .attr("d", rect(minX, minY, maxX - minX, maxY - minY))
+            }
+        }
+
+        redrawCanvasPoints()
+
+        // Create bindings for drawing rectangle gates
+        function rect(x, y, w, h) {
+            x -= 70
+            y -= 20
+
+            // Limit to the area of the scatter plot
+            if (w > 0) {
+                // If the width is positive, cap at rightmost boundary
+                w = Math.min(w, width - x)
             } else {
-                binYValue = d[state.selectedYParameterIndex] - (d[state.selectedYParameterIndex] % rowWidth)
+                // If the width is negative, cap at leftmost boundary
+                w = Math.max(w, -x)
             }
 
-            let binXValue
-            if (state.selectedXScaleId === SCALE_BIEXP) {
-                binXValue = Math.floor(xScale(d[state.selectedXParameterIndex])) - (Math.floor(xScale(d[state.selectedXParameterIndex])) % columnWidth)
+            if (h > 0) {
+                // If the height is positive, cap at lower boundary (coords start from top left and y increases downwards)
+                h = Math.min(h, height - y)
             } else {
-                binXValue = d[state.selectedXParameterIndex] - (d[state.selectedXParameterIndex] % columnWidth)
+                // If the height is negative, cap at upper boundary (0)
+                h = Math.max(h, -y)
             }
+            return "M" + [x, y] + " l" + [w, 0] + " l" + [0, h] + " l" + [-w, 0] + "z";
+        }
 
-            const binValue = state.compressedPoints[binYValue][binXValue]
+        var selection = svg.append("path")
+          .attr("class", "selection")
+          .attr("visibility", "hidden");
 
-            // const binValue = compressedPoints[(d[yIndex] - (d[yIndex] % rowWidth))][(Math.floor(xScale(d[xIndex])) - (Math.floor(xScale(d[xIndex])) % columnWidth))]
-            context.fillStyle = heatMapColorforValue(Math.min(binValue.value / 10, 1))
-            // console.log(node.style('fill'))
-            // Here you retrieve the colour from the individual in-memory node and set the fillStyle for the canvas paint
-            context.fillRect(node.attr('x'), node.attr('y'), node.attr('width'), node.attr('height'));
-        }); // Loop through each element.
+        var startSelection = function(start) {
+            selectionMinX = start[0] - 70
+            selectionMaxX = start[0] - 70
+            selectionMinY = start[1] - 20
+            selectionMaxY = start[1] - 20
+            selection.attr("d", rect(start[0], start[0], 0, 0))
+              .attr("visibility", "visible");
+            redrawCanvasPoints()
+        };
+
+        var moveSelection = function(start, moved) {
+            selectionMinX = start[0] - 70
+            selectionMaxX = moved[0] - 70
+            selectionMinY = start[1] - 20
+            selectionMaxY = moved[1] - 20
+            selection.attr("d", rect(start[0], start[1], moved[0]-start[0], moved[1]-start[1]));
+        };
+
+        var endSelection = (start, end) => {
+            selection.attr("visibility", "hidden");
+            console.log(Math.min(Math.max(0, end[0]), width))
+            this.state.gates.push({
+                x1: start[0],
+                y1: start[1],
+                x2: Math.min(Math.max(70, end[0]), width + 70),
+                y2: Math.min(Math.max(20, end[1]), height + 20)
+            })
+            selectionMinX = null
+            selectionMaxX = null
+            selectionMinY = null
+            selectionMaxY = null
+            this.setState({ gates: this.state.gates })
+            redrawCanvasPoints()
+        };
+
+        svg.on("mousedown", function (event) {
+          var subject = d3.select(window), parent = this.parentNode,
+              start = d3.mouse(parent);
+            startSelection(start);
+            subject
+              .on("mousemove.selection", function() {
+                moveSelection(start, d3.mouse(parent));
+              }).on("mouseup.selection", function() {
+                endSelection(start, d3.mouse(parent));
+                subject.on("mousemove.selection", null).on("mouseup.selection", null);
+              });
+
+            d3.event.preventDefault()
+        });
     }
 
     readFCSFileData (filePath) {
