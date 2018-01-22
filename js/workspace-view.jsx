@@ -47,15 +47,24 @@ export default class WorkspaceView extends Component {
         }
     }
 
-    // Roll up the data that needs to be saved from this object and any children
-    getDataRepresentation () {
-        for (let i = 0; i < this.state.samples.length; i++) {
-            let sample = this.state.samples[i]
+    updateCurrentSampleDataRepresentation (samples) {
+        for (let i = 0; i < samples.length; i++) {
+            let sample = samples[i]
             const sampleComponent = this.refs['sample-' + sample.id]
             if (sampleComponent) {
-                this.state.samples[i] = sampleComponent.getDataRepresentation()
+                samples[i] = sampleComponent.getDataRepresentation()
+                return
+            }
+
+            if (sample.subSamples) {
+                this.updateCurrentSampleDataRepresentation(sample.subSamples)
             }
         }
+    }
+
+    // Roll up the data that needs to be saved from this object and any children
+    getDataRepresentation () {
+        this.updateCurrentSampleDataRepresentation(this.state.samples)
         return {
             id: this.props.id,
             title: this.props.title,
@@ -64,28 +73,52 @@ export default class WorkspaceView extends Component {
         }
     }
 
+    renderSubSamples (sample) {
+        if (sample.subSamples) {
+            return sample.subSamples.map((subSample) => {
+                return (
+                    <div className={'sidebar-sample' + (subSample.id === this.state.selectedSampleId ? ' selected' : '')} key={subSample.id}>
+                        <div className='body' onClick={this.selectSample.bind(this, subSample.id)}>
+                            <div className='title'>{subSample.title}</div>
+                            <div className='description'>{subSample.description}</div>
+                        </div>
+                        <div className='sub-samples'>{this.renderSubSamples(subSample)}</div>
+                    </div>
+                )
+            })
+        }
+    }
+
+    findSampleById (samples, id) {
+        for (let sample of samples) {
+            if (sample.id === id) { return sample }
+
+            if (sample.subSamples) {
+                const found = this.findSampleById(sample.subSamples, id)
+                if (found) { return found }
+            }
+        }
+    }
+
     render () {
-        const workspacesSamplesRendered = this.state.samples.map((sample, index) => {
+        const workspacesSamplesRendered = this.state.samples.map((sample) => {
             return (
-                <div className={'sidebar-sample' + (sample.id === this.state.selectedSampleId ? ' selected' : '')} key={index} onClick={this.selectSample.bind(this, sample.id)}>
-                    <div className='body'>
+                <div className={'sidebar-sample' + (sample.id === this.state.selectedSampleId ? ' selected' : '')} key={sample.id}>
+                    <div className='body' onClick={this.selectSample.bind(this, sample.id)}>
                         <div className='title'>{sample.title}</div>
                         <div className='description'>{sample.description}</div>
                     </div>
+                    <div className='sub-samples'>{this.renderSubSamples(sample)}</div>
                 </div>
             )
         })
 
-        const sample = _.find(this.state.samples, (sample) => {
-            return sample.id === this.state.selectedSampleId
-        })
+        const sample = this.findSampleById(this.state.samples, this.state.selectedSampleId)
 
         let panel = <div className='panel'></div>
 
         if (sample) {
-            if (sample.type === 'sample') {
-                panel = <SampleView ref={'sample-' + sample.id} {...sample} />
-            }
+            panel = <SampleView ref={'sample-' + sample.id} {...sample} />
         }
         return (
             <div className='workspace'>

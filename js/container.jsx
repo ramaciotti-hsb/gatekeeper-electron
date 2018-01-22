@@ -167,7 +167,6 @@ export default class Container extends Component {
                     id: uuidv4(),
                     type: "sample",
                     filePath: filePath,
-                    FCSFile: new FCS({ dataFormat: 'asNumber', eventsToRead: -1 }, fs.readFileSync(filePath)),
                     title: filePath.split(path.sep).slice(-1), // Returns just the filename without the path
                     description: 'Root Node'
                 }

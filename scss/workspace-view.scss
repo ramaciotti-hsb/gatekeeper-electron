@@ -17,23 +17,25 @@
         .sidebar-sample {
             align-items: center;
             border-bottom: 1px solid #eee;
-            padding: 10px 10px 10px 15px;
             cursor: pointer;
-            border-right: 5px solid transparent;
-            @include backgroundHover(#fff);
-            @include backgroundClick(#fff);
+            flex-direction: column;
+            align-items: stretch;
 
-            &.selected {
+            &.selected > .body {
                 @include backgroundHover(#fafafa);
                 @include backgroundClick(#fafafa);    
                 border-right: 5px solid $highlight-colour;
             }
 
             & > .body {
+                @include backgroundHover(#fff);
+                @include backgroundClick(#fff);
+                padding: 10px 10px 10px 15px;
                 font-size: 12px;
                 flex-grow: 1;
                 flex-direction: column;
-
+                border-right: 5px solid transparent;
+    
                 & > .title {
                     font-size: 12px;
                     margin-bottom: 5px;
@@ -42,38 +44,10 @@
                 }
             }
 
-            & > .status {
-                padding-left: 10px;
-                position: relative;
-                height: 60px;
-                min-width: 60px;
-                align-items: center;
-                justify-content: center;
-                box-sizing: border-box;
-
-                .loader-outer {
-                    left: auto;
-                    top: auto;
-
-                    .loader {
-                        width: 26px;
-                        height: 26px;
-                        border-width: 2px;
-                        border-left: 2px solid $highlight-colour;
-                    }
-                }
-
-                i {
-                    font-size: 28px;
-
-                    &.lnr-checkmark-circle {
-                        color: $highlight-colour;
-                    }
-
-                    &.lnr-warning {
-                        color: $red-colour;
-                    }
-                }
+            .sub-samples {
+                padding-left: 15px;
+                flex-direction: column;
+                align-items: stretch;
             }
         } // .sidebar-sample
     } // .sidebar

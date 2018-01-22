@@ -10,6 +10,7 @@ import sessionHelper from './session-helper.js'
 import fs from 'fs'
 import FCS from 'fcs'
 import logicleScale from './logicle.js'
+import uuidv4 from 'uuid/v4'
 
 // function kernelDensityEstimator(kernel, X) {
 //   return function(V) {
@@ -33,6 +34,8 @@ const SCALE_LINEAR = 0
 const SCALE_LOG = 1
 const SCALE_BIEXP = 2
 
+const GATE_RECTANGLE = 'GATE_RECTANGLE'
+
 export default class SampleView extends Component {
     
     constructor(props) {
@@ -42,10 +45,9 @@ export default class SampleView extends Component {
             selectedYParameterIndex: this.props.selectedYParameterIndex || 1,
             selectedXScaleId: this.props.selectedXScaleId || 0,
             selectedYScaleId: this.props.selectedYScaleId || 0,
-            pointDensityBins: [],
             pointCache: [], // All samples arranged in 2d array by currently selected parameters
-            gates: [],
             gateSelection: null,
+            FCSFile: this.props.FCSFile || null,
             subSamples: this.props.subSamples || []
         }
     }
@@ -76,8 +78,6 @@ export default class SampleView extends Component {
 
     redrawGraph () {
         if (!this.state.FCSFile) { return }
-
-        this.state.pointDensityBins = []
 
         let xMin = 263000
         let xMax = 0
@@ -219,10 +219,17 @@ export default class SampleView extends Component {
               .attr('height', height);
             var context = canvas.node().getContext('2d');
             var elements = custom.selectAll('rect');
-            // Grab all elements you bound data to in the databind() function.
-            const state = this.state
+
             context.fillStyle = '#999'
-            if (this.state.gates.length > 0) {
+            // Determine if there are any 2d gates in the subsamples that match these parameters
+            let gatesExist = false
+            for (let subSample of this.state.subSamples) {
+                if (subSample.type === 'gate') {
+                    gatesExist = true
+                }
+            }
+
+            if (gatesExist) {
                 // First, render all points in grey
                 for (let y = 0; y < this.state.pointCache.length; y++) {
                     const column = this.state.pointCache[y]
@@ -240,8 +247,11 @@ export default class SampleView extends Component {
 
                 // Then go through all gates and render points inside them as blue
                 let shouldDisplay = false
-                for (let i = 0; i < state.gates.length; i++) {
-                    const gate = state.gates[i]
+                for (let i = 0; i < this.state.subSamples.length; i++) {
+                    const subSample = this.state.subSamples[i]
+                    if (subSample.type !== 'gate') { continue }
+
+                    const gate = subSample.gate
                     const minX = Math.floor(Math.min(gate.x1, gate.x2) - 70)
                     const minY = Math.floor(Math.min(gate.y1, gate.y2) - 20)
                     const maxX = Math.floor(Math.max(gate.x1, gate.x2) - 70)
@@ -279,20 +289,13 @@ export default class SampleView extends Component {
                             }
                         }
                     }
-                }
 
-                // Draw existing gate outlines
-                for (let i = 0; i < this.state.gates.length; i++) {
-                    const gate = this.state.gates[i]
-                    const minX = Math.min(gate.x1, gate.x2)
-                    const minY = Math.min(gate.y1, gate.y2)
-                    const maxX = Math.max(gate.x1, gate.x2)
-                    const maxY = Math.max(gate.y1, gate.y2)
                     gate.outline = svg.append("path")
                       .attr("class", "gate")
-                      .attr("d", rect(minX, minY, maxX - minX, maxY - minY))
+                      .attr("d", rect(minX + 70, minY + 20, maxX - minX, maxY - minY))
                 }
             } else {
+                // If there are no gates drawn
                 // Render all points based on density
                 for (let y = 0; y < this.state.pointCache.length; y++) {
                     const column = this.state.pointCache[y]
@@ -379,21 +382,59 @@ export default class SampleView extends Component {
 
         var endSelection = (start, end) => {
             selection.attr("visibility", "hidden");
-            this.state.subSamples.push({
-                type: '2d',
-                parameterIndices: [this.state.selectedXParameterIndex, this.state.selectedYParameterIndex]
-            })
-            this.state.gates.push({
+            const FCSFile = {
+                dataAsNumbers: [],
+                text: this.state.FCSFile.text
+            }
+            const gate = {
+                type: GATE_RECTANGLE,
                 x1: start[0],
                 y1: start[1],
                 x2: Math.min(Math.max(70, end[0]), width + 70),
-                y2: Math.min(Math.max(20, end[1]), height + 20)
+                y2: Math.min(Math.max(20, end[1]), height + 20),
+                xParameterIndex: this.state.selectedXParameterIndex,
+                yParameterIndex: this.state.selectedYParameterIndex
+            }
+            // Calculate all the samples that are matched inside the gate
+            const minX = Math.floor(Math.min(gate.x1, gate.x2) - 70)
+            const minY = Math.floor(Math.min(gate.y1, gate.y2) - 20)
+            const maxX = Math.floor(Math.max(gate.x1, gate.x2) - 70)
+            const maxY = Math.floor(Math.max(gate.y1, gate.y2) - 20)
+
+            for (let y = minY; y < maxY; y++) {
+                const column = this.state.pointCache[y]
+                if (!column) { continue }
+
+                for (let x = minX; x < maxX; x++) {
+                    let row = column[x]
+                    if (!row) { continue }
+
+                    for (let p = 0; p < row.length; p++) {
+                        const point = row[p]
+                        FCSFile.dataAsNumbers.push(point.data)
+                    }
+                }
+            }
+
+            this.state.subSamples.push({
+                id: uuidv4(),
+                title: 'Subsample',
+                description: 'Subsample',
+                type: 'gate',
+                gate: gate,
+                FCSFile: FCSFile,
+                selectedXParameterIndex: this.selectedXParameterIndex,
+                selectedYParameterIndex: this.selectedYParameterIndex,
+                selectedXScaleId: this.selectedXScaleId,
+                selectedYScaleId: this.selectedYScaleId
             })
+
             selectionMinX = null
             selectionMaxX = null
             selectionMinY = null
             selectionMaxY = null
             this.setState({ gates: this.state.gates })
+            sessionHelper.saveSessionStateToDisk()
             redrawCanvasPoints()
         };
 
@@ -421,8 +462,7 @@ export default class SampleView extends Component {
                 console.log('Error reading FCS file: ', error)
             } else {
                 this.setState({
-                    FCSFile: new FCS({ dataFormat: 'asNumber', eventsToRead: -1 }, buffer),
-                    pointDensityBins: []
+                    FCSFile: new FCS({ dataFormat: 'asNumber', eventsToRead: -1 }, buffer)
                 }, () => {
                     this.redrawGraph()
                 })
@@ -431,7 +471,11 @@ export default class SampleView extends Component {
     }
 
     componentDidMount() {
-        this.readFCSFileData(this.props.filePath)
+        if (this.props.filePath) {
+            this.readFCSFileData(this.props.filePath)
+        } else {
+            this.redrawGraph()
+        }
     }
 
     componentWillReceiveProps(newProps) {
@@ -441,8 +485,16 @@ export default class SampleView extends Component {
                 selectedXParameterIndex: newProps.selectedXParameterIndex || 0,
                 selectedYParameterIndex: newProps.selectedYParameterIndex || 1,
                 selectedXScaleId: newProps.selectedXScaleId || 0,
-                selectedYScaleId: newProps.selectedYScaleId || 0
-            }, () => { this.readFCSFileData(newProps.filePath) })
+                selectedYScaleId: newProps.selectedYScaleId || 0,
+                subSamples: newProps.subSamples || [],
+                FCSFile: newProps.FCSFile || null
+            }, () => {
+                if (newProps.filePath) {
+                    this.readFCSFileData(newProps.filePath)
+                } else {
+                    this.redrawGraph()
+                }
+            })
         }
     }
 
@@ -488,7 +540,7 @@ export default class SampleView extends Component {
 
     // Roll up the data that needs to be saved from this object and any children
     getDataRepresentation () {
-        return {
+        const representation = {
             id: this.props.id,
             title: this.props.title,
             description: this.props.description,
@@ -497,8 +549,17 @@ export default class SampleView extends Component {
             selectedXParameterIndex: this.state.selectedXParameterIndex,
             selectedYParameterIndex: this.state.selectedYParameterIndex,
             selectedXScaleId: this.state.selectedXScaleId,
-            selectedYScaleId: this.state.selectedYScaleId
+            selectedYScaleId: this.state.selectedYScaleId,
+            gates: this.state.gates,
+            FCSFile: this.state.FCSFile,
+            subSamples: this.state.subSamples
         }
+
+        if (this.props.gate) {
+            representation.gate = this.props.gate            
+        }
+
+        return representation
     }
 
     render () {
@@ -541,6 +602,7 @@ export default class SampleView extends Component {
         let scalesYRendered = []
 
         if (this.state.FCSFile) {
+            console.log("tes")
             _.keys(this.state.FCSFile.text).map((param) => {
                 if (param.match(/^\$P.+N$/)) { // Get parameter names
                     const parameterName = this.state.FCSFile.text[param]
