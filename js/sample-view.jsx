@@ -224,7 +224,9 @@ export default class SampleView extends Component {
             // Determine if there are any 2d gates in the subsamples that match these parameters
             let gatesExist = false
             for (let subSample of this.state.subSamples) {
-                if (subSample.type === 'gate') {
+                if (subSample.type === 'gate' &&
+                    subSample.gate.xParameterIndex === this.state.selectedXParameterIndex && 
+                    subSample.gate.yParameterIndex === this.state.selectedYParameterIndex) {
                     gatesExist = true
                 }
             }
@@ -249,7 +251,9 @@ export default class SampleView extends Component {
                 let shouldDisplay = false
                 for (let i = 0; i < this.state.subSamples.length; i++) {
                     const subSample = this.state.subSamples[i]
-                    if (subSample.type !== 'gate') { continue }
+                    if (subSample.type !== 'gate' ||
+                    subSample.gate.xParameterIndex !== this.state.selectedXParameterIndex || 
+                    subSample.gate.yParameterIndex !== this.state.selectedYParameterIndex) { continue }
 
                     const gate = subSample.gate
                     const minX = Math.floor(Math.min(gate.x1, gate.x2) - 70)
