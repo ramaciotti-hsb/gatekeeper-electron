@@ -11,6 +11,11 @@ import fs from 'fs'
 import FCS from 'fcs'
 import logicleScale from './logicle.js'
 import uuidv4 from 'uuid/v4'
+import GrahamScan from './lib/graham-scan.js'
+import polygonsIntersect from 'polygon-overlap'
+import pointInsidePolygon from 'point-in-polygon'
+import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
+import area from 'area-polygon'
 
 // function kernelDensityEstimator(kernel, X) {
 //   return function(V) {
@@ -35,14 +40,15 @@ const SCALE_LOG = 1
 const SCALE_BIEXP = 2
 
 const GATE_RECTANGLE = 'GATE_RECTANGLE'
+const GATE_POLYGON = 'GATE_POLYGON'
 
 export default class SampleView extends Component {
     
     constructor(props) {
         super(props)
         this.state = {
-            selectedXParameterIndex: this.props.selectedXParameterIndex || 0,
-            selectedYParameterIndex: this.props.selectedYParameterIndex || 1,
+            selectedXParameterIndex: _.isUndefined(this.props.selectedXParameterIndex) ? 0 : this.props.selectedXParameterIndex,
+            selectedYParameterIndex: _.isUndefined(this.props.selectedYParameterIndex) ? 1 : this.props.selectedYParameterIndex,
             selectedXScaleId: this.props.selectedXScaleId || 0,
             selectedYScaleId: this.props.selectedYScaleId || 0,
             pointCache: [], // All samples arranged in 2d array by currently selected parameters
@@ -50,6 +56,7 @@ export default class SampleView extends Component {
             FCSFile: this.props.FCSFile || null,
             subSamples: this.props.subSamples || []
         }
+        this.homologyPeaks = []
     }
 
     // Creates a 2d map of the samples according to the currently selected parameters
@@ -98,7 +105,7 @@ export default class SampleView extends Component {
 
         d3.selectAll("svg > *").remove();
 
-        const margin = {top: 20, right: 20, bottom: 20, left: 70},
+        const margin = {top: 20, right: 20, bottom: 20, left: 50},
             width = 600 - margin.left - margin.right,
             height = 460 - margin.top - margin.bottom;
         /* 
@@ -214,7 +221,7 @@ export default class SampleView extends Component {
 
         const redrawCanvasPoints = () => {
             // Draw each individual custom element with their properties.
-            var canvas = d3.select('#graph .canvas')
+            var canvas = d3.select('.canvas')
               .attr('width', width)
               .attr('height', height);
             var context = canvas.node().getContext('2d');
@@ -255,52 +262,195 @@ export default class SampleView extends Component {
                     subSample.gate.xParameterIndex !== this.state.selectedXParameterIndex || 
                     subSample.gate.yParameterIndex !== this.state.selectedYParameterIndex) { continue }
 
-                    const gate = subSample.gate
-                    const minX = Math.floor(Math.min(gate.x1, gate.x2) - 70)
-                    const minY = Math.floor(Math.min(gate.y1, gate.y2) - 20)
-                    const maxX = Math.floor(Math.max(gate.x1, gate.x2) - 70)
-                    const maxY = Math.floor(Math.max(gate.y1, gate.y2) - 20)
+                    if (subSample.gate.type === GATE_RECTANGLE) {
+                        const gate = subSample.gate
+                        const minX = Math.floor(Math.min(gate.x1, gate.x2) - 50)
+                        const minY = Math.floor(Math.min(gate.y1, gate.y2) - 20)
+                        const maxX = Math.floor(Math.max(gate.x1, gate.x2) - 50)
+                        const maxY = Math.floor(Math.max(gate.y1, gate.y2) - 20)
 
-                    for (let y = minY; y < maxY; y++) {
-                        const column = this.state.pointCache[y]
-                        if (!column) { continue }
+                        for (let y = minY; y < maxY; y++) {
+                            const column = this.state.pointCache[y]
+                            if (!column) { continue }
 
-                        for (let x = minX; x < maxX; x++) {
-                            let row = column[x]
-                            if (!row) { continue }
+                            for (let x = minX; x < maxX; x++) {
+                                let row = column[x]
+                                if (!row) { continue }
 
-                            let density = 0
-                            let densityWidth = 1
+                                let density = 0
+                                let densityWidth = 1
 
-                            // Calculate the density of neighbouring points
-                            for (let i = y - densityWidth; i < y + densityWidth; i++) {
-                                const columnDens = this.state.pointCache[i]
-                                if (!columnDens) { continue }
+                                // Calculate the density of neighbouring points
+                                for (let i = y - densityWidth; i < y + densityWidth; i++) {
+                                    const columnDens = this.state.pointCache[i]
+                                    if (!columnDens) { continue }
 
-                                for (let j = x - densityWidth; j < x + densityWidth; j++) {
-                                    const rowDens = this.state.pointCache[i][j]
-                                    if (!rowDens) { continue }
+                                    for (let j = x - densityWidth; j < x + densityWidth; j++) {
+                                        const rowDens = this.state.pointCache[i][j]
+                                        if (!rowDens) { continue }
 
-                                    density += rowDens.length
+                                        density += rowDens.length
+                                    }
+                                }
+
+                                for (let p = 0; p < row.length; p++) {
+                                    const point = row[p]
+
+                                    context.fillStyle = heatMapColorforValue(Math.min(density / 40, 1))
+                                    context.fillRect(point.x, point.y, 1, 1)
+                                }
+                            }
+                        }
+
+                        gate.outline = svg.append("path")
+                          .attr("class", "gate")
+                          .attr("d", rect(minX + 50, minY + 20, maxX - minX, maxY - minY))
+                    } else if (subSample.gate.type === GATE_POLYGON) {
+                        for (let y = 0; y < this.state.pointCache.length; y++) {
+                            const column = this.state.pointCache[y]
+                            if (!column || column.length === 0) { continue }
+
+                            for (let x = 0; x < column.length; x++) {
+                                const row = column[x]
+                                if (!row || row.length === 0) { continue }
+
+                                let density = 0
+                                let densityWidth = 1
+
+                                // Calculate the density of neighbouring points
+                                for (let i = y - densityWidth; i < y + densityWidth; i++) {
+                                    const columnDens = this.state.pointCache[i]
+                                    if (!columnDens) { continue }
+
+                                    for (let j = x - densityWidth; j < x + densityWidth; j++) {
+                                        const rowDens = this.state.pointCache[i][j]
+                                        if (!rowDens) { continue }
+
+                                        density += rowDens.length
+                                    }
+                                }
+
+                                if (pointInsidePolygon([x, y], subSample.gate.polygon)) {
+                                    context.fillStyle = heatMapColorforValue(Math.min(density / 40, 1))
+                                    context.fillRect(x, y, 1, 1)
+                                }
+                            }
+                        }
+
+                        // Render polygons
+                        svg.append("polygon")
+                          .attr("class", "gate")
+                          .attr("points", subSample.gate.polygon.join(' '))
+                    }
+                }
+            } else if (this.state.homologyHeight) {
+                // If there are no gates drawn
+                // Render all points based on density
+                for (let y = 0; y < this.state.pointCache.length; y++) {
+                    const column = this.state.pointCache[y]
+                    if (!column || column.length === 0) { continue }
+
+                    for (let x = 0; x < column.length; x++) {
+                        const row = column[x]
+                        if (!row || row.length === 0) { continue }
+
+                        let density = 0
+                        let densityWidth = 2
+
+                        // Calculate the density of neighbouring points
+                        for (let i = y - densityWidth; i < y + densityWidth; i++) {
+                            const columnDens = this.state.pointCache[i]
+                            if (!columnDens) { continue }
+
+                            for (let j = x - densityWidth; j < x + densityWidth; j++) {
+                                const rowDens = this.state.pointCache[i][j]
+                                if (!rowDens) { continue }
+
+                                density += rowDens.length
+                            }
+                        }
+
+                        if (density >= this.state.homologyHeight) {
+                            let foundPeak = false
+                            for (var i = 0; i < this.homologyPeaks.length; i++) {
+                                const peak = this.homologyPeaks[i]
+                                // If the new point is outside the peak polygon
+                                if (!pointInsidePolygon([x, y], peak.polygon)) {
+                                    // If the new point is close enough to the edge, expand the polygon to accomodate it
+                                    const distance = peak.polygon.length === 1 ? distanceBetweenPoints([x, y], peak.polygon[0]) : distanceToPolygon([x, y], peak.polygon)
+                                    if (distance < 12 && distance > 0) {
+                                        peak.pointsToAdd.push([x, y])
+                                        foundPeak = true
+                                        break
+                                    } else if (distance === 0) {
+                                        foundPeak = true
+                                        break
+                                    }
+                                } else {
+                                    foundPeak = true
+                                    break
                                 }
                             }
 
-                            for (let p = 0; p < row.length; p++) {
-                                const point = row[p]
-
-                                context.fillStyle = heatMapColorforValue(Math.min(density / 40, 1))
-                                context.fillRect(point.x, point.y, 1, 1)
+                            if (!foundPeak || this.homologyPeaks.length === 0) {
+                                this.homologyPeaks.push({
+                                    polygon: [[x, y]],
+                                    height: 0,
+                                    pointsToAdd: []
+                                })
                             }
+
+                            context.fillStyle = heatMapColorforValue(Math.min(density / 40, 1))
+                            context.fillRect(x, y, 1, 1)
                         }
                     }
+                }
 
-                    gate.outline = svg.append("path")
+                // Add new points and recalculate polygons
+                for (let peak of this.homologyPeaks) {
+                    if (peak.pointsToAdd.length > 0) {
+                        const polyCopy = peak.polygon.concat(peak.pointsToAdd)
+                        // Recalculate the polygon boundary
+                        const grahamScan = new GrahamScan();
+                        polyCopy.map(p => grahamScan.addPoint(p[0], p[1]))
+                        const newPolygon = grahamScan.getHull().map(p => [p.x, p.y])
+                        // Only add to the polygon if it wouldn't expand the entire thing by more than 20%
+                        peak.polygon = newPolygon
+                        peak.pointsToAdd = []
+                    }
+                }
+
+                // Merge overlapping polygons
+                for (let i = 0; i < this.homologyPeaks.length; i++) {
+                    for (let j = i + 1; j < this.homologyPeaks.length; j++) {
+                        if (polygonsIntersect(this.homologyPeaks[i].polygon, this.homologyPeaks[j].polygon)) {
+                            console.log('polygon height of', this.homologyPeaks[i], ' before merging:', this.homologyPeaks[i].height)
+                            console.log('polygon height of', this.homologyPeaks[j], ' before merging:', this.homologyPeaks[j].height)
+                            const newPolygon = this.homologyPeaks[i].polygon.concat(this.homologyPeaks[j].polygon)
+                            this.homologyPeaks.splice(i, 1, { polygon: newPolygon })
+                            this.homologyPeaks.splice(j, 1)
+                            j--
+                            // Rebuild polygons after combining
+                            const grahamScan = new GrahamScan();
+                            this.homologyPeaks[i].polygon.map(p => grahamScan.addPoint(p[0], p[1]))
+                            this.homologyPeaks[i].polygon = grahamScan.getHull().map(p => [p.x, p.y])
+                            this.homologyPeaks[i].height = 0
+                            this.homologyPeaks[i].pointsToAdd = []
+                        }
+                    }
+                }
+
+                // Render polygons
+                for (let peak of this.homologyPeaks) {
+                    peak.height++
+                    svg.append("polygon")
                       .attr("class", "gate")
-                      .attr("d", rect(minX + 70, minY + 20, maxX - minX, maxY - minY))
+                      .attr("points", peak.polygon.join(' '))
                 }
             } else {
                 // If there are no gates drawn
                 // Render all points based on density
+                let maxDensity = 0
                 for (let y = 0; y < this.state.pointCache.length; y++) {
                     const column = this.state.pointCache[y]
                     if (!column || column.length === 0) { continue }
@@ -325,6 +475,8 @@ export default class SampleView extends Component {
                             }
                         }
 
+                        maxDensity = density > maxDensity ? density : maxDensity
+
                         for (let p = 0; p < row.length; p++) {
                             const point = row[p]
 
@@ -340,7 +492,7 @@ export default class SampleView extends Component {
 
         // Create bindings for drawing rectangle gates
         function rect(x, y, w, h) {
-            x -= 70
+            x -= 50
             y -= 20
 
             // Limit to the area of the scatter plot
@@ -367,20 +519,12 @@ export default class SampleView extends Component {
           .attr("visibility", "hidden");
 
         var startSelection = function(start) {
-            selectionMinX = start[0] - 70
-            selectionMaxX = start[0] - 70
-            selectionMinY = start[1] - 20
-            selectionMaxY = start[1] - 20
             selection.attr("d", rect(start[0], start[0], 0, 0))
               .attr("visibility", "visible");
             redrawCanvasPoints()
         };
 
         var moveSelection = function(start, moved) {
-            selectionMinX = start[0] - 70
-            selectionMaxX = moved[0] - 70
-            selectionMinY = start[1] - 20
-            selectionMaxY = moved[1] - 20
             selection.attr("d", rect(start[0], start[1], moved[0]-start[0], moved[1]-start[1]));
         };
 
@@ -394,15 +538,15 @@ export default class SampleView extends Component {
                 type: GATE_RECTANGLE,
                 x1: start[0],
                 y1: start[1],
-                x2: Math.min(Math.max(70, end[0]), width + 70),
+                x2: Math.min(Math.max(50, end[0]), width + 50),
                 y2: Math.min(Math.max(20, end[1]), height + 20),
                 xParameterIndex: this.state.selectedXParameterIndex,
                 yParameterIndex: this.state.selectedYParameterIndex
             }
             // Calculate all the samples that are matched inside the gate
-            const minX = Math.floor(Math.min(gate.x1, gate.x2) - 70)
+            const minX = Math.floor(Math.min(gate.x1, gate.x2) - 50)
             const minY = Math.floor(Math.min(gate.y1, gate.y2) - 20)
-            const maxX = Math.floor(Math.max(gate.x1, gate.x2) - 70)
+            const maxX = Math.floor(Math.max(gate.x1, gate.x2) - 50)
             const maxY = Math.floor(Math.max(gate.y1, gate.y2) - 20)
 
             for (let y = minY; y < maxY; y++) {
@@ -437,8 +581,8 @@ export default class SampleView extends Component {
             selectionMaxX = null
             selectionMinY = null
             selectionMaxY = null
-            this.setState({ gates: this.state.gates })
             sessionHelper.saveSessionStateToDisk()
+            this.props.reloadWorkspaceView()
             redrawCanvasPoints()
         };
 
@@ -456,6 +600,198 @@ export default class SampleView extends Component {
 
             d3.event.preventDefault()
         });
+    }
+
+    stepHomology () {
+        if (!this.state.homologyHeight) {
+            this.setState({ homologyHeight: 150 }, () => { this.redrawGraph() })
+        } else {
+            console.log('Homology height:', this.state.homologyHeight - 1)
+            this.setState({ homologyHeight: this.state.homologyHeight - 1}, () => { this.redrawGraph() })
+        }
+    }
+
+    calculateHomology () {
+        const truePeaks = []
+
+        for (let hom = 150; hom >= 0; hom--) {
+            console.log('calculating homology height', hom)
+            for (let y = 0; y < this.state.pointCache.length; y++) {
+                const column = this.state.pointCache[y]
+                if (!column || column.length === 0) { continue }
+
+                for (let x = 0; x < column.length; x++) {
+                    const row = column[x]
+                    if (!row || row.length === 0) { continue }
+
+                    let density = 0
+                    let densityWidth = 2
+
+                    // Calculate the density of neighbouring points
+                    for (let i = y - densityWidth; i < y + densityWidth; i++) {
+                        const columnDens = this.state.pointCache[i]
+                        if (!columnDens) { continue }
+
+                        for (let j = x - densityWidth; j < x + densityWidth; j++) {
+                            const rowDens = this.state.pointCache[i][j]
+                            if (!rowDens) { continue }
+
+                            density += rowDens.length
+                        }
+                    }
+
+                    if (density >= hom) {
+                        let foundPeak = false
+                        for (var i = 0; i < this.homologyPeaks.length; i++) {
+                            const peak = this.homologyPeaks[i]
+                            // If the new point is outside the peak polygon
+                            if (!pointInsidePolygon([x, y], peak.polygon)) {
+                                // If the new point is close enough to the edge, expand the polygon to accomodate it
+                                const distance = peak.polygon.length === 1 ? distanceBetweenPoints([x, y], peak.polygon[0]) : distanceToPolygon([x, y], peak.polygon)
+                                if (distance < 15 && distance > 0) {
+                                    peak.pointsToAdd.push([x, y])
+                                    foundPeak = true
+                                    break
+                                } else if (distance === 0) {
+                                    foundPeak = true
+                                    break
+                                }
+                            } else {
+                                foundPeak = true
+                                break
+                            }
+                        }
+
+                        if (!foundPeak || this.homologyPeaks.length === 0) {
+                            this.homologyPeaks.push({
+                                polygon: [[x, y]],
+                                height: 0,
+                                pointsToAdd: []
+                            })
+                        }
+                    }
+                }
+            }
+
+            // Add new points and recalculate polygons
+            for (let peak of this.homologyPeaks) {
+                if (peak.pointsToAdd.length > 0) {
+                    const polyCopy = peak.polygon.concat(peak.pointsToAdd)
+                    // Recalculate the polygon boundary
+                    const grahamScan = new GrahamScan();
+                    polyCopy.map(p => grahamScan.addPoint(p[0], p[1]))
+                    const newPolygon = grahamScan.getHull().map(p => [p.x, p.y])
+                    // Only add to the polygon if it wouldn't expand the entire thing by more than 20%
+                    peak.polygon = newPolygon
+                    peak.pointsToAdd = []
+                }
+            }
+
+            // Merge overlapping polygons
+            for (let i = 0; i < this.homologyPeaks.length; i++) {
+                let intersected = false
+                for (let j = i + 1; j < this.homologyPeaks.length; j++) {
+                    if (polygonsIntersect(this.homologyPeaks[i].polygon, this.homologyPeaks[j].polygon)) {
+                        console.log('polygon height of', this.homologyPeaks[i], ' before merging:', this.homologyPeaks[i].height)
+                        console.log('polygon height of', this.homologyPeaks[j], ' before merging:', this.homologyPeaks[j].height)
+                        if (this.homologyPeaks[i].height >= 5) {
+                            truePeaks.push(this.homologyPeaks[i])
+                        }
+                        if (this.homologyPeaks[j].height >= 5) {
+                            truePeaks.push(this.homologyPeaks[j])
+                        }
+                        const newPolygon = this.homologyPeaks[i].polygon.concat(this.homologyPeaks[j].polygon)
+                        this.homologyPeaks.splice(i, 1, { polygon: newPolygon, height: 0 })
+                        this.homologyPeaks.splice(j, 1)
+                        j--
+                        // Rebuild polygons after combining
+                        const grahamScan = new GrahamScan();
+                        this.homologyPeaks[i].polygon.map(p => grahamScan.addPoint(p[0], p[1]))
+                        this.homologyPeaks[i].polygon = grahamScan.getHull().map(p => [p.x, p.y])
+                        this.homologyPeaks[i].pointsToAdd = []
+                        intersected = true
+                    }
+                }
+                if (!intersected) {
+                    this.homologyPeaks[i].height++
+                }
+            }
+        }
+
+        // Finally, remote any polygons that are completely inside other polygons
+        for (let i = 0; i < truePeaks.length; i++) {
+            for (let j = i + 1; j < truePeaks.length; j++) {
+                let inside = true
+                for (let point of truePeaks[j].polygon) {
+                    if (!pointInsidePolygon(point, truePeaks[i].polygon)) {
+                        inside = false
+                    }
+                }
+                
+                if (inside) {
+                    truePeaks.splice(j, 1)
+                    j--
+                }
+
+                inside = true
+                for (let point of truePeaks[i].polygon) {
+                    if (!pointInsidePolygon(point, truePeaks[j].polygon)) {
+                        inside = false
+                    }
+                }
+                
+                if (inside) {
+                    truePeaks.splice(i, 1)
+                    i--
+                    break
+                }
+            }   
+        }
+
+        for (let peak of truePeaks) {
+            const FCSFile = {
+                dataAsNumbers: [],
+                text: this.state.FCSFile.text
+            }
+            for (let y = 0; y < this.state.pointCache.length; y++) {
+                const column = this.state.pointCache[y]
+                if (!column || column.length === 0) { continue }
+
+                for (let x = 0; x < column.length; x++) {
+                    const row = column[x]
+                    if (!row || row.length === 0) { continue }
+
+                    for (let p = 0; p < row.length; p++) {
+                        const point = row[p]
+                        if (pointInsidePolygon([point.x, point.y], peak.polygon)) {
+                            FCSFile.dataAsNumbers.push(point.data)
+                        }
+                    }
+                }
+            }
+
+            this.state.subSamples.push({
+                id: uuidv4(),
+                title: 'Subsample',
+                description: 'Subsample',
+                type: 'gate',
+                gate: {
+                    type: GATE_POLYGON,
+                    polygon: peak.polygon,
+                    xParameterIndex: this.state.selectedXParameterIndex,
+                    yParameterIndex: this.state.selectedYParameterIndex
+                },
+                FCSFile: FCSFile,
+                selectedXParameterIndex: this.selectedXParameterIndex,
+                selectedYParameterIndex: this.selectedYParameterIndex,
+                selectedXScaleId: this.selectedXScaleId,
+                selectedYScaleId: this.selectedYScaleId
+            })
+        }
+
+        sessionHelper.saveSessionStateToDisk()
+        this.props.reloadWorkspaceView()
+        this.redrawGraph()
     }
 
     readFCSFileData (filePath) {
@@ -486,8 +822,8 @@ export default class SampleView extends Component {
         // If it's a new sample, re render the graph
         if (newProps.id !== this.props.id) {
             this.setState({
-                selectedXParameterIndex: newProps.selectedXParameterIndex || 0,
-                selectedYParameterIndex: newProps.selectedYParameterIndex || 1,
+                selectedXParameterIndex: _.isUndefined(newProps.selectedXParameterIndex) ? 0 : newProps.selectedXParameterIndex,
+                selectedYParameterIndex: _.isUndefined(newProps.selectedYParameterIndex) ? 1 : newProps.selectedYParameterIndex,
                 selectedXScaleId: newProps.selectedXScaleId || 0,
                 selectedYScaleId: newProps.selectedYScaleId || 0,
                 subSamples: newProps.subSamples || [],
@@ -606,7 +942,6 @@ export default class SampleView extends Component {
         let scalesYRendered = []
 
         if (this.state.FCSFile) {
-            console.log("tes")
             _.keys(this.state.FCSFile.text).map((param) => {
                 if (param.match(/^\$P.+N$/)) { // Get parameter names
                     const parameterName = this.state.FCSFile.text[param]
@@ -649,22 +984,25 @@ export default class SampleView extends Component {
                 <div className='header'>{this.props.title}</div>
                 <div className='panel-inner'>
                     <div className='graph'>
-                        <svg width={600} height={460} ref="graph"></svg>
-                        <div id="graph"><canvas className="canvas"/></div>
-                        <div id="tooltip"></div>
-                    </div>
-                    <div className='axis-selection'>
-                        <Dropdown items={parametersXRendered} textLabel={parametersX[this.state.selectedXParameterIndex]} ref={'xParameterDropdown'} />
-                        <Dropdown items={scalesXRendered} textLabel={scalesX[this.state.selectedXScaleId].label} outerClasses={'scale'} ref={'xScaleDropdown'} />
-                        <div className='versus'>vs</div>
-                        <Dropdown items={parametersYRendered} textLabel={parametersY[this.state.selectedYParameterIndex]} ref={'yParameterDropdown'} />
-                        <Dropdown items={scalesYRendered} textLabel={scalesY[this.state.selectedYScaleId].label} outerClasses={'scale'} ref={'yScaleDropdown'} />
-                    </div>
-                    <div className='command-actions'>
-                        <div className='delete' onClick={this.props.deleteSample}>
-                            <span className="lnr lnr-cross-circle"></span>
-                            Delete Sample
+                        <div className='graph-upper'>
+                            <div className='axis-selection y'>
+                                <Dropdown items={parametersYRendered} textLabel={parametersY[this.state.selectedYParameterIndex]} ref={'yParameterDropdown'} />
+                                <Dropdown items={scalesYRendered} textLabel={scalesY[this.state.selectedYScaleId].label} outerClasses={'scale'} ref={'yScaleDropdown'} />
+                            </div>
+                            <div className='svg-outer'>
+                                <svg width={600} height={460} ref="graph"></svg>
+                                <canvas className="canvas"/>
+                                <div className='axis-selection x'>
+                                    <Dropdown items={parametersXRendered} textLabel={parametersX[this.state.selectedXParameterIndex]} ref={'xParameterDropdown'} />
+                                    <Dropdown items={scalesXRendered} textLabel={scalesX[this.state.selectedXScaleId].label} outerClasses={'scale'} ref={'xScaleDropdown'} />
+                                </div>
+                            </div>
                         </div>
+                    </div>
+                    <div className='homology'>
+                        Homology
+                        <div className='step-forward' onClick={this.stepHomology.bind(this)}>Step Forward</div>
+                        <div className='step-forward' onClick={this.calculateHomology.bind(this)}>Create gates</div>
                     </div>
                 </div>
             </div>

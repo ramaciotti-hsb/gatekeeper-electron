@@ -28,23 +28,35 @@ export default class WorkspaceView extends Component {
         }, () => { sessionHelper.saveSessionStateToDisk() })
     }
 
-    removeSample (sampleId) {
-        let sampleIndex = _.findIndex(this.state.samples, (sample) => {
-            return sample.id === sampleId
-        })
+    reloadWorkspaceView () {
+        this.setState(this.state)
+    }
 
-        if (sampleIndex === -1) { return }
-        this.state.samples.splice(sampleIndex, 1)
-        if (sampleIndex === this.state.samples.length) {
-            sampleIndex--
+    removeSample (samples, sampleId) {
+        for (let i = 0; i < samples.length; i++) {
+            const sample = samples[i]
+
+            if (sample.id === sampleId) {
+                samples.splice(i, 1)
+                // If there are still any samples left in the workspace, select the next one
+                const state = {
+                    samples: this.state.samples
+                }
+                if (samples.length > 0) {
+                    state.selectedSampleId = samples[i === samples.length ? samples.length - 1 : i].id
+                }
+                this.setState(state)
+                return true
+            }
+
+            if (sample.subSamples && sample.subSamples.length > 0) {
+                if (this.removeSample(sample.subSamples, sampleId)) {
+                    return true
+                }
+            }                
         }
-        // If there are still any samples left in the workspace, select the next one
-        if (sampleIndex >= 0) {
-            this.setState({
-                samples: this.state.samples,
-                selectedSampleId: this.state.samples[sampleIndex].id
-            })
-        }
+
+        return false
     }
 
     updateCurrentSampleDataRepresentation (samples) {
@@ -81,6 +93,7 @@ export default class WorkspaceView extends Component {
                         <div className='body' onClick={this.selectSample.bind(this, subSample.id)}>
                             <div className='title'>{subSample.title}</div>
                             <div className='description'>{subSample.description}</div>
+                            <div className='remove-sample' onClick={this.removeSample.bind(this, this.state.samples, subSample.id)}><i className='lnr lnr-cross'></i></div>
                         </div>
                         <div className='sub-samples'>{this.renderSubSamples(subSample)}</div>
                     </div>
@@ -107,6 +120,7 @@ export default class WorkspaceView extends Component {
                     <div className='body' onClick={this.selectSample.bind(this, sample.id)}>
                         <div className='title'>{sample.title}</div>
                         <div className='description'>{sample.description}</div>
+                        <div className='remove-sample' onClick={this.removeSample.bind(this, this.state.samples, sample.id)}><i className='lnr lnr-cross'></i></div>
                     </div>
                     <div className='sub-samples'>{this.renderSubSamples(sample)}</div>
                 </div>
@@ -118,7 +132,7 @@ export default class WorkspaceView extends Component {
         let panel = <div className='panel'></div>
 
         if (sample) {
-            panel = <SampleView ref={'sample-' + sample.id} {...sample} />
+            panel = <SampleView ref={'sample-' + sample.id} {...sample} reloadWorkspaceView={this.reloadWorkspaceView.bind(this)} />
         }
         return (
             <div className='workspace'>

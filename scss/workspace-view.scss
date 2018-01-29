@@ -16,25 +16,55 @@
 
         .sidebar-sample {
             align-items: center;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
             flex-direction: column;
             align-items: stretch;
+            cursor: pointer;
 
             &.selected > .body {
                 @include backgroundHover(#fafafa);
                 @include backgroundClick(#fafafa);    
                 border-right: 5px solid $highlight-colour;
+
+                .remove-sample {
+                    @include backgroundHover(#ededed);
+                    @include backgroundClick(#ededed);
+                }
             }
 
             & > .body {
                 @include backgroundHover(#fff);
                 @include backgroundClick(#fff);
+                position: relative;
                 padding: 10px 10px 10px 15px;
                 font-size: 12px;
                 flex-grow: 1;
                 flex-direction: column;
                 border-right: 5px solid transparent;
+                border-bottom: 1px solid #eee;
+                box-sizing: border-box;
+
+                &:hover {
+
+                    .remove-sample {
+                        display: flex;
+                    }
+                }
+
+                .remove-sample {
+                    display: none;
+                    color: #f00;
+                    position: absolute;
+                    right: -5px;
+                    top: 0;
+                    height: 100%;
+                    align-items: center;
+                    justify-content: center;
+                    width: 40px;
+                    font-size: 24px;
+                    cursor: pointer;
+                    @include backgroundHover(#f2f2f2);
+                    @include backgroundClick(#f2f2f2);
+                }
     
                 & > .title {
                     font-size: 12px;
@@ -73,272 +103,5 @@
                 flex-grow: 1;
             }
         } // & > .header
-
-        .panel-inner {
-            flex-grow: 1;
-            flex-direction: column;
-            align-items: flex-start;
-
-            & > * {
-                flex-shrink: 0;
-            }
-
-            .graph {
-                flex-direction: column;
-
-                svg, #graph {
-                    padding: 20px 20px 20px 70px;
-                }
-
-                #graph {
-                    position: absolute;
-                }
-            } // .graph
-
-            input[type="text"][class*="edit"], textarea {
-                padding: 5px 8px;
-                font: 200 12px 'Open Sans';
-                flex-grow: 1;
-            }
-
-            .file-select {
-                align-items: center;
-                padding: 0 10px;
-                cursor: pointer;
-                margin-left: 15px;
-                @include backgroundHover(#eee);
-                @include backgroundClick(#eee);
-
-                i {
-                    font-size: 18px;
-                    margin-right: 5px;
-                }
-            }
-
-            .title {
-                font-size: 12px;
-                font-weight: 600;
-                color: #888;
-                margin-bottom: 10px;
-            }
-
-            .body {
-                font-size: 12px;
-                font-weight: 400;
-                color: #333;
-            }
-
-            .description, .working-directory, .command-string, .command-parameters {
-                padding: 0 15px;
-                margin-bottom: 15px;
-                flex-direction: column;
-            }
-
-            .command-string-inner {
-                flex-shrink: 1;
-                padding: 15px;
-                background: #ccc;
-                font-family: 'Inconsolata', monospace;
-                font-size: 12px;
-                border-radius: 5px;
-            }
-
-            .command-parameters {
-
-                .parameter {
-                    font-size: 12px;
-                    align-items: stretch;
-                    margin-bottom: 10px;
-
-                    .parameter-name {
-                        margin-right: 15px;
-                        width: 100px;
-                        align-items: center;
-                    }
-
-                    .parameter-input {
-                        padding: 5px 8px;
-                        font: 200 12px 'Open Sans';
-                        flex-grow: 1;
-
-                        &.highlight {
-                            border: 4px solid $highlight-colour;
-                        }
-                    }
-
-                    .edit-parameter-name-outer {
-                        flex-grow: 1;
-                        max-width: 320px;
-                        margin-right: 15px;
-                        position: relative;
-                        align-items: center;
-
-                        i {
-                            margin-top: -1px;
-                            right: 10px;
-                            font-size: 18px;
-                            position: absolute;
-                            cursor: pointer;
-                            @include foregroundHover($red-colour, 15%);
-                            @include foregroundClick($red-colour, 30%);
-                        }
-                        
-                        .edit-parameter-name {
-                            flex-grow: 1;
-                        }
-                    }
-
-                    .edit-parameter-type {
-                        align-items: center;
-                        width: 100px;
-                        padding: 0 10px;
-                        border: 1px solid #ccc;
-                    }
-                }
-                .add-parameter {
-                    font: 200 12px 'Open Sans';
-                    align-items: center;
-                    height: 31px;
-                    margin-bottom: 15px;
-                    padding: 0 10px;
-                    width: 300px;
-                    cursor: pointer;
-                    @include backgroundHover(#eee);
-                    @include backgroundClick(#eee);
-                    @include foregroundHover(#999);
-                    @include foregroundClick(#999);
-
-                    i {
-                        margin-right: 5px;
-                        font-size: 16px;
-                    }
-                }
-            } // .command-parameters
-
-            .command-actions {
-                padding: 0 15px 15px 15px;
-
-                .run, .save, .export, .edit, .cancel, .kill, .delete {
-                    align-items: center;
-                    padding: 8px 12px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    margin-right: 15px;
-                    font-size: 12px;
-                    position: relative;
-                    @include foregroundHover(#222);
-                    @include foregroundClick(#222);
-                    @include backgroundHover(#ccc);
-                    @include backgroundClick(#ccc);
-
-                    &.hidden {
-                        display: none;
-                    }
-
-                    &:last-child {
-                        margin-right: 0;
-                    }
-
-                    &.run, &.kill, &.delete {
-                        @include foregroundHover(#fff);
-                        @include foregroundClick(#fff);
-                        @include backgroundHover($highlight-colour);
-                        @include backgroundClick($highlight-colour);
-                    }
-
-                    &.kill:hover, &.delete {
-                        @include foregroundHover(#fff);
-                        @include foregroundClick(#fff);
-                        @include backgroundHover($red-colour);
-                        @include backgroundClick($red-colour);
-
-                        .loader-outer {
-                            display: none;
-                        }
-                    }
-
-                    &.save, &.edit, &.export {
-                        @include backgroundHover(#C4F0F6);
-                        @include backgroundClick(#C4F0F6);
-                    }
-
-                    span {
-                        margin-right: 5px;
-                        font-size: 16px;
-                    }
-                }
-            }
-
-            .output-files {
-                font-size: 12px;
-                padding: 15px;
-                flex-direction: column;
-                background: #fafafa;
-
-                .header {
-                    margin-bottom: 10px;
-                    font-weight: 600;
-                }
-
-                .output-file {
-                    cursor: pointer;
-                    text-decoration: underline;
-                    @include foregroundHover($highlight-colour);
-                    @include foregroundClick($highlight-colour);
-                }
-            }
-
-            .command-output {
-                flex-grow: 1;
-                flex-shrink: 1;
-                padding: 15px 15px 0;
-                background: #eee;
-                font-family: 'Inconsolata', monospace;
-                font-size: 12px;
-                white-space: pre-wrap;
-                overflow: auto;
-                flex-direction: column;
-
-                /* Hacky fix for bottom padding in overflow:auto containers
-                see https://stackoverflow.com/questions/10722367/bottom-padding-not-working-on-overflow-element-in-non-chrome-browsers */
-                &:after {
-                    content: "";
-                    height: 15px;
-                    flex-shrink: 0;
-                }
-
-                &.error {
-                    background: #FC9D9A;
-                }
-
-                &.success {
-                    background: #A7DBD8;
-                }
-            }
-
-            .stdin-outer {
-
-                input {
-                    flex-grow: 1;
-                    padding: 10px 15px;
-                    border: 0;
-                    font: 200 14px 'Inconsolata';
-                    outline: none;
-                }
-            } // .stdin-outer
-        } // .panel-inner
-
-        &.documentation {
-
-            .body {
-                margin: 0 15px 15px 15px;
-                border-top: 1px solid #eee;
-                display: block;
-
-                &.edit {
-                    border: 2px solid #eee;
-                }
-            }
-        }
     } // .panel
 } // .workspace

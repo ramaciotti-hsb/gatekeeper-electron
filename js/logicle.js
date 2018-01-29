@@ -49,7 +49,6 @@ export default function log() {
   };
 
   scale.nice = function() {
-    console.log("test")
     return domain(nice(domain(), {
       floor: function(x) { return pows(Math.floor(logs(x))); },
       ceil: function(x) { return pows(Math.ceil(logs(x))); }
@@ -57,7 +56,6 @@ export default function log() {
   };
 
   scale.copy = function() {
-    console.log('test')
     return copy(scale, log());
   };
 

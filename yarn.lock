@@ -140,6 +140,10 @@ are-we-there-yet@~1.1.2:
     delegates "^1.0.0"
     readable-stream "^2.0.6"
 
+area-polygon@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/area-polygon/-/area-polygon-1.0.1.tgz#802a7540838be418b8ae1cd99c1e4cbbb92d6d1b"
+
 argparse@^1.0.7:
   version "1.0.9"
   resolved "https://registry.yarnpkg.com/argparse/-/argparse-1.0.9.tgz#73d83bc263f86e97f8cc4f6bae1b0e90a7d22c86"
@@ -1774,6 +1778,10 @@ diffie-hellman@^5.0.0:
     miller-rabin "^4.0.0"
     randombytes "^2.0.0"
 
+distance-to-polygon@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/distance-to-polygon/-/distance-to-polygon-2.0.2.tgz#4e17983f8989ddcf33962c5c57ce8d54c37987f6"
+
 dmg-builder@2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/dmg-builder/-/dmg-builder-2.1.0.tgz#fdeaa0d210bb3e27f31d9ceb485d90cfac3fdedc"
@@ -2555,6 +2563,10 @@ graceful-fs@^4.1.11, graceful-fs@^4.1.2, graceful-fs@^4.1.6:
   version "4.1.11"
   resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.1.11.tgz#0e8bdfe4d1ddb8854d64e04ea7c00e2a026e5658"
 
+graham-scan@^0.0.0:
+  version "0.0.0"
+  resolved "https://registry.yarnpkg.com/graham-scan/-/graham-scan-0.0.0.tgz#e3417644a1fcb8893db012e2c2ed5d3b9d36b6a8"
+
 handle-thing@^1.2.5:
   version "1.2.5"
   resolved "https://registry.yarnpkg.com/handle-thing/-/handle-thing-1.2.5.tgz#fd7aad726bf1a5fd16dfc29b2f7a6601d27139c4"
@@ -3215,6 +3227,10 @@ lcid@^1.0.0:
   resolved "https://registry.yarnpkg.com/lcid/-/lcid-1.0.0.tgz#308accafa0bc483a3867b4b6f2b9506251d1b835"
   dependencies:
     invert-kv "^1.0.0"
+
+lines-intersect@1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/lines-intersect/-/lines-intersect-1.0.0.tgz#a60c87a3d957a0871d114d054a685ab71f728042"
 
 load-json-file@^1.0.0:
   version "1.1.0"
@@ -3976,6 +3992,21 @@ plist@^2.1.0:
     base64-js "1.2.0"
     xmlbuilder "8.2.2"
     xmldom "0.1.x"
+
+point-in-polygon@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/point-in-polygon/-/point-in-polygon-1.0.1.tgz#d59b64e8fee41c49458aac82b56718c5957b2af7"
+
+point-inside-polygon@1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/point-inside-polygon/-/point-inside-polygon-1.0.1.tgz#f4f6de901bf8f9cd2f7d9b5fb4758f1afa9812ab"
+
+polygon-overlap@^1.0.5:
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/polygon-overlap/-/polygon-overlap-1.0.5.tgz#0ce3526a8bd98674ab046fc92dd02664b6d8242d"
+  dependencies:
+    lines-intersect "1.0.0"
+    point-inside-polygon "1.0.1"
 
 portfinder@^1.0.9:
   version "1.0.13"
