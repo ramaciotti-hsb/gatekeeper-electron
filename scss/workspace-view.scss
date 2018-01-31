@@ -81,27 +81,4 @@
             }
         } // .sidebar-sample
     } // .sidebar
-
-    .panel {
-        flex-basis: 80%;
-        flex-direction: column;
-        align-items: stretch;
-
-        & > .header {
-            padding: 15px;
-            font-size: 20px;
-            font-weight: 200;
-            align-items: stretch;
-            flex-shrink: 0;
-
-            input {
-                outline: none;
-                border: 2px solid #eee;
-                padding: 15px;
-                font-size: inherit;
-                font-weight: 600;
-                flex-grow: 1;
-            }
-        } // & > .header
-    } // .panel
 } // .workspace

@@ -5,12 +5,38 @@
 @import 'mixins.scss';
 
 .panel.sample {
+    flex-basis: 80%;
+    flex-direction: column;
+    align-items: stretch;
 
     .panel-inner {
         background: #f5f5f5;
         flex-grow: 1;
         flex-direction: column;
         align-items: flex-start;
+
+        .header {
+            padding: 15px 15px 0 15px;
+            font-size: 20px;
+            font-weight: 200;
+            align-items: stretch;
+            flex-shrink: 0;
+            flex-direction: column;
+
+            .upper {
+                font-size: 12px;
+                color: #666;
+            }
+
+            input {
+                outline: none;
+                border: 2px solid #eee;
+                padding: 15px;
+                font-size: inherit;
+                font-weight: 600;
+                flex-grow: 1;
+            }
+        } // & > .header
 
         & > * {
             flex-shrink: 0;

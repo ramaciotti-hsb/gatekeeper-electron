@@ -23,6 +23,7 @@ export default class WorkspaceView extends Component {
     }
 
     selectSample (sampleId) {
+        console.log('selected')
         this.setState({
             selectedSampleId: sampleId
         }, () => { sessionHelper.saveSessionStateToDisk() })
@@ -32,7 +33,9 @@ export default class WorkspaceView extends Component {
         this.setState(this.state)
     }
 
-    removeSample (samples, sampleId) {
+    removeSample (samples, sampleId, event) {
+        event.stopPropagation()
+
         for (let i = 0; i < samples.length; i++) {
             const sample = samples[i]
 
@@ -42,15 +45,15 @@ export default class WorkspaceView extends Component {
                 const state = {
                     samples: this.state.samples
                 }
-                if (samples.length > 0) {
+                if (state.selectedSampleId === sampleId && samples.length > 0) {
                     state.selectedSampleId = samples[i === samples.length ? samples.length - 1 : i].id
                 }
-                this.setState(state)
+                this.setState(state, () => { this.reloadWorkspaceView() })
                 return true
             }
 
             if (sample.subSamples && sample.subSamples.length > 0) {
-                if (this.removeSample(sample.subSamples, sampleId)) {
+                if (this.removeSample(sample.subSamples, sampleId, event)) {
                     return true
                 }
             }                
@@ -108,6 +111,9 @@ export default class WorkspaceView extends Component {
 
             if (sample.subSamples) {
                 const found = this.findSampleById(sample.subSamples, id)
+                if (found && !found.parentTitle) {
+                    found.parentTitle = sample.title
+                }
                 if (found) { return found }
             }
         }

@@ -168,7 +168,7 @@ export default class Container extends Component {
                     type: "sample",
                     filePath: filePath,
                     title: filePath.split(path.sep).slice(-1), // Returns just the filename without the path
-                    description: 'Root Node'
+                    description: 'Root Sample'
                 }
 
                 // If there's no selected workspace, create a new one first
