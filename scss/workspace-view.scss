@@ -35,7 +35,7 @@
                 @include backgroundHover(#fff);
                 @include backgroundClick(#fff);
                 position: relative;
-                padding: 10px 10px 10px 15px;
+                padding: 8px 8px 8px 10px;
                 font-size: 12px;
                 flex-grow: 1;
                 flex-direction: column;
@@ -59,8 +59,8 @@
                     height: 100%;
                     align-items: center;
                     justify-content: center;
-                    width: 40px;
-                    font-size: 24px;
+                    width: 30px;
+                    font-size: 18px;
                     cursor: pointer;
                     @include backgroundHover(#f2f2f2);
                     @include backgroundClick(#f2f2f2);
@@ -68,7 +68,6 @@
     
                 & > .title {
                     font-size: 12px;
-                    margin-bottom: 5px;
                     font-weight: 600;
                     color: #666;
                 }

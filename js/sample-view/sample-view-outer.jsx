@@ -4,32 +4,23 @@ import { Component } from 'react'
 import _ from 'lodash'
 import path from 'path'
 import * as d3 from "d3"
-import Dropdown from './dropdown-inline.jsx'
-import '../scss/sample-view.scss'
-import sessionHelper from './session-helper.js'
+import Dropdown from '../lib/dropdown-inline.jsx'
+import '../../scss/sample-view.scss'
+import sessionHelper from '../lib/session-helper.js'
 import fs from 'fs'
 import FCS from 'fcs'
-import logicleScale from './logicle.js'
+import logicleScale from '../scales/logicle.js'
 import uuidv4 from 'uuid/v4'
-import GrahamScan from './lib/graham-scan.js'
+import GrahamScan from '../lib/graham-scan.js'
 import polygonsIntersect from 'polygon-overlap'
 import pointInsidePolygon from 'point-in-polygon'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import area from 'area-polygon'
-import Density from './lib/2d-density.js'
-import persistentHomology from './lib/persistent-homology.js'
-
-function heatMapColorforValue (value) {
-    var h = (1.0 - value) * 240
-    return "hsl(" + h + ", 100%, 50%)";
-}
-
-const SCALE_LINEAR = 0
-const SCALE_LOG = 1
-const SCALE_BIEXP = 2
-
-const GATE_RECTANGLE = 'GATE_RECTANGLE'
-const GATE_POLYGON = 'GATE_POLYGON'
+import Density from '../lib/2d-density.js'
+import persistentHomology from '../lib/persistent-homology.js'
+import Gates from './sample-gates.jsx'
+import constants from '../lib/constants.js'
+import { heatMapColorforValue } from '../lib/utilities.js'
 
 export default class SampleView extends Component {
     
@@ -41,6 +32,9 @@ export default class SampleView extends Component {
             selectedXScaleId: this.props.selectedXScaleId || 0,
             selectedYScaleId: this.props.selectedYScaleId || 0,
             pointCache: [], // All samples arranged in 2d array by currently selected parameters
+            graphWidth: 600,
+            graphHeight: 460,
+            graphMargin: {top: 20, right: 20, bottom: 20, left: 20},
             gateSelection: null,
             FCSFile: this.props.FCSFile || null,
             subSamples: this.props.subSamples || []
@@ -73,8 +67,12 @@ export default class SampleView extends Component {
                 data: data
             })
         });
-        this.densityMap = new Density(densityPoints)
-        return this.densityMap.calculateDensity()
+
+        this.state.densityMap = new Density(densityPoints)
+        this.setState({
+            densityMap: this.state.densityMap
+        })
+        return this.state.densityMap.calculateDensity()
     }
 
     createGraphLayout () {
@@ -99,9 +97,6 @@ export default class SampleView extends Component {
 
         d3.selectAll("svg > *").remove();
 
-        const margin = {top: 20, right: 20, bottom: 20, left: 50},
-            width = 600 - margin.left - margin.right,
-            height = 460 - margin.top - margin.bottom;
         /* 
          * value accessor - returns the value to encode for a given data object.
          * scale - maps value to a visual display encoding, such as a pixel position.
@@ -113,21 +108,21 @@ export default class SampleView extends Component {
         let xValue = (d) => { return d[this.state.selectedXParameterIndex] } // data -> value
         let xScale
         // Linear Scale
-        if (this.state.selectedXScaleId === SCALE_LINEAR) {
-            xScale = d3.scaleLinear().range([0, width]) // value -> display
+        if (this.state.selectedXScaleId === constants.SCALE_LINEAR) {
+            xScale = d3.scaleLinear().range([0, this.state.graphWidth]) // value -> display
             // don't want dots overlapping axis, so add in buffer to data domain
             xScale.domain(d3.extent(this.state.FCSFile.dataAsNumbers, d => d[this.state.selectedXParameterIndex]));
         // Log Scale
-        } else if (this.state.selectedXScaleId === SCALE_LOG) {
+        } else if (this.state.selectedXScaleId === constants.SCALE_LOG) {
             // Log scale will break for values <= 0
             xValue = (d) => { return Math.max(0.1, d[this.state.selectedXParameterIndex]) }
             xScale = d3.scaleLog()
-                .range([0, width])
+                .range([0, this.state.graphWidth])
                 .base(Math.E)
                 .domain([Math.exp(Math.log(Math.max(0.1, xMin))), Math.exp(Math.log(xMax))])
         // Biexponential Scale
-        } else if (this.state.selectedXScaleId === SCALE_BIEXP) {
-            xScale = logicleScale().range([0, width])
+        } else if (this.state.selectedXScaleId === constants.SCALE_BIEXP) {
+            xScale = logicleScale().range([0, this.state.graphWidth])
         }
         const xMap = function(d) { return xScale(xValue(d)) } // data -> display
         const xAxis = d3.axisBottom().scale(xScale).tickFormat(d3.format(".2s"))
@@ -135,19 +130,19 @@ export default class SampleView extends Component {
         // setup y
         let yValue = (d) => { return d[this.state.selectedYParameterIndex] }
         let yScale
-        if (this.state.selectedYScaleId === SCALE_LINEAR) {
-            yScale = d3.scaleLinear().range([height, 0]) // value -> display
+        if (this.state.selectedYScaleId === constants.SCALE_LINEAR) {
+            yScale = d3.scaleLinear().range([this.state.graphHeight, 0]) // value -> display
             yScale.domain(d3.extent(this.state.FCSFile.dataAsNumbers, d => d[this.state.selectedYParameterIndex]));
         // Log Scale
-        } else if (this.state.selectedYScaleId === SCALE_LOG) {
+        } else if (this.state.selectedYScaleId === constants.SCALE_LOG) {
             yValue = (d) => { return Math.max(0.1, d[this.state.selectedYParameterIndex]) } // data -> value
             yScale = d3.scaleLog()
-                .range([height, 0])
+                .range([this.state.graphHeight, 0])
                 .base(Math.E)
                 .domain([Math.exp(Math.log(Math.max(0.1, yMin))), Math.exp(Math.log(yMax))])
         // Biexponential Scale
-        } else if (this.state.selectedYScaleId === SCALE_BIEXP) {
-            yScale = logicleScale().range([height, 0])
+        } else if (this.state.selectedYScaleId === constants.SCALE_BIEXP) {
+            yScale = logicleScale().range([this.state.graphHeight, 0])
         }
         const yMap = function(d) { return yScale(yValue(d)) } // data -> display
         const yAxis = d3.axisLeft().scale(yScale).tickFormat(d3.format(".2s"))
@@ -163,11 +158,11 @@ export default class SampleView extends Component {
         // x-axis
         svg.append("g")
           .attr("class", "x axis")
-          .attr("transform", "translate(0," + height + ")")
+          .attr("transform", "translate(0," + this.state.graphHeight + ")")
           .call(xAxis)
         .append("text")
           .attr("class", "label")
-          .attr("x", width)
+          .attr("x", this.state.graphWidth)
           .attr("y", -6)
           .style("text-anchor", "end")
           .text("Calories");
@@ -193,139 +188,14 @@ export default class SampleView extends Component {
             .attr("x", xMap)
             .attr("y", yMap)
             .style("fill", "blue")
-    }
 
-    redrawGraph () {
-        const margin = {top: 20, right: 20, bottom: 20, left: 50},
-            width = 600 - margin.left - margin.right,
-            height = 460 - margin.top - margin.bottom;
-
-        let selectionMinX, selectionMaxX, selectionMinY, selectionMaxY
-        const svg = d3.select("svg")        
-
-        const redrawCanvasPoints = () => {
-            // Draw each individual custom element with their properties.
-            const maxDensity = this.densityMap.getMaxDensity()
-            var canvas = d3.select('.canvas')
-              .attr('width', width)
-              .attr('height', height);
-
-            var context = canvas.node().getContext('2d');
-            var elements = this.svgElement.selectAll('rect');
-
-            context.fillStyle = '#999'
-            // Determine if there are any 2d gates in the subsamples that match these parameters
-            let gatesExist = false
-            for (let subSample of this.state.subSamples) {
-                if (subSample.type === 'gate' &&
-                    subSample.gate.xParameterIndex === this.state.selectedXParameterIndex && 
-                    subSample.gate.yParameterIndex === this.state.selectedYParameterIndex) {
-                    gatesExist = true
-                }
-            }
-
-            if (gatesExist) {
-                // First, render all points in grey
-                for (let y = 0; y < this.state.pointCache.length; y++) {
-                    const column = this.state.pointCache[y]
-                    if (!column || column.length === 0) { continue }
-                    for (let x = 0; x < column.length; x++) {
-                        const row = column[x]
-                        if (!row || row.length === 0) { continue }
-
-                        for (let p = 0; p < row.length; p++) {
-                            const point = row[p]
-                            context.fillRect(point.x, point.y, 1, 1)
-                        }
-                    }
-                }
-
-                // Then go through all gates and render points inside them as blue
-                let shouldDisplay = false
-                for (let i = 0; i < this.state.subSamples.length; i++) {
-                    const subSample = this.state.subSamples[i]
-                    if (subSample.type !== 'gate' ||
-                    subSample.gate.xParameterIndex !== this.state.selectedXParameterIndex || 
-                    subSample.gate.yParameterIndex !== this.state.selectedYParameterIndex) { continue }
-
-                    if (subSample.gate.type === GATE_RECTANGLE) {
-                        const gate = subSample.gate
-                        const minX = Math.floor(Math.min(gate.x1, gate.x2) - 50)
-                        const minY = Math.floor(Math.min(gate.y1, gate.y2) - 20)
-                        const maxX = Math.floor(Math.max(gate.x1, gate.x2) - 50)
-                        const maxY = Math.floor(Math.max(gate.y1, gate.y2) - 20)
-
-                        for (let y = minY; y < maxY; y++) {
-                            const column = this.state.pointCache[y]
-                            if (!column) { continue }
-
-                            for (let x = minX; x < maxX; x++) {
-                                let row = column[x]
-                                if (!row) { continue }
-
-                                for (let p = 0; p < row.length; p++) {
-                                    const point = row[p]
-
-                                    context.fillStyle = heatMapColorforValue(Math.min((this.densityMap.getDensityMap()[y][x] / maxDensity * 1.5), 1))
-                                    context.fillRect(point.x, point.y, 1, 1)
-                                }
-                            }
-                        }
-
-                        gate.outline = svg.append("path")
-                          .attr("class", "gate")
-                          .attr("d", rect(minX + 50, minY + 20, maxX - minX, maxY - minY))
-                    } else if (subSample.gate.type === GATE_POLYGON) {
-                        for (let y = 0; y < this.state.pointCache.length; y++) {
-                            const column = this.state.pointCache[y]
-                            if (!column || column.length === 0) { continue }
-
-                            for (let x = 0; x < column.length; x++) {
-                                const row = column[x]
-                                if (!row || row.length === 0) { continue }
-
-                                if (pointInsidePolygon([x, y], subSample.gate.polygon)) {
-                                    context.fillStyle = heatMapColorforValue(Math.min((this.densityMap.getDensityMap()[y][x] / maxDensity * 1.5), 1))
-                                    context.fillRect(x, y, 1, 1)
-                                }
-                            }
-                        }
-
-                        // Render polygons
-                        svg.append("polygon")
-                          .attr("class", "gate")
-                          .attr("points", subSample.gate.polygon.join(' '))
-                    }
-                }
-            } else {
-                // If there are no gates drawn
-                // Render all points based on density
-                for (let y = 0; y < this.state.pointCache.length; y++) {
-                    const column = this.state.pointCache[y]
-                    if (!column || column.length === 0) { continue }
-
-                    for (let x = 0; x < column.length; x++) {
-                        const row = column[x]
-                        if (!row || row.length === 0) { continue }
-
-                        context.fillStyle = heatMapColorforValue(Math.min((this.densityMap.getDensityMap()[y][x] / maxDensity * 1.5), 1))
-                        context.fillRect(x, y, 1, 1)
-                    }
-                }
-            }
-        }
-
-        redrawCanvasPoints()
 
         // Create bindings for drawing rectangle gates
         function rect(x, y, w, h) {
-            x -= 50
-            y -= 20
-
             // Limit to the area of the scatter plot
             if (w > 0) {
                 // If the width is positive, cap at rightmost boundary
-                w = Math.min(w, width - x)
+                w = Math.min(w, this.state.graphWidth - x)
             } else {
                 // If the width is negative, cap at leftmost boundary
                 w = Math.max(w, -x)
@@ -333,7 +203,7 @@ export default class SampleView extends Component {
 
             if (h > 0) {
                 // If the height is positive, cap at lower boundary (coords start from top left and y increases downwards)
-                h = Math.min(h, height - y)
+                h = Math.min(h, this.state.graphHeight - y)
             } else {
                 // If the height is negative, cap at upper boundary (0)
                 h = Math.max(h, -y)
@@ -348,7 +218,7 @@ export default class SampleView extends Component {
         var startSelection = function(start) {
             selection.attr("d", rect(start[0], start[0], 0, 0))
               .attr("visibility", "visible");
-            redrawCanvasPoints()
+            redrawGraph()
         };
 
         var moveSelection = function(start, moved) {
@@ -362,19 +232,19 @@ export default class SampleView extends Component {
                 text: this.state.FCSFile.text
             }
             const gate = {
-                type: GATE_RECTANGLE,
+                type: constants.GATE_RECTANGLE,
                 x1: start[0],
                 y1: start[1],
-                x2: Math.min(Math.max(50, end[0]), width + 50),
-                y2: Math.min(Math.max(20, end[1]), height + 20),
+                x2: Math.min(Math.max(50, end[0]), this.state.graphWidth),
+                y2: Math.min(Math.max(20, end[1]), this.state.graphHeight),
                 xParameterIndex: this.state.selectedXParameterIndex,
                 yParameterIndex: this.state.selectedYParameterIndex
             }
             // Calculate all the samples that are matched inside the gate
-            const minX = Math.floor(Math.min(gate.x1, gate.x2) - 50)
-            const minY = Math.floor(Math.min(gate.y1, gate.y2) - 20)
-            const maxX = Math.floor(Math.max(gate.x1, gate.x2) - 50)
-            const maxY = Math.floor(Math.max(gate.y1, gate.y2) - 20)
+            const minX = Math.floor(Math.min(gate.x1, gate.x2))
+            const minY = Math.floor(Math.min(gate.y1, gate.y2))
+            const maxX = Math.floor(Math.max(gate.x1, gate.x2))
+            const maxY = Math.floor(Math.max(gate.y1, gate.y2))
 
             for (let y = minY; y < maxY; y++) {
                 const column = this.state.pointCache[y]
@@ -410,7 +280,7 @@ export default class SampleView extends Component {
             selectionMaxY = null
             sessionHelper.saveSessionStateToDisk()
             this.props.reloadWorkspaceView()
-            redrawCanvasPoints()
+            redrawGraph()
         };
 
         svg.on("mousedown", function (event) {
@@ -429,27 +299,134 @@ export default class SampleView extends Component {
         });
     }
 
-    stepHomology () {
-        if (!this.state.homologyHeight) {
-            this.setState({ homologyHeight: 150 }, () => {
-                this.createGraphLayout()
-                this.createPointCache().then(() => {
-                    this.redrawGraph()
-                })
-            })
+    redrawGraph () {
+        let selectionMinX, selectionMaxX, selectionMinY, selectionMaxY
+        const svg = d3.select("svg")
+
+        d3.selectAll("svg > polygon").remove();
+
+        // Draw each individual custom element with their properties.
+        const maxDensity = this.state.densityMap.getMaxDensity()
+        var canvas = d3.select('.canvas')
+          .attr('width', this.state.graphWidth)
+          .attr('height', this.state.graphHeight);
+
+        var context = canvas.node().getContext('2d');
+        var elements = this.svgElement.selectAll('rect');
+
+        context.fillStyle = '#999'
+        // Determine if there are any 2d gates in the subsamples that match these parameters
+        let gatesExist = false
+        for (let subSample of this.state.subSamples) {
+            if (subSample.type === 'gate' &&
+                subSample.gate.xParameterIndex === this.state.selectedXParameterIndex && 
+                subSample.gate.yParameterIndex === this.state.selectedYParameterIndex) {
+                gatesExist = true
+            }
+        }
+
+        if (gatesExist) {
+            // First, render all points in grey
+            for (let y = 0; y < this.state.pointCache.length; y++) {
+                const column = this.state.pointCache[y]
+                if (!column || column.length === 0) { continue }
+                for (let x = 0; x < column.length; x++) {
+                    const row = column[x]
+                    if (!row || row.length === 0) { continue }
+
+                    for (let p = 0; p < row.length; p++) {
+                        const point = row[p]
+                        context.fillRect(point.x, point.y, 1, 1)
+                    }
+                }
+            }
+
+            let gatesToRender = []
+
+            // If there is a selected subSample 
+            if (this.state.highlightSubsampleId) {
+                gatesToRender = [_.find(this.state.subSamples, s => s.id === this.state.highlightSubsampleId)]
+            } else {
+                gatesToRender = this.state.subSamples
+            }
+
+            // Then go through all gates and render points inside them as blue
+            let shouldDisplay = false
+            for (let i = 0; i < gatesToRender.length; i++) {
+                const subSample = gatesToRender[i]
+                if (subSample.type !== 'gate' ||
+                subSample.gate.xParameterIndex !== this.state.selectedXParameterIndex || 
+                subSample.gate.yParameterIndex !== this.state.selectedYParameterIndex) { continue }
+
+                if (subSample.gate.type === constants.GATE_RECTANGLE) {
+                    const gate = subSample.gate
+                    const minX = Math.floor(Math.min(gate.x1, gate.x2))
+                    const minY = Math.floor(Math.min(gate.y1, gate.y2))
+                    const maxX = Math.floor(Math.max(gate.x1, gate.x2))
+                    const maxY = Math.floor(Math.max(gate.y1, gate.y2))
+
+                    for (let y = minY; y < maxY; y++) {
+                        const column = this.state.pointCache[y]
+                        if (!column) { continue }
+
+                        for (let x = minX; x < maxX; x++) {
+                            let row = column[x]
+                            if (!row) { continue }
+
+                            for (let p = 0; p < row.length; p++) {
+                                const point = row[p]
+
+                                context.fillStyle = heatMapColorforValue(Math.min((this.state.densityMap.getDensityMap()[y][x] / maxDensity * 1.5), 1))
+                                context.fillRect(point.x, point.y, 1, 1)
+                            }
+                        }
+                    }
+
+                    gate.outline = svg.append("path")
+                      .attr("class", "gate")
+                      .attr("d", rect(minX, minY, maxX - minX, maxY - minY))
+                } else if (subSample.gate.type === constants.GATE_POLYGON) {
+                    for (let y = 0; y < this.state.pointCache.length; y++) {
+                        const column = this.state.pointCache[y]
+                        if (!column || column.length === 0) { continue }
+
+                        for (let x = 0; x < column.length; x++) {
+                            const row = column[x]
+                            if (!row || row.length === 0) { continue }
+
+                            if (pointInsidePolygon([x, y], subSample.gate.polygon)) {
+                                context.fillStyle = heatMapColorforValue(Math.min((this.state.densityMap.getDensityMap()[y][x] / maxDensity * 1.5), 1))
+                                context.fillRect(x, y, 1, 1)
+                            }
+                        }
+                    }
+
+                    // Render polygons
+                    svg.append("polygon")
+                      .attr("class", "gate")
+                      .attr("points", subSample.gate.polygon.join(' '))
+                }
+            }
         } else {
-            console.log('Homology height:', this.state.homologyHeight - 1)
-            this.setState({ homologyHeight: this.state.homologyHeight - 1}, () => {
-                this.createGraphLayout()
-                this.createPointCache().then(() => {
-                    this.redrawGraph()
-                })
-            })
+            // If there are no gates drawn
+            // Render all points based on density
+            for (let y = 0; y < this.state.pointCache.length; y++) {
+                const column = this.state.pointCache[y]
+                if (!column || column.length === 0) { continue }
+
+                for (let x = 0; x < column.length; x++) {
+                    const row = column[x]
+                    if (!row || row.length === 0) { continue }
+
+                    context.fillStyle = heatMapColorforValue(Math.min((this.state.densityMap.getDensityMap()[y][x] / maxDensity * 1.5), 1))
+                    context.fillRect(x, y, 1, 1)
+                }
+            }
         }
     }
 
     calculateHomology () {
-        persistentHomology(this.densityMap).then((truePeaks) => {
+        persistentHomology(this.state.densityMap).then((truePeaks) => {
             for (let peak of truePeaks) {
                 const FCSFile = {
                     dataAsNumbers: [],
@@ -478,7 +455,7 @@ export default class SampleView extends Component {
                     description: 'Subsample',
                     type: 'gate',
                     gate: {
-                        type: GATE_POLYGON,
+                        type: constants.GATE_POLYGON,
                         polygon: peak.polygon,
                         xParameterIndex: this.state.selectedXParameterIndex,
                         yParameterIndex: this.state.selectedYParameterIndex
@@ -520,10 +497,10 @@ export default class SampleView extends Component {
         if (this.props.filePath) {
             this.readFCSFileData(this.props.filePath)
         } else {
-                                this.createGraphLayout()
-                    this.createPointCache().then(() => {
-                        this.redrawGraph()
-                    })
+            this.createGraphLayout()
+            this.createPointCache().then(() => {
+                this.redrawGraph()
+            })
         }
     }
 
@@ -541,7 +518,7 @@ export default class SampleView extends Component {
                 if (newProps.filePath) {
                     this.readFCSFileData(newProps.filePath)
                 } else {
-                                        this.createGraphLayout()
+                    this.createGraphLayout()
                     this.createPointCache().then(() => {
                         this.redrawGraph()
                     })
@@ -556,10 +533,10 @@ export default class SampleView extends Component {
             selectedXParameterIndex: value
         }, () => {
             sessionHelper.saveSessionStateToDisk()
-                                this.createGraphLayout()
-                    this.createPointCache().then(() => {
-                        this.redrawGraph()
-                    })
+            this.createGraphLayout()
+            this.createPointCache().then(() => {
+                this.redrawGraph()
+            })
         })
     }
 
@@ -569,10 +546,10 @@ export default class SampleView extends Component {
             selectedYParameterIndex: value
         }, () => {
             sessionHelper.saveSessionStateToDisk()
-                                this.createGraphLayout()
-                    this.createPointCache().then(() => {
-                        this.redrawGraph()
-                    })
+            this.createGraphLayout()
+            this.createPointCache().then(() => {
+                this.redrawGraph()
+            })
         })
     }
 
@@ -582,10 +559,10 @@ export default class SampleView extends Component {
             selectedXScaleId: value
         }, () => {
             sessionHelper.saveSessionStateToDisk()
-                                this.createGraphLayout()
-                    this.createPointCache().then(() => {
-                        this.redrawGraph()
-                    })
+            this.createGraphLayout()
+            this.createPointCache().then(() => {
+                this.redrawGraph()
+            })
         })
     }
 
@@ -595,10 +572,10 @@ export default class SampleView extends Component {
             selectedYScaleId: value
         }, () => {
             sessionHelper.saveSessionStateToDisk()
-                                this.createGraphLayout()
-                    this.createPointCache().then(() => {
-                        this.redrawGraph()
-                    })
+            this.createGraphLayout()
+            this.createPointCache().then(() => {
+                this.redrawGraph()
+            })
         })
     }
 
@@ -626,6 +603,19 @@ export default class SampleView extends Component {
         return representation
     }
 
+    highlightGate (subSampleId) {
+        console.log(subSampleId)
+        this.setState({
+            highlightSubsampleId: subSampleId
+        }, () => this.redrawGraph())
+    }
+
+    clearHighlightGate () {
+        this.setState({
+            highlightSubsampleId: null
+        }, () => this.redrawGraph())
+    }
+
     render () {
         let parametersX = []
         let parametersXRendered = []
@@ -635,15 +625,15 @@ export default class SampleView extends Component {
 
         let scalesX = [
             {
-                id: SCALE_LINEAR,
+                id: constants.SCALE_LINEAR,
                 label: 'Linear'
             }, 
             {
-                id: SCALE_LOG,
+                id: constants.SCALE_LOG,
                 label: 'Log'
             },
             {
-                id: SCALE_BIEXP,
+                id: constants.SCALE_BIEXP,
                 label: 'Biexp'
             }
         ]
@@ -651,15 +641,15 @@ export default class SampleView extends Component {
 
         let scalesY = [
             {
-                id: SCALE_LINEAR,
+                id: constants.SCALE_LINEAR,
                 label: 'Linear'
             }, 
             {
-                id: SCALE_LOG,
+                id: constants.SCALE_LOG,
                 label: 'Log'
             },
             {
-                id: SCALE_BIEXP,
+                id: constants.SCALE_BIEXP,
                 label: 'Biexp'
             }
         ]
@@ -703,6 +693,13 @@ export default class SampleView extends Component {
             })
         }
 
+        const autoGates = [
+            {
+                value: 'persistent-homology',
+                component: <div className='item' onClick={this.calculateHomology.bind(this)} key={'persistent-homology'}>Persistent Homology</div>
+            }
+        ]
+
         return (
             <div className='panel sample'>
                 <div className='panel-inner'>
@@ -717,7 +714,7 @@ export default class SampleView extends Component {
                                 <Dropdown items={scalesYRendered} textLabel={scalesY[this.state.selectedYScaleId].label} outerClasses={'scale'} ref={'yScaleDropdown'} />
                             </div>
                             <div className='svg-outer'>
-                                <svg width={600} height={460} ref="graph"></svg>
+                                <svg width={this.state.graphWidth + this.state.graphMargin.left + this.state.graphMargin.right} height={this.state.graphHeight + this.state.graphMargin.bottom + this.state.graphMargin.top} ref="graph"></svg>
                                 <canvas className="canvas"/>
                                 <div className='axis-selection x'>
                                     <Dropdown items={parametersXRendered} textLabel={parametersX[this.state.selectedXParameterIndex]} ref={'xParameterDropdown'} />
@@ -726,11 +723,10 @@ export default class SampleView extends Component {
                             </div>
                         </div>
                     </div>
-                    <div className='homology'>
-                        Homology
-                        <div className='step-forward' onClick={this.stepHomology.bind(this)}>Step Forward</div>
-                        <div className='step-forward' onClick={this.calculateHomology.bind(this)}>Create gates</div>
+                    <div className='header gates'>
+                        <div className='lower'>Gates <Dropdown items={autoGates} textLabel={'Auto Gate...'} /></div>
                     </div>
+                    <Gates densityMap={this.state.densityMap} subSamples={this.state.subSamples} clearHighlightGate={this.clearHighlightGate.bind(this)} highlightGate={this.highlightGate.bind(this)} graphWidth={this.state.graphWidth} graphHeight={this.state.graphHeight} />
                 </div>
             </div>
         )

@@ -1,0 +1,32 @@
+// ----------------------------------------------
+// Styles for the react sample-gates.jsx component
+// ----------------------------------------------
+
+@import '../mixins';
+
+.gates {
+    flex-wrap: wrap;
+    padding: 0 10px;
+
+    .gate {
+        cursor: pointer;
+        padding: 0 10px 10px 10px;
+        width: 200px;
+        height: 150px;
+        border-radius: 5px;
+        margin: 5px;
+        flex-direction: column;
+        @include backgroundHover(#fff, 2%);
+
+        .selected-parameters {
+            font-size: 12px;
+            color: #555;
+            flex-shrink: 0;
+            padding: 10px 0 5px 0;
+        }
+    }
+
+    &.body {
+        margin-bottom: 15px;
+    }
+}

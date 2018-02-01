@@ -14,9 +14,10 @@
         flex-grow: 1;
         flex-direction: column;
         align-items: flex-start;
+        overflow-y: auto;        
 
         .header {
-            padding: 15px 15px 0 15px;
+            padding: 15px;
             font-size: 20px;
             font-weight: 200;
             align-items: stretch;
@@ -28,13 +29,26 @@
                 color: #666;
             }
 
-            input {
+            .lower > input {
                 outline: none;
                 border: 2px solid #eee;
                 padding: 15px;
                 font-size: inherit;
                 font-weight: 600;
                 flex-grow: 1;
+            }
+
+            &.gates {
+
+                .lower {
+                    align-items: center;
+
+                    .dropdown-inline {
+                        margin-left: 15px;
+                        font-size: 14px;
+                        width: 200px;
+                    }
+                }
             }
         } // & > .header
 
@@ -44,7 +58,7 @@
 
         .graph {
             background: #fff;
-            margin: 15px 15px 15px 15px;
+            margin: 0 15px;
             border-radius: 10px;
             flex-direction: column;
 
@@ -106,13 +120,13 @@
         .svg-outer {
             position: relative;
             flex-direction: column;
-        }
 
-        canvas {
-            z-index: 0;
-            cursor: default;
-            position: absolute;
-            padding: 20px 20px 20px 50px;
+            canvas {
+                z-index: 0;
+                cursor: default;
+                position: absolute;
+                padding: 20px 20px 20px 50px;
+            }
         }
 
         .axis-selection {
@@ -127,17 +141,5 @@
                 margin: 0 15px;
             }
         } // .axis-selection
-
-        .homology {
-
-            .step-forward {
-                border: 1px solid #ccc;
-                @include backgroundHover(#fff);
-                @include backgroundClick(#fff);
-                cursor: pointer;
-                padding: 8px 12px;
-                margin-left: 15px;
-            }
-        }
     } // .panel-inner
 } // .panel.sample

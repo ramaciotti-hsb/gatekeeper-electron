@@ -7,7 +7,7 @@ import { remote } from 'electron'
 const { dialog, Menu, MenuSample } = remote
 import path from 'path'
 import fs from 'fs'
-import sessionHelper from './session-helper.js'
+import sessionHelper from './lib/session-helper.js'
 import WorkspaceView from './workspace-view.jsx'
 
 export default class Container extends Component {

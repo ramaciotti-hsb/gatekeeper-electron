@@ -9,8 +9,8 @@ import ReactDOM from 'react-dom'
 import { Component } from 'react'
 import _ from 'lodash'
 import '../scss/workspace-view.scss'
-import SampleView from './sample-view.jsx'
-import sessionHelper from './session-helper.js'
+import SampleView from './sample-view/sample-view-outer.jsx'
+import sessionHelper from './lib/session-helper.js'
 
 export default class WorkspaceView extends Component {
 
@@ -23,7 +23,6 @@ export default class WorkspaceView extends Component {
     }
 
     selectSample (sampleId) {
-        console.log('selected')
         this.setState({
             selectedSampleId: sampleId
         }, () => { sessionHelper.saveSessionStateToDisk() })
@@ -95,7 +94,6 @@ export default class WorkspaceView extends Component {
                     <div className={'sidebar-sample' + (subSample.id === this.state.selectedSampleId ? ' selected' : '')} key={subSample.id}>
                         <div className='body' onClick={this.selectSample.bind(this, subSample.id)}>
                             <div className='title'>{subSample.title}</div>
-                            <div className='description'>{subSample.description}</div>
                             <div className='remove-sample' onClick={this.removeSample.bind(this, this.state.samples, subSample.id)}><i className='lnr lnr-cross'></i></div>
                         </div>
                         <div className='sub-samples'>{this.renderSubSamples(subSample)}</div>
@@ -125,7 +123,6 @@ export default class WorkspaceView extends Component {
                 <div className={'sidebar-sample' + (sample.id === this.state.selectedSampleId ? ' selected' : '')} key={sample.id}>
                     <div className='body' onClick={this.selectSample.bind(this, sample.id)}>
                         <div className='title'>{sample.title}</div>
-                        <div className='description'>{sample.description}</div>
                         <div className='remove-sample' onClick={this.removeSample.bind(this, this.state.samples, sample.id)}><i className='lnr lnr-cross'></i></div>
                     </div>
                     <div className='sub-samples'>{this.renderSubSamples(sample)}</div>

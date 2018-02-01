@@ -1,8 +1,8 @@
 import {ticks} from "d3-array";
 import {format} from "d3-format";
-import constant from "../node_modules/d3-scale/src/constant";
-import nice from "../node_modules/d3-scale/src/nice";
-import {default as continuous, copy} from "../node_modules/d3-scale/src/continuous";
+import constant from "../../node_modules/d3-scale/src/constant";
+import nice from "../../node_modules/d3-scale/src/nice";
+import {default as continuous, copy} from "../../node_modules/d3-scale/src/continuous";
 import Logicle from './logicle-scale.js'
 
 var logicle = new Logicle(262000, 0.4, 4.5, 0.7);

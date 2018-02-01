@@ -11,7 +11,7 @@ import { Component }        from 'react'
 import ReactDOM             from 'react-dom'
 import _                    from 'lodash'
 import OnClickOutside       from 'react-onclickoutside'
-import                           '../scss/dropdown-inline.scss'
+import                           '../../scss/dropdown-inline.scss'
 
 // The outer menu react element
 class DropdownInline extends Component {
