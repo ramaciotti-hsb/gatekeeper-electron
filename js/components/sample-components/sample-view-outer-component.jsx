@@ -25,10 +25,6 @@ export default class SampleView extends Component {
     constructor(props) {
         super(props)
         this.state = {
-            selectedXParameterIndex: _.isUndefined(this.props.selectedXParameterIndex) ? 0 : this.props.selectedXParameterIndex,
-            selectedYParameterIndex: _.isUndefined(this.props.selectedYParameterIndex) ? 1 : this.props.selectedYParameterIndex,
-            selectedXScaleId: this.props.selectedXScaleId || 0,
-            selectedYScaleId: this.props.selectedYScaleId || 0,
             pointCache: [], // All samples arranged in 2d array by currently selected parameters
             graphWidth: 600,
             graphHeight: 460,
@@ -84,8 +80,8 @@ export default class SampleView extends Component {
 
         // Calculate minimum and maximum parameter values for the selected channels
         for (let i = 0; i < this.state.FCSFile.dataAsNumbers.length; i++) {
-            const xValue = this.state.FCSFile.dataAsNumbers[i][this.state.selectedXParameterIndex]
-            const yValue = this.state.FCSFile.dataAsNumbers[i][this.state.selectedYParameterIndex]
+            const xValue = this.state.FCSFile.dataAsNumbers[i][this.props.selectedXParameterIndex]
+            const yValue = this.state.FCSFile.dataAsNumbers[i][this.props.selectedYParameterIndex]
 
             if (xValue > xMax) { xMax = xValue }
             if (xValue < xMin) { xMin = xValue }
@@ -103,43 +99,43 @@ export default class SampleView extends Component {
          */ 
 
         // setup x 
-        let xValue = (d) => { return d[this.state.selectedXParameterIndex] } // data -> value
+        let xValue = (d) => { return d[this.props.selectedXParameterIndex] } // data -> value
         let xScale
         // Linear Scale
-        if (this.state.selectedXScaleId === constants.SCALE_LINEAR) {
+        if (this.props.selectedXScaleId === constants.SCALE_LINEAR) {
             xScale = d3.scaleLinear().range([0, this.state.graphWidth]) // value -> display
             // don't want dots overlapping axis, so add in buffer to data domain
-            xScale.domain(d3.extent(this.state.FCSFile.dataAsNumbers, d => d[this.state.selectedXParameterIndex]));
+            xScale.domain(d3.extent(this.state.FCSFile.dataAsNumbers, d => d[this.props.selectedXParameterIndex]));
         // Log Scale
-        } else if (this.state.selectedXScaleId === constants.SCALE_LOG) {
+        } else if (this.props.selectedXScaleId === constants.SCALE_LOG) {
             // Log scale will break for values <= 0
-            xValue = (d) => { return Math.max(0.1, d[this.state.selectedXParameterIndex]) }
+            xValue = (d) => { return Math.max(0.1, d[this.props.selectedXParameterIndex]) }
             xScale = d3.scaleLog()
                 .range([0, this.state.graphWidth])
                 .base(Math.E)
                 .domain([Math.exp(Math.log(Math.max(0.1, xMin))), Math.exp(Math.log(xMax))])
         // Biexponential Scale
-        } else if (this.state.selectedXScaleId === constants.SCALE_BIEXP) {
+        } else if (this.props.selectedXScaleId === constants.SCALE_BIEXP) {
             xScale = logicleScale().range([0, this.state.graphWidth])
         }
         const xMap = function(d) { return xScale(xValue(d)) } // data -> display
         const xAxis = d3.axisBottom().scale(xScale).tickFormat(d3.format(".2s"))
 
         // setup y
-        let yValue = (d) => { return d[this.state.selectedYParameterIndex] }
+        let yValue = (d) => { return d[this.props.selectedYParameterIndex] }
         let yScale
-        if (this.state.selectedYScaleId === constants.SCALE_LINEAR) {
+        if (this.props.selectedYScaleId === constants.SCALE_LINEAR) {
             yScale = d3.scaleLinear().range([this.state.graphHeight, 0]) // value -> display
-            yScale.domain(d3.extent(this.state.FCSFile.dataAsNumbers, d => d[this.state.selectedYParameterIndex]));
+            yScale.domain(d3.extent(this.state.FCSFile.dataAsNumbers, d => d[this.props.selectedYParameterIndex]));
         // Log Scale
-        } else if (this.state.selectedYScaleId === constants.SCALE_LOG) {
-            yValue = (d) => { return Math.max(0.1, d[this.state.selectedYParameterIndex]) } // data -> value
+        } else if (this.props.selectedYScaleId === constants.SCALE_LOG) {
+            yValue = (d) => { return Math.max(0.1, d[this.props.selectedYParameterIndex]) } // data -> value
             yScale = d3.scaleLog()
                 .range([this.state.graphHeight, 0])
                 .base(Math.E)
                 .domain([Math.exp(Math.log(Math.max(0.1, yMin))), Math.exp(Math.log(yMax))])
         // Biexponential Scale
-        } else if (this.state.selectedYScaleId === constants.SCALE_BIEXP) {
+        } else if (this.props.selectedYScaleId === constants.SCALE_BIEXP) {
             yScale = logicleScale().range([this.state.graphHeight, 0])
         }
         const yMap = function(d) { return yScale(yValue(d)) } // data -> display
@@ -242,8 +238,8 @@ export default class SampleView extends Component {
                     [endXFixed, endYFixed],
                     [startXFixed, endYFixed]
                 ],
-                xParameterIndex: this.state.selectedXParameterIndex,
-                yParameterIndex: this.state.selectedYParameterIndex
+                xParameterIndex: this.props.selectedXParameterIndex,
+                yParameterIndex: this.props.selectedYParameterIndex
             }
 
             // Calculate all the samples that are matched inside the gate
@@ -311,8 +307,8 @@ export default class SampleView extends Component {
         let gatesExist = false
         for (let subSample of this.state.subSamples) {
             if (subSample.type === 'gate' &&
-                subSample.gate.xParameterIndex === this.state.selectedXParameterIndex && 
-                subSample.gate.yParameterIndex === this.state.selectedYParameterIndex) {
+                subSample.gate.xParameterIndex === this.props.selectedXParameterIndex && 
+                subSample.gate.yParameterIndex === this.props.selectedYParameterIndex) {
                 gatesExist = true
             }
         }
@@ -347,8 +343,8 @@ export default class SampleView extends Component {
             for (let i = 0; i < gatesToRender.length; i++) {
                 const subSample = gatesToRender[i]
                 if (subSample.type !== 'gate' ||
-                subSample.gate.xParameterIndex !== this.state.selectedXParameterIndex || 
-                subSample.gate.yParameterIndex !== this.state.selectedYParameterIndex) { continue }
+                subSample.gate.xParameterIndex !== this.props.selectedXParameterIndex || 
+                subSample.gate.yParameterIndex !== this.props.selectedYParameterIndex) { continue }
 
                 if (subSample.gate.type === constants.GATE_POLYGON) {
                     for (let y = 0; y < this.state.pointCache.length; y++) {
@@ -429,8 +425,8 @@ export default class SampleView extends Component {
                     gate: {
                         type: constants.GATE_POLYGON,
                         polygon: peak.polygon,
-                        xParameterIndex: this.state.selectedXParameterIndex,
-                        yParameterIndex: this.state.selectedYParameterIndex
+                        xParameterIndex: this.props.selectedXParameterIndex,
+                        yParameterIndex: this.props.selectedYParameterIndex
                     },
                     FCSFile: FCSFile,
                     selectedXParameterIndex: this.selectedXParameterIndex,
@@ -563,10 +559,10 @@ export default class SampleView extends Component {
             description: this.props.description,
             type: this.props.type,
             filePath: this.props.filePath,
-            selectedXParameterIndex: this.state.selectedXParameterIndex,
-            selectedYParameterIndex: this.state.selectedYParameterIndex,
-            selectedXScaleId: this.state.selectedXScaleId,
-            selectedYScaleId: this.state.selectedYScaleId,
+            selectedXParameterIndex: this.props.selectedXParameterIndex,
+            selectedYParameterIndex: this.props.selectedYParameterIndex,
+            selectedXScaleId: this.props.selectedXScaleId,
+            selectedYScaleId: this.props.selectedYScaleId,
             gates: this.state.gates,
             FCSFile: this.state.FCSFile,
             subSamples: this.state.subSamples
@@ -686,15 +682,15 @@ export default class SampleView extends Component {
                     <div className='graph'>
                         <div className='graph-upper'>
                             <div className='axis-selection y'>
-                                <Dropdown items={parametersYRendered} textLabel={parametersY[this.state.selectedYParameterIndex]} ref={'yParameterDropdown'} />
-                                <Dropdown items={scalesYRendered} textLabel={scalesY[this.state.selectedYScaleId].label} outerClasses={'scale'} ref={'yScaleDropdown'} />
+                                <Dropdown items={parametersYRendered} textLabel={parametersY[this.props.selectedYParameterIndex]} ref={'yParameterDropdown'} />
+                                <Dropdown items={scalesYRendered} textLabel={scalesY[this.props.selectedYScaleId].label} outerClasses={'scale'} ref={'yScaleDropdown'} />
                             </div>
                             <div className='svg-outer'>
                                 <svg width={this.state.graphWidth + this.state.graphMargin.left + this.state.graphMargin.right} height={this.state.graphHeight + this.state.graphMargin.bottom + this.state.graphMargin.top} ref="graph"></svg>
                                 <canvas className="canvas"/>
                                 <div className='axis-selection x'>
-                                    <Dropdown items={parametersXRendered} textLabel={parametersX[this.state.selectedXParameterIndex]} ref={'xParameterDropdown'} />
-                                    <Dropdown items={scalesXRendered} textLabel={scalesX[this.state.selectedXScaleId].label} outerClasses={'scale'} ref={'xScaleDropdown'} />
+                                    <Dropdown items={parametersXRendered} textLabel={parametersX[this.props.selectedXParameterIndex]} ref={'xParameterDropdown'} />
+                                    <Dropdown items={scalesXRendered} textLabel={scalesX[this.props.selectedXScaleId].label} outerClasses={'scale'} ref={'xScaleDropdown'} />
                                 </div>
                             </div>
                         </div>

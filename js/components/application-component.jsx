@@ -108,9 +108,6 @@ export default class Application extends Component {
         // Create the file menu with open, etc
         const menu = Menu.buildFromTemplate(template)
         Menu.setApplicationMenu(menu)
-
-        // sessionHelper.setRootComponent(this)
-        // this.state = sessionHelper.getSessionState()
     }
 
     newWorkspace () {
@@ -139,7 +136,12 @@ export default class Application extends Component {
                     type: "sample",
                     filePath: filePath,
                     title: filePath.split(path.sep).slice(-1), // Returns just the filename without the path
-                    description: 'Root Sample'
+                    description: 'Root Sample',
+                    selectedXParameterIndex: 0,
+                    selectedYParameterIndex: 1,
+                    selectedXScaleId: 0,
+                    selectedYScaleId: 0,
+                    subSampleIds: []
                 }
                 this.props.createSampleAndAddToWorkspace({ sample, workspaceId: this.props.selectedWorkspaceId })
             }
