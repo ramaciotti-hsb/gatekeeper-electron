@@ -4,11 +4,10 @@
 
 import uuidv4 from 'uuid/v4'
 
-let nextTodoId = 0
-export const createSample = parameters => {
+export const sampleLoadingFinished = (sampleId, FCSFile) => {
     return {
-        type: 'CREATE_SAMPLE',
-        payload: parameters
+        type: 'SAMPLE_LOADING_FINISHED',
+        payload: { sampleId, FCSFile }
     }
 }
 

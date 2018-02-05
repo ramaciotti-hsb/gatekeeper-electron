@@ -3,6 +3,7 @@
 // -------------------------------------------------------------
 
 import { connect } from 'react-redux'
+import { sampleLoadingFinished } from '../actions/sample-actions'
 import { createWorkspace, removeWorkspace, selectWorkspace, createSampleAndAddToWorkspace } from '../actions/workspace-actions.js'
 import Application from '../components/application-component.jsx'
 
@@ -24,8 +25,12 @@ const mapDispatchToProps = dispatch => {
         dispatch(selectWorkspace(id))
     },
 
-    createSampleAndAddToWorkspace: (parameters) => {
-        dispatch(createSampleAndAddToWorkspace(parameters))
+    createSampleAndAddToWorkspace: (workspaceId, sampleParameters) => {
+        dispatch(createSampleAndAddToWorkspace(workspaceId, sampleParameters))
+    },
+
+    sampleLoadingFinished: (sampleId, FCSFile) => {
+        dispatch(sampleLoadingFinished(sampleId, FCSFile))
     }
   }
 }

@@ -5,6 +5,7 @@
 // -------------------------------------------------------------
 
 import _ from 'lodash'
+import { sampleLoadingFinished } from '../actions/sample-actions'
 
 const samples = (state = [], action = {}) => {
     let newState = state.slice(0)
@@ -20,6 +21,11 @@ const samples = (state = [], action = {}) => {
             type: action.payload.type,
             gate: action.payload.gate,
             filePath: action.payload.filePath,
+            FCSFile: {
+                ready: false,
+                dataAsNumbers: [],
+                text: []
+            },
             selectedXParameterIndex: action.payload.selectedXParameterIndex,
             selectedYParameterIndex: action.payload.selectedYParameterIndex,
             selectedXScaleId: action.payload.selectedXScaleId,
@@ -67,8 +73,20 @@ const samples = (state = [], action = {}) => {
         } else {
             console.log('REMOVE_SAMPLE failed: no sample with id', action.payload.sampleId, 'was found')
         }
+    // --------------------------------------------------
+    // Mark a sample as ready and make it's data available after
+    // loading
+    // --------------------------------------------------
+    } else if (action.type === 'SAMPLE_LOADING_FINISHED') {
+        const sampleIndex = _.findIndex(state, s => s.id === action.payload.sampleId)
+
+        if (sampleIndex > -1) {
+            const newSample = _.clone(state[sampleIndex])
+            newSample.subSampleIds = newSample.subSampleIds.slice(0)
+            newSample.FCSFile = action.payload.FCSFile
+            newState = state.slice(0, sampleIndex).concat([newSample]).concat(state.slice(sampleIndex + 1))
+        }
     }
-    
     return newState
 }
 

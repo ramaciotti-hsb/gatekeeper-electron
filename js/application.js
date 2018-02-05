@@ -6,12 +6,13 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { Provider } from 'react-redux'
-import { createStore } from 'redux'
+import { createStore, applyMiddleware } from 'redux'
 import Application from './containers/application-container.jsx'
+import applicationReducer from './reducers/application-reducer'
+import asyncDispatchMiddleware from './lib/async-dispatch-middleware'
 import '../scss/container.scss'
-import applicationReducers from './reducers/application-reducers'
 
-const store = createStore(applicationReducers)
+const store = createStore(applicationReducer, applyMiddleware(asyncDispatchMiddleware))
 
 window.store = store
 

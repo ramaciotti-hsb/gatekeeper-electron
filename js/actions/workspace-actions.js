@@ -3,8 +3,9 @@
 // -------------------------------------------------------------
 
 import uuidv4 from 'uuid/v4'
-
-let nextTodoId = 0
+import { sampleLoadingFinished } from './sample-actions.js'
+import fs from 'fs'
+import FCSDataAccess from '../data-access/electron/FCSFile.js'
 
 export const selectWorkspace = id => {
     return {
@@ -21,11 +22,13 @@ export const createWorkspace = (parameters) => {
     }
 }
 
-export const createSampleAndAddToWorkspace = (parameters) => {
-    parameters.sample.id = uuidv4()
+// Returns a thunk that will call sampleLoadingFinished when the FCS file has been loaded from the disk
+export const createSampleAndAddToWorkspace = (workspaceId, sampleParameters) => {
+    const newId = uuidv4()
+    sampleParameters.id = newId
     return {
         type: 'CREATE_SAMPLE_AND_ADD_TO_WORKSPACE',
-        payload: parameters
+        payload: { workspaceId, sample: sampleParameters }
     }
 }
 

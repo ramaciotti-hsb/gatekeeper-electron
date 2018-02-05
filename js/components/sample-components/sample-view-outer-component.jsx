@@ -6,7 +6,6 @@ import * as d3 from "d3"
 import Dropdown from '../../lib/dropdown-inline.jsx'
 import '../../../scss/sample-view.scss'
 import fs from 'fs'
-import FCS from 'fcs'
 import logicleScale from '../../scales/logicle.js'
 import uuidv4 from 'uuid/v4'
 import GrahamScan from '../../lib/graham-scan.js'
@@ -30,7 +29,6 @@ export default class SampleView extends Component {
             graphHeight: 460,
             graphMargin: {top: 20, right: 20, bottom: 20, left: 20},
             gateSelection: null,
-            FCSFile: this.props.FCSFile || null,
             subSamples: this.props.subSamples || []
         }
         this.homologyPeaks = []
@@ -38,17 +36,16 @@ export default class SampleView extends Component {
 
     // Creates a 2d map of the samples according to the currently selected parameters
     createPointCache () {
+        if (!this.props.FCSFile.ready) { return Promise.reject('Point cache can\'t be created until FCS file is ready') }
         this.state.pointCache = []
         const state = this.state
-        const points = this.svgElement.selectAll('rect');
         const densityPoints = []
-        points.each(function (data, index) { // For each virtual/custom element...
-            const node = d3.select(this)
-            densityPoints.push([node.attr('x'), node.attr('y')])
+        for (let point of this.props.FCSFile.dataAsNumbers) {
+            densityPoints.push([this.xScale(point[this.props.selectedXParameterIndex]), this.yScale(point[this.props.selectedYParameterIndex])])
 
             // console.log(d)
-            const yVal = Math.floor(node.attr('y'))
-            const xVal = Math.floor(node.attr('x'))
+            const yVal = Math.floor(this.yScale(point[this.props.selectedYParameterIndex]))
+            const xVal = Math.floor(this.xScale(point[this.props.selectedXParameterIndex]))
             if (!state.pointCache[yVal]) {
                 state.pointCache[yVal] = []
             }
@@ -56,11 +53,11 @@ export default class SampleView extends Component {
                 state.pointCache[yVal][xVal] = []
             }
             state.pointCache[yVal][xVal].push({
-                x: node.attr('x'),
-                y: node.attr('y'),
-                data: data
+                x: this.xScale(point[this.props.selectedXParameterIndex]),
+                y: this.yScale(point[this.props.selectedYParameterIndex]),
+                data: point
             })
-        });
+        };
 
         this.state.densityMap = new Density(densityPoints)
         this.setState({
@@ -70,7 +67,7 @@ export default class SampleView extends Component {
     }
 
     createGraphLayout () {
-        if (!this.state.FCSFile) { return }
+        if (!this.props.FCSFile) { return }
 
         let xMin = 263000
         let xMax = 0
@@ -79,9 +76,9 @@ export default class SampleView extends Component {
         let yMax = 0
 
         // Calculate minimum and maximum parameter values for the selected channels
-        for (let i = 0; i < this.state.FCSFile.dataAsNumbers.length; i++) {
-            const xValue = this.state.FCSFile.dataAsNumbers[i][this.props.selectedXParameterIndex]
-            const yValue = this.state.FCSFile.dataAsNumbers[i][this.props.selectedYParameterIndex]
+        for (let i = 0; i < this.props.FCSFile.dataAsNumbers.length; i++) {
+            const xValue = this.props.FCSFile.dataAsNumbers[i][this.props.selectedXParameterIndex]
+            const yValue = this.props.FCSFile.dataAsNumbers[i][this.props.selectedYParameterIndex]
 
             if (xValue > xMax) { xMax = xValue }
             if (xValue < xMin) { xMin = xValue }
@@ -99,47 +96,44 @@ export default class SampleView extends Component {
          */ 
 
         // setup x 
-        let xValue = (d) => { return d[this.props.selectedXParameterIndex] } // data -> value
-        let xScale
+        // let xValue = (d) => { return d[this.props.selectedXParameterIndex] } // data -> value
         // Linear Scale
         if (this.props.selectedXScaleId === constants.SCALE_LINEAR) {
-            xScale = d3.scaleLinear().range([0, this.state.graphWidth]) // value -> display
+            this.xScale = d3.scaleLinear().range([0, this.state.graphWidth]) // value -> display
             // don't want dots overlapping axis, so add in buffer to data domain
-            xScale.domain(d3.extent(this.state.FCSFile.dataAsNumbers, d => d[this.props.selectedXParameterIndex]));
+            this.xScale.domain(d3.extent(this.props.FCSFile.dataAsNumbers, d => d[this.props.selectedXParameterIndex]));
         // Log Scale
         } else if (this.props.selectedXScaleId === constants.SCALE_LOG) {
             // Log scale will break for values <= 0
-            xValue = (d) => { return Math.max(0.1, d[this.props.selectedXParameterIndex]) }
-            xScale = d3.scaleLog()
+            // xValue = (d) => { return Math.max(0.1, d[this.props.selectedXParameterIndex]) }
+            this.xScale = d3.scaleLog()
                 .range([0, this.state.graphWidth])
                 .base(Math.E)
                 .domain([Math.exp(Math.log(Math.max(0.1, xMin))), Math.exp(Math.log(xMax))])
         // Biexponential Scale
         } else if (this.props.selectedXScaleId === constants.SCALE_BIEXP) {
-            xScale = logicleScale().range([0, this.state.graphWidth])
+            this.xScale = logicleScale().range([0, this.state.graphWidth])
         }
-        const xMap = function(d) { return xScale(xValue(d)) } // data -> display
-        const xAxis = d3.axisBottom().scale(xScale).tickFormat(d3.format(".2s"))
+        window.xScale = this.xScale
+        const xAxis = d3.axisBottom().scale(this.xScale).tickFormat(d3.format(".2s"))
 
         // setup y
-        let yValue = (d) => { return d[this.props.selectedYParameterIndex] }
-        let yScale
+        // let yValue = (d) => { return d[this.props.selectedYParameterIndex] }
         if (this.props.selectedYScaleId === constants.SCALE_LINEAR) {
-            yScale = d3.scaleLinear().range([this.state.graphHeight, 0]) // value -> display
-            yScale.domain(d3.extent(this.state.FCSFile.dataAsNumbers, d => d[this.props.selectedYParameterIndex]));
+            this.yScale = d3.scaleLinear().range([this.state.graphHeight, 0]) // value -> display
+            this.yScale.domain(d3.extent(this.props.FCSFile.dataAsNumbers, d => d[this.props.selectedYParameterIndex]));
         // Log Scale
         } else if (this.props.selectedYScaleId === constants.SCALE_LOG) {
-            yValue = (d) => { return Math.max(0.1, d[this.props.selectedYParameterIndex]) } // data -> value
-            yScale = d3.scaleLog()
+            // yValue = (d) => { return Math.max(0.1, d[this.props.selectedYParameterIndex]) } // data -> value
+            this.yScale = d3.scaleLog()
                 .range([this.state.graphHeight, 0])
                 .base(Math.E)
                 .domain([Math.exp(Math.log(Math.max(0.1, yMin))), Math.exp(Math.log(yMax))])
         // Biexponential Scale
         } else if (this.props.selectedYScaleId === constants.SCALE_BIEXP) {
-            yScale = logicleScale().range([this.state.graphHeight, 0])
+            this.yScale = logicleScale().range([this.state.graphHeight, 0])
         }
-        const yMap = function(d) { return yScale(yValue(d)) } // data -> display
-        const yAxis = d3.axisLeft().scale(yScale).tickFormat(d3.format(".2s"))
+        const yAxis = d3.axisLeft().scale(this.yScale).tickFormat(d3.format(".2s"))
 
         const columnWidth = 1
         const rowWidth = 10
@@ -171,18 +165,6 @@ export default class SampleView extends Component {
           .attr("y", 6)
           .attr("dy", ".71em")
           .style("text-anchor", "end")
-
-        // draw dots
-        custom.selectAll(".rect")
-            .data(this.state.FCSFile.dataAsNumbers)
-            .enter().append("rect")
-            .attr("class", "rect")
-            .attr("width", 1)
-            .attr("height", 1)
-            .attr("x", xMap)
-            .attr("y", yMap)
-            .style("fill", "blue")
-
 
         // Create bindings for drawing rectangle gates
         const rect = (x, y, w, h) => {
@@ -223,7 +205,7 @@ export default class SampleView extends Component {
             selection.attr("visibility", "hidden");
             const FCSFile = {
                 dataAsNumbers: [],
-                text: this.state.FCSFile.text
+                text: this.props.FCSFile.text
             }
             // Limit the rectangle to the boundaries of the graph
             const startXFixed = Math.min(Math.max(0, start[0]), this.state.graphWidth)
@@ -398,7 +380,7 @@ export default class SampleView extends Component {
             for (let peak of truePeaks) {
                 const FCSFile = {
                     dataAsNumbers: [],
-                    text: this.state.FCSFile.text
+                    text: this.props.FCSFile.text
                 }
                 for (let y = 0; y < this.state.pointCache.length; y++) {
                     const column = this.state.pointCache[y]
@@ -440,29 +422,8 @@ export default class SampleView extends Component {
         })
     }
 
-    readFCSFileData (filePath) {
-        if (!filePath) { console.log("Error: undefined FCS file passed to readFCSFileData"); return }
-        // Read in the data from the FCS file
-        fs.readFile(filePath, (error, buffer) => {
-            if (error) {
-                console.log('Error reading FCS file: ', error)
-            } else {
-                this.setState({
-                    FCSFile: new FCS({ dataFormat: 'asNumber', eventsToRead: -1 }, buffer)
-                }, () => {
-                    this.createGraphLayout()
-                    this.createPointCache().then(() => {
-                        this.redrawGraph()
-                    })
-                })
-            }
-        })
-    }
-
     componentDidMount() {
-        if (this.props.filePath) {
-            this.readFCSFileData(this.props.filePath)
-        } else {
+        if (this.props.FCSFile.ready) {
             this.createGraphLayout()
             this.createPointCache().then(() => {
                 this.redrawGraph()
@@ -470,35 +431,13 @@ export default class SampleView extends Component {
         }
     }
 
-    componentWillReceiveProps(newProps) {
-        console.log(newProps, this.props)
+    componentDidUpdate(prevProps) {
         // If it's a new sample, re render the graph
-        if (newProps.id !== this.props.id) {
-            this.setState({
-                selectedXParameterIndex: _.isUndefined(newProps.selectedXParameterIndex) ? 0 : newProps.selectedXParameterIndex,
-                selectedYParameterIndex: _.isUndefined(newProps.selectedYParameterIndex) ? 1 : newProps.selectedYParameterIndex,
-                selectedXScaleId: newProps.selectedXScaleId || 0,
-                selectedYScaleId: newProps.selectedYScaleId || 0,
-                subSamples: newProps.subSamples || [],
-                FCSFile: newProps.FCSFile || null
-            }, () => {
-                if (newProps.filePath) {
-                    this.readFCSFileData(newProps.filePath)
-                } else {
-                    this.createGraphLayout()
-                    this.createPointCache().then(() => {
-                        this.redrawGraph()
-                    })
-                }
-            })
-        } else if (newProps.subSamples.length !== this.state.subSamples.length) {
-            this.setState({
-                subSamples: newProps.subSamples
-            }, () => {
-                this.createGraphLayout()
-                this.createPointCache().then(() => {
-                    this.redrawGraph()
-                })
+        if ((prevProps.subSamples.length !== this.state.subSamples.length
+            || prevProps.id !== this.props.id || !prevProps.FCSFile.ready) && this.props.FCSFile.ready) {
+            this.createGraphLayout()
+            this.createPointCache().then(() => {
+                this.redrawGraph()
             })
         }
     }
@@ -551,32 +490,7 @@ export default class SampleView extends Component {
         })
     }
 
-    // Roll up the data that needs to be saved from this object and any children
-    getDataRepresentation () {
-        const representation = {
-            id: this.props.id,
-            title: this.props.title,
-            description: this.props.description,
-            type: this.props.type,
-            filePath: this.props.filePath,
-            selectedXParameterIndex: this.props.selectedXParameterIndex,
-            selectedYParameterIndex: this.props.selectedYParameterIndex,
-            selectedXScaleId: this.props.selectedXScaleId,
-            selectedYScaleId: this.props.selectedYScaleId,
-            gates: this.state.gates,
-            FCSFile: this.state.FCSFile,
-            subSamples: this.state.subSamples
-        }
-
-        if (this.props.gate) {
-            representation.gate = this.props.gate            
-        }
-
-        return representation
-    }
-
     highlightGate (subSampleId) {
-        console.log(subSampleId)
         this.setState({
             highlightSubsampleId: subSampleId
         }, () => this.redrawGraph())
@@ -627,10 +541,10 @@ export default class SampleView extends Component {
         ]
         let scalesYRendered = []
 
-        if (this.state.FCSFile) {
-            _.keys(this.state.FCSFile.text).map((param) => {
+        if (this.props.FCSFile) {
+            _.keys(this.props.FCSFile.text).map((param) => {
                 if (param.match(/^\$P.+N$/)) { // Get parameter names
-                    const parameterName = this.state.FCSFile.text[param]
+                    const parameterName = this.props.FCSFile.text[param]
                     parametersX.push(parameterName)
                     parametersXRendered.push({
                         value: parameterName,
@@ -639,9 +553,9 @@ export default class SampleView extends Component {
                 }
             })
 
-            _.keys(this.state.FCSFile.text).map((param) => {
+            _.keys(this.props.FCSFile.text).map((param) => {
                 if (param.match(/^\$P.+N$/)) { // Get parameter names
-                    const parameterName = this.state.FCSFile.text[param]
+                    const parameterName = this.props.FCSFile.text[param]
                     parametersY.push(parameterName)
                     parametersYRendered.push({
                         value: parameterName,

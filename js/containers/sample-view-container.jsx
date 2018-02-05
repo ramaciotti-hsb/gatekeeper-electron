@@ -23,7 +23,6 @@ const mapStateToProps = (state, ownProps) => {
             newSample.subSampleIds = null
         }
 
-        console.log(newSample)
         return newSample
     } else {
         return { subSamples: [] }

@@ -5,6 +5,7 @@ import _ from 'lodash'
 import path from 'path'
 import { remote } from 'electron'
 import fs from 'fs'
+import { getFCSFileFromPath } from '../data-access/electron/FCSFile'
 
 let initialState = {
     samples: sampleReducer(),
@@ -26,7 +27,7 @@ try {
     }
 }
 
-const applicationReducers = (state = initialState, action) => {
+const applicationReducer = (state = initialState, action) => {
     const newState = {
         samples: state.samples.slice(0),
         workspaces: state.workspaces.slice(0),
@@ -68,6 +69,18 @@ const applicationReducers = (state = initialState, action) => {
             newState.samples = sampleReducer(newState.samples, { type: 'REMOVE_SAMPLE', payload: { id: sample.id } })
         }
 
+        newState.workspaces = workspaceReducer(newState.workspaces, action)
+    // --------------------------------------------------
+    // Side chains the loading of a sample file from disk,
+    // then passes the action to the workspace reducer
+    // --------------------------------------------------
+    } else if (action.type === 'SELECT_SAMPLE') {
+        const sample = _.find(state.samples, s => s.id === action.payload.sampleId)
+        if (sample) {
+            getFCSFileFromPath(sample.filePath).then((FCSFile) => {
+                action.asyncDispatch({ type: "SAMPLE_LOADING_FINISHED", payload: { sampleId: action.payload.sampleId, FCSFile: { dataAsNumbers: FCSFile.dataAsNumbers, text: FCSFile.text, ready: true } } })
+            })
+        }
         newState.workspaces = workspaceReducer(newState.workspaces, action)
     // --------------------------------------------------
     // Remove a sample, any subsamples and unselect if selected
@@ -123,4 +136,4 @@ const applicationReducers = (state = initialState, action) => {
     return newState
 }
 
-export default applicationReducers
+export default applicationReducer

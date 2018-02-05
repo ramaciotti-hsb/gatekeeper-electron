@@ -17,9 +17,9 @@ export default class Application extends Component {
                 label: 'File',
                 submenu: [
                     {label: 'New Workspace', accelerator: 'Cmd+Shift+N', click: this.newWorkspace.bind(this) },
-                    {label: 'Save Workspace', accelerator: 'Cmd+S', click: this.showSaveWorkspaceAsDialogBox.bind(this) },
+                    {label: 'Save Workspace', accelerator: 'Cmd+S' },//, click: this.showSaveWorkspaceAsDialogBox.bind(this) },
                     {label: 'Open FCS File(s)', accelerator: 'Cmd+Shift+O', click: this.showOpenFCSFileDialog.bind(this) },
-                    {label: 'Open Workspace(s)',  accelerator: 'Cmd+O', click: this.showOpenWorkspacesDialog.bind(this) }
+                    {label: 'Open Workspace(s)',  accelerator: 'Cmd+O' }//, click: this.showOpenWorkspacesDialog.bind(this) }
                 ]
             },
             {
@@ -132,18 +132,24 @@ export default class Application extends Component {
         if (filePaths) {
             // Loop through if multiple files were selected
             for (let filePath of filePaths) {
+                if (!filePath) { console.log("Error: undefined FCS file passed to readFCSFileData"); continue }
+
                 const sample = {
                     type: "sample",
                     filePath: filePath,
                     title: filePath.split(path.sep).slice(-1), // Returns just the filename without the path
                     description: 'Root Sample',
+                    FCSFile: {
+                        dataAsNumbers: [],
+                        text: []
+                    },
                     selectedXParameterIndex: 0,
                     selectedYParameterIndex: 1,
                     selectedXScaleId: 0,
                     selectedYScaleId: 0,
                     subSampleIds: []
                 }
-                this.props.createSampleAndAddToWorkspace({ sample, workspaceId: this.props.selectedWorkspaceId })
+                this.props.createSampleAndAddToWorkspace(this.props.selectedWorkspaceId, sample)
             }
         }
     }
@@ -162,35 +168,37 @@ export default class Application extends Component {
     //     return toReturn
     // }
 
-    showSaveWorkspaceAsDialogBox () {
-        let workspace = _.find(this.props.workspaces, workspace => workspace.id === this.props.selectedWorkspaceId)
+    // TODO
+    // showSaveWorkspaceAsDialogBox () {
+    //     let workspace = _.find(this.props.workspaces, workspace => workspace.id === this.props.selectedWorkspaceId)
 
-        dialog.showSaveDialog({ title: `Save Workspace As:`, message: `Save Workspace As:`, defaultPath: workspace.replace(/\ /g, '-').toLowerCase() + '.json' }, (filePath) => {
-            if (filePath) {
-                // Prevent runtime state information such as running commands and stdout from being saved to the workspace file
-                for (let sample of workspace.samples) {
-                    sample.toJSON = function () {
-                        return _.omit(this, [ 'filePath', 'runningCommand', 'running', 'error', 'output', 'status', 'stdinInputValue'])
-                    };
-                }
-                fs.writeFile(filePath, JSON.stringify(workspace, null, 4), function (error) {
-                    if (error) {
-                        return console.log(error);
-                    }
+    //     dialog.showSaveDialog({ title: `Save Workspace As:`, message: `Save Workspace As:`, defaultPath: workspace.replace(/\ /g, '-').toLowerCase() + '.json' }, (filePath) => {
+    //         if (filePath) {
+    //             // Prevent runtime state information such as running commands and stdout from being saved to the workspace file
+    //             for (let sample of workspace.samples) {
+    //                 sample.toJSON = function () {
+    //                     return _.omit(this, [ 'filePath', 'runningCommand', 'running', 'error', 'output', 'status', 'stdinInputValue'])
+    //                 };
+    //             }
+    //             fs.writeFile(filePath, JSON.stringify(workspace, null, 4), function (error) {
+    //                 if (error) {
+    //                     return console.log(error);
+    //                 }
 
-                    console.log("The file was saved!");
-                });
-            }
-        })
-    }
+    //                 console.log("The file was saved!");
+    //             });
+    //         }
+    //     })
+    // }
 
-    showOpenWorkspacesDialog () {
-        dialog.showOpenDialog({ title: `Open Workspace File`, filters: [{ name: 'CLR workspace templates', extensions: ['json']}], message: `Open Workspace File`, properties: ['openFile'] }, (filePaths) => {
-            const workspace = this.openWorkspaceFiles(filePaths)[0]
-            this.props.workspaces.push(workspace)
-            this.setState({ workspaces: this.props.workspaces }, this.saveSessionState.bind(this))
-        })
-    }
+    // TODO
+    // showOpenWorkspacesDialog () {
+    //     dialog.showOpenDialog({ title: `Open Workspace File`, filters: [{ name: 'CLR workspace templates', extensions: ['json']}], message: `Open Workspace File`, properties: ['openFile'] }, (filePaths) => {
+    //         const workspace = this.openWorkspaceFiles(filePaths)[0]
+    //         this.props.workspaces.push(workspace)
+    //         this.setState({ workspaces: this.props.workspaces }, this.saveSessionState.bind(this))
+    //     })
+    // }
 
     showOpenFCSFileDialog () {
         let workspace = _.find(this.props.workspaces, workspace => workspace.id === this.props.selectedWorkspaceId)
