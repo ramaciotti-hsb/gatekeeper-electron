@@ -6,10 +6,10 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import { Component } from 'react'
 import _ from 'lodash'
-import constants from '../lib/constants'
+import constants from '../../lib/constants'
 import pointInsidePolygon from 'point-in-polygon'
-import { heatMapColorforValue } from '../lib/utilities.js'
-import '../../scss/sample-view/sample-gates.scss'
+import { heatMapColorforValue } from '../../lib/utilities.js'
+import '../../../scss/sample-view/sample-gates.scss'
 
 const GATE_WIDTH = 200
 const GATE_HEIGHT = 130

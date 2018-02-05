@@ -1,16 +1,13 @@
 import React from 'react'
-import ReactDOM from 'react-dom'
 import { Component } from 'react'
-import uuidv4 from 'uuid/v4'
 import _ from 'lodash'
 import { remote } from 'electron'
 const { dialog, Menu, MenuSample } = remote
 import path from 'path'
 import fs from 'fs'
-import sessionHelper from './lib/session-helper.js'
-import WorkspaceView from './workspace-view.jsx'
+import Workspace from '../containers/workspace-container.jsx'
 
-export default class Container extends Component {
+export default class Application extends Component {
 
     constructor (props) {
         super(props)
@@ -112,48 +109,23 @@ export default class Container extends Component {
         const menu = Menu.buildFromTemplate(template)
         Menu.setApplicationMenu(menu)
 
-        sessionHelper.setRootComponent(this)
-        this.state = sessionHelper.getSessionState()
+        // sessionHelper.setRootComponent(this)
+        // this.state = sessionHelper.getSessionState()
     }
 
     newWorkspace () {
-        const newId = uuidv4()
-        const newWorkspace = {
-            id: newId,
+        this.props.createWorkspace({
             title: "New Workspace",
             samples: []
-        }
-        this.state.workspaces.push(newWorkspace)
-        this.setState({
-            workspaces: this.state.workspaces,
-            selectedWorkspaceId: newId
         })
-        sessionHelper.saveSessionStateToDisk()
-        return 
     }
 
     selectWorkspace (workspaceId) {
-        this.setState({
-            selectedWorkspaceId: workspaceId
-        }, this.saveSessionState.bind(this))
+        this.props.selectWorkspace(workspaceId)
     }
 
     closeWorkspace (workspaceId, event) {
-        let workspaceIndex = _.findIndex(this.state.workspaces, workspace => workspace.id === workspaceId)
-
-        if (workspaceIndex === -1) { return }
-        this.state.workspaces.splice(workspaceIndex, 1)
-        if (workspaceIndex === this.state.workspaces.length) {
-            workspaceIndex--
-        }
-
-        // If we closed the workspace that was currently selected, select the next one
-        if (workspaceId === this.state.selectedWorkspaceId && this.state.workspaces.length > 0) {
-            this.state.selectedWorkspaceId = this.state.workspaces[workspaceIndex].id
-        } else if (this.state.workspaces.length === 0) {
-            this.state.selectedWorkspaceId = null
-        }
-        this.setState(this.state, this.saveSessionState.bind(this))
+        this.props.removeWorkspace(workspaceId)
         // Stop propagation to prevent the selectWorkspace event from firing
         event.stopPropagation()
     }
@@ -164,45 +136,32 @@ export default class Container extends Component {
             // Loop through if multiple files were selected
             for (let filePath of filePaths) {
                 const sample = {
-                    id: uuidv4(),
                     type: "sample",
                     filePath: filePath,
                     title: filePath.split(path.sep).slice(-1), // Returns just the filename without the path
                     description: 'Root Sample'
                 }
-
-                // If there's no selected workspace, create a new one first
-                let workspace = _.find(this.state.workspaces, workspace => workspace.id === this.state.selectedWorkspaceId)
-
-                if (!workspace) {
-                    workspace = this.newSample()
-                }
-
-                workspace.samples.push(sample)
-                workspace.selectedSampleId = sample.id
+                this.props.createSampleAndAddToWorkspace({ sample, workspaceId: this.props.selectedWorkspaceId })
             }
         }
-        this.setState({
-            workspaces: this.state.workspaces
-        })
-        sessionHelper.saveSessionStateToDisk()
     }
 
-    openWorkspaceFiles (filePaths) {
-        const toReturn = []
-        if (filePaths) {
-            // Loop through if multiple files were selected
-            for (let filePath of filePaths) {
-                const workspace = JSON.parse(fs.readFileSync(filePath))
-                workspace.filePath = filePath
-                toReturn.push(workspace)
-            }
-        }
-        return toReturn
-    }
+    // TODO
+    // openWorkspaceFiles (filePaths) {
+    //     const toReturn = []
+    //     if (filePaths) {
+    //         // Loop through if multiple files were selected
+    //         for (let filePath of filePaths) {
+    //             const workspace = JSON.parse(fs.readFileSync(filePath))
+    //             workspace.filePath = filePath
+    //             toReturn.push(workspace)
+    //         }
+    //     }
+    //     return toReturn
+    // }
 
     showSaveWorkspaceAsDialogBox () {
-        let workspace = _.find(this.state.workspaces, workspace => workspace.id === this.state.selectedWorkspaceId)
+        let workspace = _.find(this.props.workspaces, workspace => workspace.id === this.props.selectedWorkspaceId)
 
         dialog.showSaveDialog({ title: `Save Workspace As:`, message: `Save Workspace As:`, defaultPath: workspace.replace(/\ /g, '-').toLowerCase() + '.json' }, (filePath) => {
             if (filePath) {
@@ -226,44 +185,35 @@ export default class Container extends Component {
     showOpenWorkspacesDialog () {
         dialog.showOpenDialog({ title: `Open Workspace File`, filters: [{ name: 'CLR workspace templates', extensions: ['json']}], message: `Open Workspace File`, properties: ['openFile'] }, (filePaths) => {
             const workspace = this.openWorkspaceFiles(filePaths)[0]
-            this.state.workspaces.push(workspace)
-            this.setState({ workspaces: this.state.workspaces }, this.saveSessionState.bind(this))
+            this.props.workspaces.push(workspace)
+            this.setState({ workspaces: this.props.workspaces }, this.saveSessionState.bind(this))
         })
     }
 
     showOpenFCSFileDialog () {
-        let workspace = _.find(this.state.workspaces, workspace => workspace.id === this.state.selectedWorkspaceId)
+        let workspace = _.find(this.props.workspaces, workspace => workspace.id === this.props.selectedWorkspaceId)
         dialog.showOpenDialog({ title: `Open Sample File`, filters: [{ name: 'FCS Files', extensions: ['fcs']}], message: `Open Sample File`, properties: ['openFile', 'multiSelections'] }, (filePaths) => {
             this.addNewFCSFilesToWorkspace(filePaths)
         })
     }
 
-    // Roll up the data that needs to be saved from this object and any children
-    getDataRepresentation () {
-        for (let i = 0; i < this.state.workspaces.length; i++) {
-            let workspace = this.state.workspaces[i]
-            const workspaceComponent = this.refs['workspace-' + workspace.id]
-            if (workspaceComponent) {
-                this.state.workspaces[i] = workspaceComponent.getDataRepresentation()
-            }
-        }
-        return {
-            workspaces: this.state.workspaces,
-            selectedWorkspaceId: this.state.selectedWorkspaceId
-        }
-    }
-
     render () {
-        let workspace = _.find(this.state.workspaces, workspace => workspace.id === this.state.selectedWorkspaceId)
+        let workspace = _.find(this.props.workspaces, workspace => workspace.id === this.props.selectedWorkspaceId)
 
-        const workspaceTabs = this.state.workspaces.map((workspace) => {
+        const workspaceTabs = this.props.workspaces.map((workspace) => {
             return (
-                <div className={`tab${this.state.selectedWorkspaceId === workspace.id ? ' selected' : ''}`} key={workspace.id} onClick={this.selectWorkspace.bind(this, workspace.id)}>
+                <div className={`tab${this.props.selectedWorkspaceId === workspace.id ? ' selected' : ''}`} key={workspace.id} onClick={this.selectWorkspace.bind(this, workspace.id)}>
                     <div className='text'>{workspace.title}</div>
                     <div className='close-button' onClick={this.closeWorkspace.bind(this, workspace.id)}><i className='lnr lnr-cross' /></div>
                 </div>
             )
         })
+
+        let workspaceView
+
+        if (workspace) {
+            workspaceView = <Workspace workspaceId={this.props.selectedWorkspaceId} ref={'workspace-' + workspace.id}/>
+        }
 
         return (
             <div className='container'>
@@ -271,7 +221,7 @@ export default class Container extends Component {
                     {workspaceTabs}
                 </div>
                 <div className='container-inner'>
-                    <WorkspaceView {...workspace} ref={'workspace-' + workspace.id}/>
+                    {workspaceView}
                 </div>
             </div>
         )

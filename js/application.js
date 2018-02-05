@@ -5,11 +5,18 @@
 
 import React from 'react'
 import ReactDOM from 'react-dom'
-import Container from './container.jsx'
+import { Provider } from 'react-redux'
+import { createStore } from 'redux'
+import Application from './containers/application-container.jsx'
 import '../scss/container.scss'
+import applicationReducers from './reducers/application-reducers'
+
+const store = createStore(applicationReducers)
+
+window.store = store
 
 document.addEventListener("DOMContentLoaded", () => {
-    ReactDOM.render(<Container />, document.getElementById('container-outer'))
+    ReactDOM.render(<Provider store={store}><Application /></Provider>, document.getElementById('container-outer'))
 })
 
 document.addEventListener('dragleave', function (event) {

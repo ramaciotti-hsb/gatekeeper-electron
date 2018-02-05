@@ -34,7 +34,7 @@ export default function (densityMap) {
                             if (!pointInsidePolygon([x, y], peak.polygon)) {
                                 // If the new point is close enough to the edge, expand the polygon to accomodate it
                                 const distance = peak.polygon.length === 1 ? distanceBetweenPoints([x, y], peak.polygon[0]) : distanceToPolygon([x, y], peak.polygon)
-                                if (distance < 20 && distance > 0) {
+                                if (distance < 30 && distance > 0) {
                                     peak.pointsToAdd.push([x, y])
                                     foundPeak = true
                                     break
@@ -80,10 +80,10 @@ export default function (densityMap) {
                     if (polygonsIntersect(homologyPeaks[i].polygon, homologyPeaks[j].polygon)) {
                         console.log('polygon height of', homologyPeaks[i], ' before merging:', homologyPeaks[i].height)
                         console.log('polygon height of', homologyPeaks[j], ' before merging:', homologyPeaks[j].height)
-                        if (homologyPeaks[i].height >= 4) {
+                        if (homologyPeaks[i].height >= 3) {
                             truePeaks.push(homologyPeaks[i])
                         }
-                        if (homologyPeaks[j].height >= 4) {
+                        if (homologyPeaks[j].height >= 3) {
                             truePeaks.push(homologyPeaks[j])
                         }
                         const newPolygon = homologyPeaks[i].polygon.concat(homologyPeaks[j].polygon)
