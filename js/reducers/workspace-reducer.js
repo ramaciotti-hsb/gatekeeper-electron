@@ -22,14 +22,7 @@ const workspaces = (state = initialState, action = {}) => {
     // Create a new workspace
     // --------------------------------------------------
     if (action.type === 'CREATE_WORKSPACE') {
-        const newWorkspace = {
-            id: action.payload.id,
-            title: action.payload.title,
-            description: action.payload.description,
-            sampleIds: []
-        }
-
-        newState.push(newWorkspace)
+        newState.push(action.payload.workspace)
     // --------------------------------------------------
     // Remove a workspace from the state
     // --------------------------------------------------
@@ -54,6 +47,8 @@ const workspaces = (state = initialState, action = {}) => {
 
                 newState = newState.slice(0, workspaceIndex).concat([ newWorkspace ]).concat(newState.slice(workspaceIndex + 1))
             }
+        } else {
+            console.log('ADD_SAMPLE_TO_WORKSPACE failed: no workspace with id', action.payload.workspaceId, 'was found')
         }
     // --------------------------------------------------
     // Select a sample that is already within a workspace
@@ -70,12 +65,14 @@ const workspaces = (state = initialState, action = {}) => {
             } else {
                 console.log('SELECT_SAMPLE failed: no sample with id', action.payload.sampleId, 'was found in sampleIds of workspace with id', action.payload.workspaceId)       
             }
+        } else {
+            console.log('SELECT_SAMPLE failed: no workspace with id', action.payload.workspaceId, 'was found')
         }
     // --------------------------------------------------
     // Removes a sample from it's workspace
     // --------------------------------------------------
     } else if (action.type === 'REMOVE_SAMPLE') {
-        const workspaceIndex = _.findIndex(state, w => w.id === action.payload.workspaceId)
+        const workspaceIndex = _.findIndex(state, w => w.sampleIds.includes(action.payload.sampleId))
 
         if (workspaceIndex > -1) {
             const newWorkspace = _.clone(state[workspaceIndex])
@@ -87,6 +84,8 @@ const workspaces = (state = initialState, action = {}) => {
 
                 newState = newState.slice(0, workspaceIndex).concat([ newWorkspace ]).concat(newState.slice(workspaceIndex + 1))
             }
+        } else {
+            console.log('REMOVE_SAMPLE failed: no workspace with id', action.payload.workspaceId, 'was found')
         }
     }
 

@@ -31,21 +31,16 @@ const mapStateToProps = (state, ownProps) => {
             }
         }
 
-        return newWorkspace
+        // If there is a highlighted gate, highlight it's subsample
+        const highlightedGate = _.find(state.gates, g => g.highlighted && workspace.sampleIds.includes(g.childSampleId)) || {}
+        return { api: state.api, workspace: newWorkspace, highlightedGate }
     } else {
-        return { samples: [] }
+        return { api: state.api, workspace: { samples: [] }, highlightGate: {} }
     }
 }
 
 const mapDispatchToProps = dispatch => {
-    return {
-        selectSample: (sampleId, workspaceId) => {
-            dispatch(selectSample(sampleId, workspaceId))
-        },
-        removeSample: (sampleId, workspaceId) => {
-            dispatch(removeSample(sampleId, workspaceId))
-        }
-    }
+    return {}
 }
 
 const WorkspaceViewWrapped = connect(

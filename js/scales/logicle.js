@@ -12,7 +12,7 @@ function deinterpolate(a, b) {
 }
 
 function reinterpolate(a, b) {
-  return function(x) { logicle.inverse(x); }
+  return function(x) { return a > b ? logicle.inverse(logicle.scale(262000) - x) : logicle.inverse(x) }
 }
 
 function reflect(f) {
@@ -36,16 +36,6 @@ export default function log() {
 
   scale.tickFormat = function(count, specifier) {
     return ".0e"
-    // if (specifier == null) specifier = base === 10 ? ".0e" : ",";
-    // if (typeof specifier !== "function") specifier = format(specifier);
-    // if (count === Infinity) return specifier;
-    // if (count == null) count = 10;
-    // var k = Math.max(1, base * count / scale.ticks().length); // TODO fast estimate?
-    // return function(d) {
-    //   var i = d / pows(Math.round(logs(d)));
-    //   if (i * base < base - 0.5) i *= base;
-    //   return i <= k ? specifier(d) : "";
-    // };
   };
 
   scale.nice = function() {

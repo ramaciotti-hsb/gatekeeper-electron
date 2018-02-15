@@ -2,9 +2,8 @@ import React from 'react'
 import { Component } from 'react'
 import _ from 'lodash'
 import { remote } from 'electron'
-const { dialog, Menu, MenuSample } = remote
 import path from 'path'
-import fs from 'fs'
+const { dialog, Menu, MenuSample } = remote
 import Workspace from '../containers/workspace-container.jsx'
 
 export default class Application extends Component {
@@ -111,18 +110,18 @@ export default class Application extends Component {
     }
 
     newWorkspace () {
-        this.props.createWorkspace({
+        this.props.api.createWorkspace({
             title: "New Workspace",
             samples: []
         })
     }
 
     selectWorkspace (workspaceId) {
-        this.props.selectWorkspace(workspaceId)
+        this.props.api.selectWorkspace(workspaceId)
     }
 
     closeWorkspace (workspaceId, event) {
-        this.props.removeWorkspace(workspaceId)
+        this.props.api.removeWorkspace(workspaceId)
         // Stop propagation to prevent the selectWorkspace event from firing
         event.stopPropagation()
     }
@@ -139,17 +138,8 @@ export default class Application extends Component {
                     filePath: filePath,
                     title: filePath.split(path.sep).slice(-1), // Returns just the filename without the path
                     description: 'Root Sample',
-                    FCSFile: {
-                        dataAsNumbers: [],
-                        text: []
-                    },
-                    selectedXParameterIndex: 0,
-                    selectedYParameterIndex: 1,
-                    selectedXScaleId: 0,
-                    selectedYScaleId: 0,
-                    subSampleIds: []
                 }
-                this.props.createSampleAndAddToWorkspace(this.props.selectedWorkspaceId, sample)
+                this.props.api.createSampleAndAddToWorkspace(this.props.selectedWorkspaceId, sample)
             }
         }
     }
@@ -227,6 +217,7 @@ export default class Application extends Component {
 
         return (
             <div className='container'>
+                <div className={`loader-outer${this.props.sessionLoading ? ' active' : ''}`}><div className='loader'></div></div>
                 <div className='tab-bar'>
                     {workspaceTabs}
                 </div>

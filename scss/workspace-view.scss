@@ -31,6 +31,16 @@
                 }
             }
 
+            &.highlighted > .body {
+                @include backgroundHover(lighten(#A7DBD8, 20%));
+                @include backgroundClick(lighten(#A7DBD8, 20%));    
+
+                .remove-sample {
+                    @include backgroundHover(darken(lighten(#A7DBD8, 20%), 5%));
+                    @include backgroundClick(darken(lighten(#A7DBD8, 20%), 5%));
+                }
+            }
+
             & > .body {
                 @include backgroundHover(#fff);
                 @include backgroundClick(#fff);

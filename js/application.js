@@ -9,15 +9,22 @@ import { Provider } from 'react-redux'
 import { createStore, applyMiddleware } from 'redux'
 import Application from './containers/application-container.jsx'
 import applicationReducer from './reducers/application-reducer'
-import asyncDispatchMiddleware from './lib/async-dispatch-middleware'
 import '../scss/container.scss'
+import { connectors } from './data-access/electron/data-access.js'
+import { setStore, api } from './electron/electron-backend.js'
 
-const store = createStore(applicationReducer, applyMiddleware(asyncDispatchMiddleware))
+const store = createStore(applicationReducer)
 
 window.store = store
 
-document.addEventListener("DOMContentLoaded", () => {
+connectors.store = store
+
+setStore(store)
+
+document.addEventListener("DOMContentLoaded", async () => {
     ReactDOM.render(<Provider store={store}><Application /></Provider>, document.getElementById('container-outer'))
+    store.dispatch({ type: 'SET_API', payload: { api } })
+    await api.getSession()
 })
 
 document.addEventListener('dragleave', function (event) {

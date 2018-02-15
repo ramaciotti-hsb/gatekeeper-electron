@@ -4,17 +4,25 @@
 
 import uuidv4 from 'uuid/v4'
 
-export const sampleLoadingFinished = (sampleId, FCSFile) => {
+// This is also picked up by the application reducer
+export const removeSample = (sampleId) => {
     return {
-        type: 'SAMPLE_LOADING_FINISHED',
-        payload: { sampleId, FCSFile }
+        type: 'REMOVE_SAMPLE',
+        payload: { sampleId }
     }
 }
 
-// This event is also picked up by the workspace reducer
-export const removeSample = (sampleId, workspaceId) => {
+export const setSamplePlotImage = (sampleId, imageKey, filePath) => {
     return {
-        type: 'REMOVE_SAMPLE',
-        payload: { sampleId, workspaceId }
+        type: 'SET_SAMPLE_PLOT_IMAGE',
+        payload: { sampleId, imageKey, filePath }
+    }
+}
+
+// This is also picked up by the application reducer
+export const updateSample = (sampleId, parameters) => {
+    return {
+        type: 'UPDATE_SAMPLE',
+        payload: { sampleId, parameters }
     }
 }

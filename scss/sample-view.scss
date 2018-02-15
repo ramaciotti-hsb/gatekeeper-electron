@@ -27,6 +27,16 @@
             .upper {
                 font-size: 12px;
                 color: #666;
+
+                a {
+                    cursor: pointer;
+                    text-decoration: underline;
+                    margin-left: 5px;
+
+                    &:hover {
+                        color: $highlight-colour;
+                    }
+                }
             }
 
             .lower > input {

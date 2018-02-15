@@ -12,27 +12,7 @@ const mapStateToProps = state => {
 }
 
 const mapDispatchToProps = dispatch => {
-  return {
-    createWorkspace: (parameters) => {
-        dispatch(createWorkspace(parameters))
-    },
-
-    removeWorkspace: (id) => {
-        dispatch(removeWorkspace(id))
-    },
-
-    selectWorkspace: (id) => {
-        dispatch(selectWorkspace(id))
-    },
-
-    createSampleAndAddToWorkspace: (workspaceId, sampleParameters) => {
-        dispatch(createSampleAndAddToWorkspace(workspaceId, sampleParameters))
-    },
-
-    sampleLoadingFinished: (sampleId, FCSFile) => {
-        dispatch(sampleLoadingFinished(sampleId, FCSFile))
-    }
-  }
+  return {}
 }
 
 const ApplicationContainerWrapped = connect(

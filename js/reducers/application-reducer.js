@@ -1,46 +1,57 @@
 import { combineReducers } from 'redux'
 import sampleReducer from './sample-reducer'
 import workspaceReducer from './workspace-reducer'
+import gateReducer from './gate-reducer'
 import _ from 'lodash'
 import path from 'path'
 import { remote } from 'electron'
 import fs from 'fs'
-import { getFCSFileFromPath } from '../data-access/electron/FCSFile'
 
 let initialState = {
     samples: sampleReducer(),
     workspaces: workspaceReducer(),
-    selectedWorkspaceId: null
-}
-
-// Load the workspaces and samples the user last had open when the app was used
-const sessionFilePath = path.join(remote.app.getPath('userData'), 'session2.json')
-try {
-    const session = JSON.parse(fs.readFileSync(sessionFilePath))
-    initialState = session
-} catch (error) {
-    // If there's no session file, create one
-    if (error.code === 'ENOENT') {
-        fs.writeFile(sessionFilePath, JSON.stringify(initialState), () => {})
-    } else {
-        console.log(error)
-    }
+    gates: gateReducer(),
+    selectedWorkspaceId: null,
+    sessionLoading: true, // Display a global loading spinner while the session loads
+    api: {}
 }
 
 const applicationReducer = (state = initialState, action) => {
-    const newState = {
+    let newState = {
         samples: state.samples.slice(0),
         workspaces: state.workspaces.slice(0),
-        selectedWorkspaceId: state.selectedWorkspaceId
+        gates: state.gates.slice(0),
+        selectedWorkspaceId: state.selectedWorkspaceId,
+        sessionLoading: state.sessionLoading,
+        api: state.api
     }
 
     // --------------------------------------------------
+    // Override the whole local session with new data.
+    // Usually used when first bootstrapping from DB or 
+    // filesystem.
+    // --------------------------------------------------
+    if (action.type === 'SET_SESSION_STATE') {
+        newState.samples = action.payload.samples.slice(0)
+        newState.workspaces = action.payload.workspaces.slice(0)
+        newState.gates = action.payload.gates.slice(0)
+        newState.selectedWorkspaceId = action.payload.selectedWorkspaceId
+        newState.sessionLoading = false
+    }
+    // --------------------------------------------------
+    // Selects which "API" object to use. This changes from
+    // the web version to electron.
+    // --------------------------------------------------
+    else if (action.type === 'SET_API') {
+        newState.api = action.payload.api
+    }
+    // --------------------------------------------------
     // Create a new workspace and select it
     // --------------------------------------------------
-    if (action.type === 'CREATE_WORKSPACE') {
+    else if (action.type === 'CREATE_WORKSPACE') {
         // Workspaces are always selected after creating them
-        newState.workspaces = workspaceReducer(newState.workspaces, { TYPE: 'CREATE_WORKSPACE', payload: action.payload })
-        newState.selectedWorkspaceId = action.payload.id
+        newState.workspaces = workspaceReducer(newState.workspaces, { type: 'CREATE_WORKSPACE', payload: action.payload })
+        newState.selectedWorkspaceId = action.payload.workspace.id
     // --------------------------------------------------
     // Select an existing workspace
     // --------------------------------------------------
@@ -57,6 +68,24 @@ const applicationReducer = (state = initialState, action) => {
             newState.samples = sampleReducer(newState.samples, { type: 'CREATE_SAMPLE', payload: action.payload.sample })
             newState.workspaces = workspaceReducer(newState.workspaces, { type: 'ADD_SAMPLE_TO_WORKSPACE', payload: { workspaceId: workspace.id, sampleId: action.payload.sample.id } })
             newState.workspaces = workspaceReducer(newState.workspaces, { type: 'SELECT_SAMPLE', payload: { workspaceId: workspace.id, sampleId: action.payload.sample.id } })
+        } else {
+            console.log('CREATE_SAMPLE_AND_ADD_TO_WORKSPACE failed: workspace with id', action.payload.workspaceId, 'was found')   
+        }
+    // --------------------------------------------------
+    // Create a new subsample and a corresponding gate
+    // --------------------------------------------------
+    } else if (action.type === 'CREATE_SUBSAMPLE_AND_ADD_TO_WORKSPACE') {
+        // Find the workspace the user wants to add to
+        const workspace = _.find(state.workspaces, w => w.id === action.payload.workspaceId)
+        if (workspace) {
+            // Create a new sample with the sample reducer
+            newState.samples = sampleReducer(newState.samples, { type: 'CREATE_SAMPLE', payload: action.payload.sample })
+            newState.samples = sampleReducer(newState.samples, { type: 'ADD_CHILD_SAMPLE', payload: { childSampleId: action.payload.sample.id, parentSampleId: action.payload.parentSampleId } })
+            newState.gates = gateReducer(newState.gates, { type: 'CREATE_GATE', payload: { childSampleId: action.payload.sample.id, parentSampleId: action.payload.parentSampleId, gate: action.payload.gate } })
+            newState.workspaces = workspaceReducer(newState.workspaces, { type: 'ADD_SAMPLE_TO_WORKSPACE', payload: { workspaceId: workspace.id, sampleId: action.payload.sample.id } })
+            newState.workspaces = workspaceReducer(newState.workspaces, { type: 'SELECT_SAMPLE', payload: { workspaceId: workspace.id, sampleId: action.payload.sample.id } })
+        } else {
+            console.log('CREATE_SAMPLE_AND_ADD_TO_WORKSPACE failed: workspace with id', action.payload.workspaceId, 'was found')   
         }
     // --------------------------------------------------
     // Remove a workspace and all the samples in it
@@ -71,23 +100,11 @@ const applicationReducer = (state = initialState, action) => {
 
         newState.workspaces = workspaceReducer(newState.workspaces, action)
     // --------------------------------------------------
-    // Side chains the loading of a sample file from disk,
-    // then passes the action to the workspace reducer
-    // --------------------------------------------------
-    } else if (action.type === 'SELECT_SAMPLE') {
-        const sample = _.find(state.samples, s => s.id === action.payload.sampleId)
-        if (sample) {
-            getFCSFileFromPath(sample.filePath).then((FCSFile) => {
-                action.asyncDispatch({ type: "SAMPLE_LOADING_FINISHED", payload: { sampleId: action.payload.sampleId, FCSFile: { dataAsNumbers: FCSFile.dataAsNumbers, text: FCSFile.text, ready: true } } })
-            })
-        }
-        newState.workspaces = workspaceReducer(newState.workspaces, action)
-    // --------------------------------------------------
     // Remove a sample, any subsamples and unselect if selected
     // --------------------------------------------------
     } else if (action.type === 'REMOVE_SAMPLE') {
-        // If the sample being deleted is currently selected, select a different sample instead
-        const workspaceIndex = _.findIndex(state.workspaces, w => w.id === action.payload.workspaceId)
+        // Find the workspace that the sample is inside and remove it from there
+        const workspaceIndex = _.findIndex(state.workspaces, w => w.sampleIds.includes(action.payload.sampleId))
 
         if (workspaceIndex > -1) {
             const newWorkspace = _.clone(state.workspaces[workspaceIndex])
@@ -116,9 +133,13 @@ const applicationReducer = (state = initialState, action) => {
             }
 
             newState.workspaces = workspaceReducer(newState.workspaces, action)
-            newState.samples = sampleReducer(newState.samples, action)
-        } else {
-            console.log('REMOVE_SAMPLE failed: no workspace with id', action.payload.workspaceId, 'was found')
+        }
+
+        newState.samples = sampleReducer(newState.samples, action)
+        // Delete any gates that no longer point to a valid sample (i.e. their parent or child has been deleted)
+        let orphanGates = _.filter(newState.gates, g => !_.find(newState.samples, s => g.parentSampleId === s.id) || !_.find(newState.samples, s => g.childSampleId === s.id))
+        for (let gate of orphanGates) {
+            newState.gates = gateReducer(newState.gates, { type: 'REMOVE_GATE', payload: { gateId: gate.id } })
         }
     // --------------------------------------------------
     // Pass on any unmatched actions to workspaceReducer and
@@ -127,11 +148,8 @@ const applicationReducer = (state = initialState, action) => {
     } else {
         newState.workspaces = workspaceReducer(newState.workspaces, action)
         newState.samples = sampleReducer(newState.samples, action)
+        newState.gates = gateReducer(newState.gates, action)
     }
-
-    // Save the new state to the disk
-    const sessionFilePath = path.join(remote.app.getPath('userData'), 'session2.json')
-    fs.writeFile(sessionFilePath, JSON.stringify(newState, null, 4), () => {})
 
     return newState
 }

@@ -5,7 +5,6 @@
 import uuidv4 from 'uuid/v4'
 import { sampleLoadingFinished } from './sample-actions.js'
 import fs from 'fs'
-import FCSDataAccess from '../data-access/electron/FCSFile.js'
 
 export const selectWorkspace = id => {
     return {
@@ -14,21 +13,25 @@ export const selectWorkspace = id => {
     }
 }
 
-export const createWorkspace = (parameters) => {
-    parameters.id = uuidv4()
+export const createWorkspace = (workspace) => {
     return {
         type: 'CREATE_WORKSPACE',
-        payload: parameters
+        payload: { workspace }
     }
 }
 
-// Returns a thunk that will call sampleLoadingFinished when the FCS file has been loaded from the disk
 export const createSampleAndAddToWorkspace = (workspaceId, sampleParameters) => {
-    const newId = uuidv4()
-    sampleParameters.id = newId
     return {
         type: 'CREATE_SAMPLE_AND_ADD_TO_WORKSPACE',
         payload: { workspaceId, sample: sampleParameters }
+    }
+}
+
+// This event creates both a new sample and a new gate
+export const createSubSampleAndAddToWorkspace = (workspaceId, parentSampleId, sampleParameters, gateParameters) => {
+    return {
+        type: 'CREATE_SUBSAMPLE_AND_ADD_TO_WORKSPACE',
+        payload: { workspaceId, parentSampleId, sample: sampleParameters, gate: gateParameters }
     }
 }
 
