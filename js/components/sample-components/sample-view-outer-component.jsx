@@ -12,7 +12,6 @@ import polygonsIntersect from 'polygon-overlap'
 import pointInsidePolygon from 'point-in-polygon'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import area from 'area-polygon'
-import persistentHomology from '../../lib/persistent-homology.js'
 import Gates from './sample-gates-component.jsx'
 import constants from '../../lib/constants.js'
 import BivariatePlot from '../../containers/bivariate-plot-container.jsx'
@@ -26,39 +25,6 @@ export default class SampleView extends Component {
         super(props)
         this.homologyPeaks = []
         this.state = {}
-    }
-
-    calculateHomology () {
-        persistentHomology(this.state.densityMap).then((truePeaks) => {
-            for (let peak of truePeaks) {
-                const includeEventIds = []
-                for (let i = 0; i < FCSFile.dataAsNumbers.length; i++) {
-                    if (pointInsidePolygon([FCSFile.dataAsNumbers[i][this.props.sample.selectedXParameterIndex], FCSFile.dataAsNumbers[i][this.props.sample.selectedYParameterIndex]], peak.polygon)) {
-                        includeEventIds.push(point.data)
-                    }
-                }
-
-                this.state.subSamples.push({
-                    id: uuidv4(),
-                    title: 'Subsample',
-                    description: 'Subsample',
-                    type: 'gate',
-                    gate: {
-                        type: constants.GATE_POLYGON,
-                        polygon: peak.polygon,
-                        selectedXParameterIndex: this.props.sample.selectedXParameterIndex,
-                        selectedYParameterIndex: this.props.sample.selectedYParameterIndex
-                    },
-                    includeEventIds,
-                    selectedXParameterIndex: this.selectedXParameterIndex,
-                    selectedYParameterIndex: this.selectedYParameterIndex,
-                    selectedXScale: this.selectedXScale,
-                    selectedYScale: this.selectedYScale
-                })
-            }
-
-            this.redrawGraph()
-        })
     }
 
     handleDropdownSelection (dropdown, newState) {
@@ -81,15 +47,17 @@ export default class SampleView extends Component {
 
     render () {
         let parametersXRendered = this.props.sample.FCSParameters.map((param, index) => {
+            const label = param.label || param.key
             return {
-                value: param.key,
-                component: <div className='item' onClick={this.handleDropdownSelection.bind(this, 'xParameterDropdown', { selectedXParameterIndex: index })} key={param.key}>{param.key}</div>
+                value: label,
+                component: <div className='item' onClick={this.handleDropdownSelection.bind(this, 'xParameterDropdown', { selectedXParameterIndex: index })} key={label}>{label}</div>
             }
         })
         let parametersYRendered = this.props.sample.FCSParameters.map((param, index) => {
+            const label = param.label || param.key
             return {
-                value: param.key,
-                component: <div className='item' onClick={this.handleDropdownSelection.bind(this, 'yParameterDropdown', { selectedYParameterIndex: index })} key={param.key}>{param.key}</div>
+                value: label,
+                component: <div className='item' onClick={this.handleDropdownSelection.bind(this, 'yParameterDropdown', { selectedYParameterIndex: index })} key={label}>{label}</div>
             }
         })
                         
@@ -106,6 +74,10 @@ export default class SampleView extends Component {
             {
                 id: constants.SCALE_BIEXP,
                 label: 'Biexp'
+            },
+            {
+                id: constants.SCALE_ARCSIN,
+                label: 'Arcsin'
             }
         ]
 
@@ -126,7 +98,7 @@ export default class SampleView extends Component {
         const autoGates = [
             {
                 value: 'persistent-homology',
-                component: <div className='item' onClick={this.calculateHomology.bind(this)} key={'persistent-homology'}>Persistent Homology</div>
+                component: <div className='item' onClick={this.props.api.calculateHomology.bind(null, this.props.sample.id, this.props.workspaceId)} key={'persistent-homology'}>Persistent Homology</div>
             }
         ]
 
@@ -136,6 +108,9 @@ export default class SampleView extends Component {
         } else {
             upperTitle = <div className='upper'>Root Sample</div>
         }
+
+        const xParamLabel = this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].label || this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].key
+        const yParamLabel = this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].label || this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].key
 
         return (
             <div className='panel sample'>
@@ -147,13 +122,13 @@ export default class SampleView extends Component {
                     <div className='graph'>
                         <div className='graph-upper'>
                             <div className='axis-selection y'>
-                                <Dropdown items={parametersYRendered} textLabel={this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].key} ref={'yParameterDropdown'} />
+                                <Dropdown items={parametersYRendered} textLabel={yParamLabel} ref={'yParameterDropdown'} />
                                 <Dropdown items={scalesYRendered} textLabel={scales[_.findIndex(scales, s => s.id === this.props.sample.selectedYScale)].label} outerClasses={'scale'} ref={'yScaleDropdown'} />
                             </div>
                             <BivariatePlot sampleId={this.props.sample.id} />
                         </div>
                         <div className='axis-selection x'>
-                            <Dropdown items={parametersXRendered} textLabel={this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].key} ref={'xParameterDropdown'} />
+                            <Dropdown items={parametersXRendered} textLabel={xParamLabel} ref={'xParameterDropdown'} />
                             <Dropdown items={scalesXRendered} textLabel={scales[_.findIndex(scales, s => s.id === this.props.sample.selectedXScale)].label} outerClasses={'scale'} ref={'xScaleDropdown'} />
                         </div>
                     </div>

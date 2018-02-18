@@ -21,7 +21,7 @@ const samples = (state = [], action = {}) => {
             type: action.payload.type,
             filePath: action.payload.filePath,
             FCSParameters: action.payload.FCSParameters || [],
-            dataBoundaries: action.payload.dataBoundaries || {},
+            statistics: action.payload.statistics || {},
             selectedXParameterIndex: action.payload.selectedXParameterIndex,
             selectedYParameterIndex: action.payload.selectedYParameterIndex,
             selectedXScale: action.payload.selectedXScale,

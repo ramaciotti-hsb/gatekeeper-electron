@@ -15,6 +15,7 @@ import mkdirp from 'mkdirp'
 import { getPlotImageKey, heatMapRGBForValue, getScalesForSample } from '../lib/utilities'
 import constants from '../lib/constants'
 import Density from '../lib/2d-density'
+import persistentHomology from '../lib/persistent-homology.js'
 import pointInsidePolygon from 'point-in-polygon'
 import applicationReducer from '../reducers/application-reducer'
 import { updateSample, removeSample, setSamplePlotImage } from '../actions/sample-actions'
@@ -93,9 +94,11 @@ const getFCSFileFromPath = async (filePath) => {
     if (FCSFileCache[filePath]) {
         return FCSFileCache[filePath]
     }
+    console.log(FCS)
     // Read in the data from the FCS file, and emit another action when finished
     const buffer = await readFileBuffer(filePath)
     const FCSFile = new FCS({ dataFormat: 'asNumber', eventsToRead: -1 }, buffer)
+    console.log(FCSFile)
     FCSFileCache[filePath] = FCSFile
     return FCSFile
 }
@@ -107,31 +110,45 @@ const initializeSampleData = async (sample) => {
     const FCSFile = await getFCSFileFromPath(sample.filePath)
 
     // Loop through the parameters and get the min and max values of all the data points
-    const FCSParameters = _.filter(_.keys(FCSFile.text), param => param.match(/^\$P.+N$/)).map(key => FCSFile.text[key])
-    const toReturn = FCSParameters.map((p) => {
-        return {
-            key: p,
-            dataBoundaries: {
-                min: Infinity,
-                max: -Infinity
+    const FCSParameters = []
+
+    for (let key of _.keys(FCSFile.text)) {
+        if ((key.match(/^\$P.+N$/) || key.match(/^\$P.+S$/)) &&
+            !FCSParameters[parseInt(key.match(/\d+/)[0]) - 1]) {
+            FCSParameters[parseInt(key.match(/\d+/)[0]) - 1] = {
+                key: FCSFile.text[key],
+                label: FCSFile.text[key],
+                statistics: {
+                    min: Infinity,
+                    max: -Infinity,
+                    mean: 0
+                }
             }
         }
-    })
+
+        if (key.match(/^\$P.+N$/)) {
+            FCSParameters[parseInt(key.match(/\d+/)[0]) - 1].key = FCSFile.text[key]
+        } else if (key.match(/^\$P.+S$/)) {
+            FCSParameters[parseInt(key.match(/\d+/)[0]) - 1].label = FCSFile.text[key]
+        }
+    }
 
     for (let i = 0; i < FCSFile.dataAsNumbers.length; i++) {
         for (let j = 0; j < FCSFile.dataAsNumbers[i].length; j++) {
-            if (FCSFile.dataAsNumbers[i][j] < toReturn[j].dataBoundaries.min) {
-                toReturn[j].dataBoundaries.min = FCSFile.dataAsNumbers[i][j]
+            if (FCSFile.dataAsNumbers[i][j] < FCSParameters[j].statistics.min) {
+                FCSParameters[j].statistics.min = FCSFile.dataAsNumbers[i][j]
             }
 
-            if (FCSFile.dataAsNumbers[i][j] > toReturn[j].dataBoundaries.max) {
-                toReturn[j].dataBoundaries.max = FCSFile.dataAsNumbers[i][j]
+            if (FCSFile.dataAsNumbers[i][j] > FCSParameters[j].statistics.max) {
+                FCSParameters[j].statistics.max = FCSFile.dataAsNumbers[i][j]
             }
+
+            FCSParameters[j].statistics.mean += FCSFile.dataAsNumbers[i][j] / FCSFile.dataAsNumbers.length
         }
     }
 
     return {
-        FCSParameters: toReturn
+        FCSParameters
     }
 }
 
@@ -139,8 +156,6 @@ const initializeSampleData = async (sample) => {
 const getImageForPlot = async (sample, width = 600, height = 460) => {
     if (sample.plotImages[getPlotImageKey(sample)]) { return sample.plotImages[getPlotImageKey(sample)] }
     const scales = getScalesForSample(sample, width, height)
-    const dataBoundariesX = sample.FCSParameters[sample.selectedXParameterIndex].dataBoundaries
-    const dataBoundariesY = sample.FCSParameters[sample.selectedYParameterIndex].dataBoundaries
 
     // Find the related sample
     const fullPopulation = (await getFCSFileFromPath(sample.filePath)).dataAsNumbers
@@ -165,11 +180,30 @@ const getImageForPlot = async (sample, width = 600, height = 460) => {
         ]
     })
 
-    const densityMap = new Density(densityPoints)
+    window.scales = scales
+
+    const densityMap = new Density(densityPoints, {
+        shape: [scales.xScale(sample.FCSParameters[sample.selectedXParameterIndex].statistics.max), height - scales.yScale(sample.FCSParameters[sample.selectedYParameterIndex].statistics.max)]
+    })
     densityMap.calculateDensity()
 
     const data = []
     var PNGFile = new pngjs.PNG({ width: width, height: height });
+    // for (let y = 0; y < densityMap.getDensityMap().length; y++) {
+    //     const column = densityMap.getDensityMap()[y]
+    //     if (!column || column.length === 0) { continue }
+
+    //     for (let x = 0; x < column.length; x++) {
+    //         const density = column[x]
+    //         const index = (y * canvas.width + x) * 4
+    //         const color = heatMapRGBForValue(Math.min((densityMap.getDensityMap()[y][x] / densityMap.getMaxDensity() * 1.5), 1))
+    //         PNGFile.data[index] = color[0]
+    //         PNGFile.data[index + 1] = color[1]
+    //         PNGFile.data[index + 2] = color[2]
+    //         PNGFile.data[index + 3] = 255
+    //     }
+    // }
+
     for (let i = 0; i < subPopulation.length; i++) {
         const xValue = Math.floor(scales.xScale(subPopulation[i][sample.selectedXParameterIndex]))
         const yValue = Math.floor(scales.yScale(subPopulation[i][sample.selectedYParameterIndex]))
@@ -321,7 +355,6 @@ export const api = {
         let sample = {
             id: sampleId,
             type: sampleParameters.type,
-            title: sampleParameters.title,
             description: sampleParameters.description,
             filePath: parentSample.filePath,
             selectedXParameterIndex: parentSample.selectedXParameterIndex,
@@ -329,7 +362,7 @@ export const api = {
             selectedXScale: parentSample.selectedXScale,
             selectedYScale: parentSample.selectedYScale,
             FCSParameters: _.clone(parentSample.FCSParameters),
-            dataBoundaries: _.clone(parentSample.dataBoundaries),
+            statistics: _.clone(parentSample.statistics),
             // Below are defaults
             subSampleIds: [],
             plotImages: {}
@@ -345,27 +378,53 @@ export const api = {
             selectedYScale: gateParameters.selectedYScale
         }
 
-        currentState = applicationReducer(currentState, createSubSampleAndAddToWorkspace(workspaceId, parentSampleId, sample, gate))
-        store.dispatch(createSubSampleAndAddToWorkspace(workspaceId, parentSampleId, sample, gate))
-
         // Store the events that were captured within the subsample but don't add them to the redux state
         const FCSFile = await getFCSFileFromPath(sample.filePath)
 
         const includeEventIds = []
+
+        // TODO: Using mean to do naming is primitive, as it doesn't account for dense blobs lower down
+        let includedMeanX = 0
+        let includedMeanY = 0
         if (gate.type === constants.GATE_POLYGON) {
             for (let i = 0; i < FCSFile.dataAsNumbers.length; i++) {
                 if (pointInsidePolygon([FCSFile.dataAsNumbers[i][sample.selectedXParameterIndex], FCSFile.dataAsNumbers[i][sample.selectedYParameterIndex]], gate.gateData)) {
                     includeEventIds.push(i)
                 }
             }
+
+            for (let i = 0; i < includeEventIds.length; i++) {
+                const eventId = includeEventIds[i]
+                if (pointInsidePolygon([FCSFile.dataAsNumbers[eventId][sample.selectedXParameterIndex], FCSFile.dataAsNumbers[eventId][sample.selectedYParameterIndex]], gate.gateData)) {
+                    includedMeanX += FCSFile.dataAsNumbers[eventId][sample.selectedXParameterIndex] / includeEventIds.length
+                    includedMeanY += FCSFile.dataAsNumbers[eventId][sample.selectedYParameterIndex] / includeEventIds.length
+                }
+            }
         }
 
-        const newSample = _.find(currentState.samples, s => s.id === sampleId)
-        newSample.includeEventIds = includeEventIds
+        // If there was no title specified, auto generate one
+        let title = 'Subsample'
+        if (!sampleParameters.title) {
+            console.log(sample.FCSParameters[sample.selectedXParameterIndex].statistics.mean, sample.FCSParameters[sample.selectedYParameterIndex].statistics.mean)
+            console.log(includedMeanX, includedMeanY)
+            const xHigh = includedMeanX > sample.FCSParameters[sample.selectedXParameterIndex].statistics.mean
+            const yHigh = includedMeanY > sample.FCSParameters[sample.selectedYParameterIndex].statistics.mean
+
+            title = sample.FCSParameters[sample.selectedXParameterIndex].key + (xHigh ? ' (HIGH) - ' : ' (LOW) - ')
+            title += sample.FCSParameters[sample.selectedYParameterIndex].key + (yHigh ? ' (HIGH) ' : ' (LOW) ')
+        }
+
+        sample.title = title
+
+        const backendSample = _.cloneDeep(sample)
+        backendSample.includeEventIds = includeEventIds
+
+        currentState = applicationReducer(currentState, createSubSampleAndAddToWorkspace(workspaceId, parentSampleId, backendSample, gate))
+        store.dispatch(createSubSampleAndAddToWorkspace(workspaceId, parentSampleId, sample, gate))
 
         // Generate the cached images
-        const imageForPlot = await getImageForPlot(newSample)
-        const imageAction = await setSamplePlotImage(newSample.id, getPlotImageKey(newSample), imageForPlot)
+        const imageForPlot = await getImageForPlot(backendSample)
+        const imageAction = await setSamplePlotImage(backendSample.id, getPlotImageKey(backendSample), imageForPlot)
         currentState = applicationReducer(currentState, imageAction)
         store.dispatch(imageAction)
 
@@ -406,5 +465,82 @@ export const api = {
 
 
         saveSessionToDisk()
+    },
+
+    // Performs persistent homology calculation to automatically create gates on a sample
+    calculateHomology: async function (sampleId, workspaceId) {
+        const width = 600
+        const height = 480
+
+        const sample = _.find(currentState.samples, s => s.id === sampleId)
+
+        if (!sample) { console.log('Error in calculateHomology(): no sample with id ', sampleId, 'was found'); return }
+        // Dispatch a redux action to mark the sample as loading
+        const loadingStartedAction = updateSample(sampleId, { loading: true, loadingMessage: 'Creating gates using Persistent Homology...' })
+        store.dispatch(loadingStartedAction)
+
+        const scales = getScalesForSample(sample, width, height)
+
+        // Find the related sample
+        const fullPopulation = (await getFCSFileFromPath(sample.filePath)).dataAsNumbers
+        let subPopulation = []
+        if (sample.includeEventIds) {
+            for (let i = 0; i < sample.includeEventIds.length; i++) {
+                subPopulation.push(fullPopulation[sample.includeEventIds[i]])
+            }
+        } else {
+            subPopulation = fullPopulation
+        }
+            
+        const densityPoints = subPopulation.map((point) => {
+            return [
+                scales.xScale(point[sample.selectedXParameterIndex]),
+                scales.yScale(point[sample.selectedYParameterIndex])
+            ]
+        })
+
+        const densityMap = new Density(densityPoints, {
+            shape: [scales.xScale(sample.FCSParameters[sample.selectedXParameterIndex].statistics.max), height - scales.yScale(sample.FCSParameters[sample.selectedYParameterIndex].statistics.max)]
+        })
+        densityMap.calculateDensity(3)
+
+        const truePeaks = await persistentHomology(densityMap)
+
+        for (let peak of truePeaks) {
+            // Convert the gate polygon back into real space
+            for (let i = 0; i < peak.polygon.length; i++) {
+                peak.polygon[i][0] = scales.xScale.invert(peak.polygon[i][0])
+                peak.polygon[i][1] = scales.yScale.invert(peak.polygon[i][1])
+            }
+
+            const gate = {
+                type: constants.GATE_POLYGON,
+                gateData: peak.polygon,
+                selectedXParameterIndex: sample.selectedXParameterIndex,
+                selectedYParameterIndex: sample.selectedYParameterIndex,
+                selectedXScale: sample.selectedXScale,
+                selectedYScale: sample.selectedYScale
+            }
+
+            api.createSubSampleAndAddToWorkspace(
+                workspaceId,
+                sampleId,
+                {
+                    filePath: sample.filePath,
+                    FCSParameters: sample.FCSParameters,
+                    plotImages: {},
+                    subSampleIds: [],
+                    selectedXParameterIndex: sample.selectedXParameterIndex,
+                    selectedYParameterIndex: sample.selectedYParameterIndex,
+                    selectedXScale: sample.selectedXScale,
+                    selectedYScale: sample.selectedYScale,
+                },
+                gate,
+            )
+        }
+
+        // Dispatch a redux action to mark the sample as loading
+        const loadingFinishedAction = updateSample(sampleId, { loading: false, loadingMessage: null })
+        store.dispatch(loadingFinishedAction)
     }
 }

@@ -83,7 +83,7 @@ const applicationReducer = (state = initialState, action) => {
             newState.samples = sampleReducer(newState.samples, { type: 'ADD_CHILD_SAMPLE', payload: { childSampleId: action.payload.sample.id, parentSampleId: action.payload.parentSampleId } })
             newState.gates = gateReducer(newState.gates, { type: 'CREATE_GATE', payload: { childSampleId: action.payload.sample.id, parentSampleId: action.payload.parentSampleId, gate: action.payload.gate } })
             newState.workspaces = workspaceReducer(newState.workspaces, { type: 'ADD_SAMPLE_TO_WORKSPACE', payload: { workspaceId: workspace.id, sampleId: action.payload.sample.id } })
-            newState.workspaces = workspaceReducer(newState.workspaces, { type: 'SELECT_SAMPLE', payload: { workspaceId: workspace.id, sampleId: action.payload.sample.id } })
+            // newState.workspaces = workspaceReducer(newState.workspaces, { type: 'SELECT_SAMPLE', payload: { workspaceId: workspace.id, sampleId: action.payload.sample.id } })
         } else {
             console.log('CREATE_SAMPLE_AND_ADD_TO_WORKSPACE failed: workspace with id', action.payload.workspaceId, 'was found')   
         }

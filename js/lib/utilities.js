@@ -5,6 +5,7 @@
 import hslToRGB from 'hsl-to-rgb-for-reals'
 import * as d3 from "d3"
 import logicleScale from '../scales/logicle.js'
+import arcsinScale from '../scales/arcsinh-scale'
 import constants from './constants'
 
 const heatMapHSLStringForValue = function (value) {
@@ -46,39 +47,44 @@ const getPlotImageKey = function (sample) {
 
 const getScalesForSample = (sample, graphWidth, graphHeight) => {
     const scales = {}
-    const dataBoundariesX = sample.FCSParameters[sample.selectedXParameterIndex].dataBoundaries
-    const dataBoundariesY = sample.FCSParameters[sample.selectedYParameterIndex].dataBoundaries
+    const statisticsX = sample.FCSParameters[sample.selectedXParameterIndex].statistics
+    const statisticsY = sample.FCSParameters[sample.selectedYParameterIndex].statistics
     if (sample.selectedXScale === constants.SCALE_LINEAR) {
         scales.xScale = d3.scaleLinear().range([0, graphWidth]) // value -> display
         // don't want dots overlapping axis, so add in buffer to data domain
-        scales.xScale.domain([dataBoundariesX.min, dataBoundariesX.max]);
+        scales.xScale.domain([statisticsX.min, statisticsX.max]);
     // Log Scale
     } else if (sample.selectedXScale === constants.SCALE_LOG) {
         // Log scale will break for values <= 0
         scales.xScale = d3.scaleLog()
             .range([0, graphWidth])
             .base(Math.E)
-            .domain([Math.exp(Math.log(Math.max(0.1, 0))), Math.exp(Math.log(dataBoundariesX.max))])
+            .domain([Math.exp(Math.log(Math.max(0.1, 0))), Math.exp(Math.log(statisticsX.max))])
     // Biexponential Scale
     } else if (sample.selectedXScale === constants.SCALE_BIEXP) {
         scales.xScale = logicleScale().range([0, graphWidth])
+    // Arcsin scale
+    } else if (sample.selectedXScale === constants.SCALE_ARCSIN) {
+        scales.xScale = arcsinScale().range([0, graphWidth])
     }
 
     // setup y
-    // let yValue = (d) => { return d[sample.selectedYParameterIndex] }
     if (sample.selectedYScale === constants.SCALE_LINEAR) {
         scales.yScale = d3.scaleLinear().range([graphHeight, 0]) // value -> display
-        scales.yScale.domain([dataBoundariesY.min, dataBoundariesY.max]);
+        scales.yScale.domain([statisticsY.min, statisticsY.max]);
     // Log Scale
     } else if (sample.selectedYScale === constants.SCALE_LOG) {
         // yValue = (d) => { return Math.max(0.1, d[sample.selectedYParameterIndex]) } // data -> value
         scales.yScale = d3.scaleLog()
             .range([graphHeight, 0])
             .base(Math.E)
-            .domain([Math.exp(Math.log(Math.max(0.1, 0))), Math.exp(Math.log(dataBoundariesY.max))])
+            .domain([Math.exp(Math.log(Math.max(0.1, 0))), Math.exp(Math.log(statisticsY.max))])
     // Biexponential Scale
     } else if (sample.selectedYScale === constants.SCALE_BIEXP) {
         scales.yScale = logicleScale().range([graphHeight, 0])
+    // Arcsin scale
+    } else if (sample.selectedXScale === constants.SCALE_ARCSIN) {
+        scales.yScale = arcsinScale().range([graphHeight, 0])
     }
 
     return scales

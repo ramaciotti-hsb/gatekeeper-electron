@@ -36,6 +36,17 @@ export default class Application extends Component {
                 ]
             },
             {
+                label: 'Auto Gating',
+                submenu: [
+                    {
+                        label: 'Recursive Gating',
+                        submenu: [
+                            { label: 'Persistant Homology' }
+                        ]
+                    }
+                ]
+            },
+            {
                 label: 'View',
                 submenu: [
                     {role: 'reload'},
@@ -95,7 +106,7 @@ export default class Application extends Component {
             )
 
             // Windows menu
-            template[4].submenu = [
+            template[5].submenu = [
                 {role: 'close'},
                 {role: 'minimize'},
                 {role: 'zoom'},

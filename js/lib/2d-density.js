@@ -18,7 +18,8 @@ export default class twoDimensionalDensity {
         }
     }
 
-    calculateDensity () {
+    calculateDensity (densityWidth = 2) {
+        console.log('Trying density', densityWidth)
         // Create a sorted point cache that's accessible by [row][column] for faster density estimation
         this.pointCache = []
         this.densityMap = []
@@ -45,16 +46,9 @@ export default class twoDimensionalDensity {
         }
 
         this.maxDensity = 0
-        for (let y = 0; y < this.pointCache.length; y++) {
-            const column = this.pointCache[y]
-            if (!column || column.length === 0) { continue }
-
-            for (let x = 0; x < column.length; x++) {
-                const row = column[x]
-                if (!row || row.length === 0) { continue }
-
+        for (let y = 0; y < Math.ceil(this.options.shape[1]); y++) {
+            for (let x = 0; x < Math.ceil(this.options.shape[0]); x++) {
                 let density = 0
-                let densityWidth = 1
 
                 // Calculate the density of neighbouring points
                 for (let i = y - densityWidth; i < y + densityWidth; i++) {
@@ -69,10 +63,24 @@ export default class twoDimensionalDensity {
                     }
                 }
 
+                if (density === 0) { continue }
+
+                if (!this.densityMap[y]) {
+                    this.densityMap[y] = []
+                }
+
                 this.densityMap[y][x] = density
 
                 this.maxDensity = density > this.maxDensity ? density : this.maxDensity
             }
+        }
+
+        console.log(this.maxDensity)
+
+        if (this.maxDensity > 300 && densityWidth > 1) {
+            this.calculateDensity(densityWidth - 1)
+        } else if (this.maxDensity < 10 && densityWidth < 100) {
+            this.calculateDensity(densityWidth + 1)
         }
     }
 

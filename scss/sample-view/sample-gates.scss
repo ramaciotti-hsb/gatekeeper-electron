@@ -11,34 +11,39 @@
     .gate-group {
         flex-direction: column;
         background: #fff;
-        padding: 0 10px 10px 10px;
         border-radius: 5px;
         margin: 5px;
 
-        .selected-parameters {
-            font-size: 14px;
-            color: #555;
-            flex-shrink: 0;
-            padding: 10px 0 0 0;
-        }
+        .upper {
+            flex-direction: row;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
 
-        .show-gate {
-
-            div {
-                display: inline;
+            .selected-parameters {
                 font-size: 14px;
-                cursor: pointer;
-                text-decoration: underline;
+                color: #555;
                 flex-shrink: 0;
-                padding: 5px 0 10px 0;
-                @include foregroundHover($highlight-colour);
-                @include foregroundClick($highlight-colour);
+                margin-right: 10px;
+            }
+
+            .show-gate {
+
+                div {
+                    display: inline;
+                    font-size: 14px;
+                    cursor: pointer;
+                    text-decoration: underline;
+                    flex-shrink: 0;
+                    @include foregroundHover($highlight-colour);
+                    @include foregroundClick($highlight-colour);
+                }
             }
         }
 
         .gate {
             flex-direction: column;
-            margin: 5px;
+            margin: 10px;
 
             .subsample-name {
                 font-size: 12px;

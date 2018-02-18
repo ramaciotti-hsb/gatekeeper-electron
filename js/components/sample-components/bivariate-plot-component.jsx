@@ -12,9 +12,7 @@ import GrahamScan from '../../lib/graham-scan.js'
 import polygonsIntersect from 'polygon-overlap'
 import pointInsidePolygon from 'point-in-polygon'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
-import area from 'area-polygon'
 import Density from '../../lib/2d-density.js'
-import persistentHomology from '../../lib/persistent-homology.js'
 import Gates from './sample-gates-component.jsx'
 import constants from '../../lib/constants.js'
 import { heatMapHSLStringForValue, getPlotImageKey, getScalesForSample } from '../../lib/utilities.js'
@@ -35,8 +33,6 @@ export default class BivariatePlot extends Component {
         if (!this.props.sample.plotImages[getPlotImageKey(this.props.sample)]) { return }
 
         d3.selectAll("svg > *").remove();
-        const dataBoundariesX = this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].dataBoundaries
-        const dataBoundariesY = this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].dataBoundaries
 
         const scales = getScalesForSample(this.props.sample, this.state.graphWidth, this.state.graphHeight)
 
@@ -112,12 +108,20 @@ export default class BivariatePlot extends Component {
         var endSelection = (start, end) => {
             selection.attr("visibility", "hidden");
             // Limit the rectangle to the boundaries of the graph
-            // const startYFixed = scales.yScale.invert(Math.min(Math.max(0, this.state.graphHeight - start[1] + margin.bottom), this.state.graphHeight))
-            // const endYFixed = scales.yScale.invert(Math.min(Math.max(0, this.state.graphHeight - end[1] + margin.bottom), this.state.graphHeight))
-            const startXFixed = scales.xScale.invert(Math.min(Math.max(0, start[0] - margin.left), this.state.graphWidth))
-            const endXFixed = scales.xScale.invert(Math.min(Math.max(0, end[0] - margin.left), this.state.graphWidth))
-            const startYFixed = scales.yScale.invert(Math.min(Math.max(0, start[1] - margin.top), this.state.graphHeight))
-            const endYFixed = scales.yScale.invert(Math.min(Math.max(0, end[1] - margin.top), this.state.graphHeight))
+            const startX = Math.min(Math.max(0, start[0] - margin.left), this.state.graphWidth)
+            const endX = Math.min(Math.max(0, end[0] - margin.left), this.state.graphWidth)
+            const startY = Math.min(Math.max(0, start[1] - margin.top), this.state.graphHeight)
+            const endY = Math.min(Math.max(0, end[1] - margin.top), this.state.graphHeight)
+            const startXFixed = scales.xScale.invert(startX)
+            const endXFixed = scales.xScale.invert(endX)
+            const startYFixed = scales.yScale.invert(startY)
+            const endYFixed = scales.yScale.invert(endY)
+
+            // Only allow gates above a certain size
+            if ((endX - startX) * (endY - startY) < 400) {
+                return
+            }
+
             const gate = {
                 type: constants.GATE_POLYGON,
                 gateData: [
@@ -136,8 +140,6 @@ export default class BivariatePlot extends Component {
                 this.props.workspaceId,
                 this.props.sample.id,
                 {
-                    title: 'Subsample',
-                    description: 'Subsample',
                     filePath: this.props.sample.filePath,
                     FCSParameters: this.props.sample.FCSParameters,
                     plotImages: {},
@@ -149,8 +151,6 @@ export default class BivariatePlot extends Component {
                 },
                 gate,
             )
-
-            redrawGraph()
         };
 
         svg.on("mousedown", function (event) {

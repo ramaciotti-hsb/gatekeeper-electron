@@ -158,7 +158,7 @@ export default class SampleGates extends Component {
             const key = `${gate.selectedXParameterIndex}_${gate.selectedYParameterIndex}`
             if (!gateGroups[key]) {
                 gateGroups[key] = {
-                    label: this.props.sample.FCSParameters[gate.selectedXParameterIndex].key + ' · ' + this.props.sample.FCSParameters[gate.selectedYParameterIndex].key,
+                    label: this.props.sample.FCSParameters[gate.selectedXParameterIndex].label + ' · ' + this.props.sample.FCSParameters[gate.selectedYParameterIndex].label,
                     gates: []
                 }
             }
@@ -184,8 +184,10 @@ export default class SampleGates extends Component {
 
             return (
                 <div className='gate-group' key={key}>
-                    <div className='selected-parameters'>{gateGroup.label}</div>
-                    <div className='show-gate' onClick={this.props.showGate.bind(null, gateGroup.gates[0].id)}><div>Show Gates On Plot</div></div>
+                    <div className='upper'>
+                        <div className='selected-parameters'>{gateGroup.label}</div>
+                        <div className='show-gate' onClick={this.props.showGate.bind(null, gateGroup.gates[0].id)}><div>Show Plot</div></div>
+                    </div>
                     <div className='gates-inner'>
                         {gates}
                     </div>
