@@ -34,7 +34,11 @@ export default class BivariatePlot extends Component {
 
         d3.selectAll("svg > *").remove();
 
-        const scales = getScalesForSample(this.props.sample, this.state.graphWidth, this.state.graphHeight)
+        // Need to offset the whole graph if we're including cytof 0 histograms
+        const xOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
+        const yOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+
+        const scales = getScalesForSample(this.props.sample, this.state.graphWidth - xOffset, this.state.graphHeight - yOffset)
 
         const xAxis = d3.axisBottom().scale(scales.xScale).tickFormat(d3.format(".2s"))
         const yAxis = d3.axisLeft().scale(scales.yScale).tickFormat(d3.format(".2s"))
@@ -50,7 +54,7 @@ export default class BivariatePlot extends Component {
         // x-axis
         svg.append("g")
           .attr("class", "x axis")
-          .attr("transform", "translate(0," + this.state.graphHeight + ")")
+          .attr("transform", "translate(" + xOffset + "," + this.state.graphHeight + ")")
           .call(xAxis)
         .append("text")
           .attr("class", "label")
@@ -61,6 +65,7 @@ export default class BivariatePlot extends Component {
         // y-axis
         svg.append("g")
           .attr("class", "y axis")
+          // .attr('transform', 'translate(0, -' + yOffset + ')')
           .call(yAxis)
         .append("text")
           .attr("class", "label")
@@ -118,7 +123,7 @@ export default class BivariatePlot extends Component {
             const endYFixed = scales.yScale.invert(endY)
 
             // Only allow gates above a certain size
-            if ((endX - startX) * (endY - startY) < 400) {
+            if (Math.abs(endX - startX) * Math.abs(endY - startY) < 400) {
                 return
             }
 

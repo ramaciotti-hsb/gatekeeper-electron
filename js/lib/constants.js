@@ -1,7 +1,15 @@
 export default {
+    // Scales
     SCALE_LINEAR: 'SCALE_LINEAR',
     SCALE_LOG: 'SCALE_LOG',
     SCALE_BIEXP: 'SCALE_BIEXP',
     SCALE_ARCSIN: 'SCALE_ARCSIN',
-    GATE_POLYGON: 'GATE_POLYGON'
+    // Machine Types
+    MACHINE_CYTOF: 'CYTOF',
+    MACHINE_FLORESCENT: 'FLORESCENT',
+    // Gate types
+    GATE_POLYGON: 'GATE_POLYGON',
+    // Integer constants
+    CYTOF_HISTOGRAM_WIDTH: 50,
+    CYTOF_HISTOGRAM_HEIGHT: 50
 }

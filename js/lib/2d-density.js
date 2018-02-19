@@ -19,6 +19,7 @@ export default class twoDimensionalDensity {
     }
 
     calculateDensity (densityWidth = 2) {
+        console.log('shape:', this.options.shape)
         console.log('Trying density', densityWidth)
         // Create a sorted point cache that's accessible by [row][column] for faster density estimation
         this.pointCache = []
@@ -44,6 +45,7 @@ export default class twoDimensionalDensity {
                 y: point[1]
             })
         }
+
 
         this.maxDensity = 0
         for (let y = 0; y < Math.ceil(this.options.shape[1]); y++) {

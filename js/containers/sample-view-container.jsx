@@ -4,6 +4,7 @@
 
 import { connect } from 'react-redux'
 import { updateGate } from '../actions/gate-actions'
+import constants from '../lib/constants'
 import SampleView from '../components/sample-components/sample-view-outer-component.jsx'
 import _ from 'lodash'
 
@@ -41,6 +42,8 @@ const mapStateToProps = (state, ownProps) => {
             newSample.parentTitle = parent.title
             newSample.parentId = parent.id
         }
+
+        newSample.selectedMachineType = newSample.selectedMachineType || constants.MACHINE_FLORESCENT
 
         return { api: state.api, workspaceId: workspace.id, sample: newSample, gates }
     } else {

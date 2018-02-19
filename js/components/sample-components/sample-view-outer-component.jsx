@@ -46,6 +46,23 @@ export default class SampleView extends Component {
     }
 
     render () {
+        const machineTypes = [
+            {
+                id: constants.MACHINE_CYTOF,
+                label: 'Mass Cytometry'
+            },
+            {
+                id: constants.MACHINE_FLORESCENT,
+                label: 'Florescent'
+            },
+        ]
+        let machineTypesRendered = machineTypes.map((param, index) => {
+            return {
+                value: param.label,
+                component: <div className='item' onClick={this.handleDropdownSelection.bind(this, 'machineTypeDropdown', { selectedMachineType: param.id })} key={param.label}>{param.label}</div>
+            }
+        })
+
         let parametersXRendered = this.props.sample.FCSParameters.map((param, index) => {
             const label = param.label || param.key
             return {
@@ -116,8 +133,11 @@ export default class SampleView extends Component {
             <div className='panel sample'>
                 <div className='panel-inner'>
                     <div className='header'>
-                        <div className='upper'>{upperTitle}</div>
-                        <div className='lower'>{this.props.sample.title}</div>
+                        {upperTitle}
+                        <div className='lower'>
+                            <div className='title'>{this.props.sample.title}</div>
+                            <Dropdown items={machineTypesRendered} textLabel={_.find(machineTypes, m => m.id === this.props.sample.selectedMachineType).label} ref={'machineTypeDropdown'} />
+                        </div>
                     </div>
                     <div className='graph'>
                         <div className='graph-upper'>

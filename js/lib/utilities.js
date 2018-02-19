@@ -83,7 +83,7 @@ const getScalesForSample = (sample, graphWidth, graphHeight) => {
     } else if (sample.selectedYScale === constants.SCALE_BIEXP) {
         scales.yScale = logicleScale().range([graphHeight, 0])
     // Arcsin scale
-    } else if (sample.selectedXScale === constants.SCALE_ARCSIN) {
+    } else if (sample.selectedYScale === constants.SCALE_ARCSIN) {
         scales.yScale = arcsinScale().range([graphHeight, 0])
     }
 

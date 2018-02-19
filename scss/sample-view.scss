@@ -7,14 +7,13 @@
 .panel.sample {
     flex-basis: 80%;
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
+    overflow-y: auto;
+    background: #f5f5f5;
 
     .panel-inner {
-        background: #f5f5f5;
-        flex-grow: 1;
         flex-direction: column;
-        align-items: flex-start;
-        overflow-y: auto;        
+        align-items: stretch;
 
         .header {
             padding: 15px;
@@ -39,13 +38,25 @@
                 }
             }
 
-            .lower > input {
-                outline: none;
-                border: 2px solid #eee;
-                padding: 15px;
-                font-size: inherit;
-                font-weight: 600;
-                flex-grow: 1;
+            .lower {
+                flex-direction: row;
+                align-items: center;
+             
+                .title {
+                    flex-grow: 1;
+
+                    & > input {
+                        outline: none;
+                        border: 2px solid #eee;
+                        padding: 15px;
+                        font-size: inherit;
+                        font-weight: 600;
+                    }
+                }
+
+                .dropdown-inline {
+                    font-size: 14px;
+                }
             }
 
             &.gates {

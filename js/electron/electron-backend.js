@@ -10,6 +10,7 @@ import fs from 'fs'
 import uuidv4 from 'uuid/v4'
 import _ from 'lodash'
 import FCS from 'fcs'
+import * as d3 from "d3"
 import pngjs from 'pngjs'
 import mkdirp from 'mkdirp'
 import { getPlotImageKey, heatMapRGBForValue, getScalesForSample } from '../lib/utilities'
@@ -94,11 +95,9 @@ const getFCSFileFromPath = async (filePath) => {
     if (FCSFileCache[filePath]) {
         return FCSFileCache[filePath]
     }
-    console.log(FCS)
     // Read in the data from the FCS file, and emit another action when finished
     const buffer = await readFileBuffer(filePath)
     const FCSFile = new FCS({ dataFormat: 'asNumber', eventsToRead: -1 }, buffer)
-    console.log(FCSFile)
     FCSFileCache[filePath] = FCSFile
     return FCSFile
 }
@@ -143,7 +142,10 @@ const initializeSampleData = async (sample) => {
                 FCSParameters[j].statistics.max = FCSFile.dataAsNumbers[i][j]
             }
 
-            FCSParameters[j].statistics.mean += FCSFile.dataAsNumbers[i][j] / FCSFile.dataAsNumbers.length
+            // If we're looking at Cytof data, exclude zero values from mean calculation (they aren't useful)
+            if (FCSFile.dataAsNumbers[i][j] > 0) {
+                FCSParameters[j].statistics.mean += FCSFile.dataAsNumbers[i][j] / FCSFile.dataAsNumbers.length                
+            }
         }
     }
 
@@ -155,23 +157,41 @@ const initializeSampleData = async (sample) => {
 // Generates an image for a 2d scatter plot
 const getImageForPlot = async (sample, width = 600, height = 460) => {
     if (sample.plotImages[getPlotImageKey(sample)]) { return sample.plotImages[getPlotImageKey(sample)] }
-    const scales = getScalesForSample(sample, width, height)
+
+    // Offset the entire graph and add histograms if we're looking at cytof data
+    let xOffset = sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
+    let yOffset = sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+    const scales = getScalesForSample(sample, width - xOffset, height - yOffset)
 
     // Find the related sample
     const fullPopulation = (await getFCSFileFromPath(sample.filePath)).dataAsNumbers
     let subPopulation = []
+    let xChannelZeroes = []
+    let yChannelZeroes = []
     if (sample.includeEventIds) {
         for (let i = 0; i < sample.includeEventIds.length; i++) {
+            // If we're dealing with Cytof data, exclude zeroes at this point
             subPopulation.push(fullPopulation[sample.includeEventIds[i]])
         }
     } else {
         subPopulation = fullPopulation
     }
 
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    const context = canvas.getContext("2d")
+    if (sample.selectedMachineType === constants.MACHINE_CYTOF) {
+        let newSubPopulation = []
+        for (let i = 0; i < subPopulation.length; i++) {
+            // Every point that has a zero in the selected X channel
+            if (subPopulation[i][sample.selectedXParameterIndex] === 0) {
+                xChannelZeroes.push(subPopulation[i])
+            // Every point that has a zero in the selected Y channel
+            } else if (subPopulation[i][sample.selectedYParameterIndex] === 0) {
+                yChannelZeroes.push(subPopulation[i])
+            } else {
+                newSubPopulation.push(subPopulation[i])
+            }
+        }
+        subPopulation = newSubPopulation
+    }
         
     const densityPoints = subPopulation.map((point) => {
         return [
@@ -183,12 +203,14 @@ const getImageForPlot = async (sample, width = 600, height = 460) => {
     window.scales = scales
 
     const densityMap = new Density(densityPoints, {
-        shape: [scales.xScale(sample.FCSParameters[sample.selectedXParameterIndex].statistics.max), height - scales.yScale(sample.FCSParameters[sample.selectedYParameterIndex].statistics.max)]
+        shape: [width - xOffset, height - yOffset]
     })
     densityMap.calculateDensity()
 
+
     const data = []
-    var PNGFile = new pngjs.PNG({ width: width, height: height });
+    let PNGFile
+    let tempPNGFile = new pngjs.PNG({ width: width - xOffset, height: height - yOffset });
     // for (let y = 0; y < densityMap.getDensityMap().length; y++) {
     //     const column = densityMap.getDensityMap()[y]
     //     if (!column || column.length === 0) { continue }
@@ -197,22 +219,66 @@ const getImageForPlot = async (sample, width = 600, height = 460) => {
     //         const density = column[x]
     //         const index = (y * canvas.width + x) * 4
     //         const color = heatMapRGBForValue(Math.min((densityMap.getDensityMap()[y][x] / densityMap.getMaxDensity() * 1.5), 1))
-    //         PNGFile.data[index] = color[0]
-    //         PNGFile.data[index + 1] = color[1]
-    //         PNGFile.data[index + 2] = color[2]
-    //         PNGFile.data[index + 3] = 255
+    //         tempPNGFile.data[index] = color[0]
+    //         tempPNGFile.data[index + 1] = color[1]
+    //         tempPNGFile.data[index + 2] = color[2]
+    //         tempPNGFile.data[index + 3] = 255
     //     }
     // }
 
     for (let i = 0; i < subPopulation.length; i++) {
         const xValue = Math.floor(scales.xScale(subPopulation[i][sample.selectedXParameterIndex]))
         const yValue = Math.floor(scales.yScale(subPopulation[i][sample.selectedYParameterIndex]))
-        const index = (yValue * canvas.width + xValue) * 4
+        const index = (yValue * (width - xOffset) + xValue) * 4
         const color = heatMapRGBForValue(Math.min((densityMap.getDensityMap()[yValue][xValue] / densityMap.getMaxDensity() * 1.5), 1))
-        PNGFile.data[index] = color[0]
-        PNGFile.data[index + 1] = color[1]
-        PNGFile.data[index + 2] = color[2]
-        PNGFile.data[index + 3] = 255
+        tempPNGFile.data[index] = color[0]
+        tempPNGFile.data[index + 1] = color[1]
+        tempPNGFile.data[index + 2] = color[2]
+        tempPNGFile.data[index + 3] = 255 // Alpha channel
+    }
+
+    // If we're looking at cytof data, render histograms at the left and bottom of the graph
+    if (sample.selectedMachineType === constants.MACHINE_CYTOF) {
+        PNGFile = new pngjs.PNG({ width: width, height: height })
+        // Perform kernel density estimation to generate histograms for zero points
+        const densityY = kernelDensityEstimator(kernelEpanechnikov(7), _.range(0, width))(xChannelZeroes.map(p => p[sample.selectedYParameterIndex]))
+        const densityX = kernelDensityEstimator(kernelEpanechnikov(7), _.range(0, width))(yChannelZeroes.map(p => p[sample.selectedXParameterIndex]))
+
+        window.densityY = densityY
+        window.densityX = densityX
+
+        // Build a new image with the graph and histograms
+        for (let i = 0; i < width * height * 4; i += 4) {
+            // If we're in the bottom left xOffset * yOffset corner, render nothing
+            if (i % (width * 4) < xOffset * 4 && Math.floor(i / (width * 4)) > height - yOffset) {
+                PNGFile.data[i] = 255
+                PNGFile.data[i + 1] = 255
+                PNGFile.data[i + 2] = 255
+                PNGFile.data[i + 3] = 255 // Alpha channel
+            }
+            // If we're in the first `xOffset` pixels of a row, render the histogram
+            else if (i % (width * 4) < xOffset * 4) {
+                PNGFile.data[i] = 0
+                PNGFile.data[i + 1] = 0
+                PNGFile.data[i + 2] = 0
+                PNGFile.data[i + 3] = 255 // Alpha channel
+            // If we're in the last `yOffset` rows, render the histogram
+            } else if (Math.floor(i / (width * 4)) > height - yOffset) {
+                PNGFile.data[i] = 0
+                PNGFile.data[i + 1] = 0
+                PNGFile.data[i + 2] = 0
+                PNGFile.data[i + 3] = 255 // Alpha channel
+            // Otherwise just render the previously generated graph pixel
+            } else {
+                const extraIndices = (Math.floor(i / (width * 4)) + 1) * (xOffset * 4)
+                PNGFile.data[i] = tempPNGFile.data[i - extraIndices]
+                PNGFile.data[i + 1] = tempPNGFile.data[i - extraIndices + 1]
+                PNGFile.data[i + 2] = tempPNGFile.data[i - extraIndices + 2]
+                PNGFile.data[i + 3] = tempPNGFile.data[i - extraIndices + 3]
+            }
+        }
+    } else {
+        PNGFile = tempPNGFile
     }
 
     const directory = `/Users/nicbarker/Downloads/sample-images/${sample.id}`
@@ -220,6 +286,21 @@ const getImageForPlot = async (sample, width = 600, height = 460) => {
     const fileName = `${directory}/${sampleKey}.png`
     await mkdirpPromise(directory)
     return await packPNGFile(PNGFile, fileName)
+}
+
+// Calculate 1d density using kernel density estimation for drawing histograms
+function kernelDensityEstimator(kernel, X) {
+  return function(V) {
+    return X.map(function(x) {
+      return [x, d3.mean(V, function(v) { return kernel(x - v); })];
+    });
+  };
+}
+
+function kernelEpanechnikov(k) {
+  return function(v) {
+    return Math.abs(v /= k) <= 1 ? 0.75 * (1 - v * v) / k : 0;
+  };
 }
 
 // -------------------------------------------------------------
@@ -323,6 +404,7 @@ export const api = {
             // Below are defaults
             selectedXParameterIndex: 0,
             selectedYParameterIndex: 1,
+            selectedMachineType: constants.MACHINE_FLORESCENT,
             selectedXScale: constants.SCALE_LINEAR,
             selectedYScale: constants.SCALE_LINEAR,
             subSampleIds: [],
@@ -405,13 +487,11 @@ export const api = {
         // If there was no title specified, auto generate one
         let title = 'Subsample'
         if (!sampleParameters.title) {
-            console.log(sample.FCSParameters[sample.selectedXParameterIndex].statistics.mean, sample.FCSParameters[sample.selectedYParameterIndex].statistics.mean)
-            console.log(includedMeanX, includedMeanY)
             const xHigh = includedMeanX > sample.FCSParameters[sample.selectedXParameterIndex].statistics.mean
             const yHigh = includedMeanY > sample.FCSParameters[sample.selectedYParameterIndex].statistics.mean
 
-            title = sample.FCSParameters[sample.selectedXParameterIndex].key + (xHigh ? ' (HIGH) - ' : ' (LOW) - ')
-            title += sample.FCSParameters[sample.selectedYParameterIndex].key + (yHigh ? ' (HIGH) ' : ' (LOW) ')
+            title = sample.FCSParameters[sample.selectedXParameterIndex].label + (xHigh ? ' (HIGH) - ' : ' (LOW) - ')
+            title += sample.FCSParameters[sample.selectedYParameterIndex].label + (yHigh ? ' (HIGH) ' : ' (LOW) ')
         }
 
         sample.title = title
