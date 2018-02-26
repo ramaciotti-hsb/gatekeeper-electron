@@ -13,8 +13,10 @@
         flex-direction: column;
         align-items: stretch;
         border-right: 1px solid #eee;
+        overflow-y: auto;
 
         .sidebar-sample {
+            flex-shrink: 0;
             align-items: center;
             flex-direction: column;
             align-items: stretch;

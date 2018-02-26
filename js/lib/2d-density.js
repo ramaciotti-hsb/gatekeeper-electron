@@ -3,6 +3,7 @@
 // -------------------------------------------------------------------------
 
 import { distanceBetweenPoints } from 'distance-to-polygon'
+import * as d3 from 'd3'
 
 // Data should be an array of 2d points, in [x, y] format i.e. [[1, 1], [2, 2]]
 export default class twoDimensionalDensity {
@@ -19,8 +20,6 @@ export default class twoDimensionalDensity {
     }
 
     calculateDensity (densityWidth = 2) {
-        console.log('shape:', this.options.shape)
-        console.log('Trying density', densityWidth)
         // Create a sorted point cache that's accessible by [row][column] for faster density estimation
         this.pointCache = []
         this.densityMap = []
@@ -28,16 +27,14 @@ export default class twoDimensionalDensity {
         for (let i = 0; i < this.data.length; i++) {
             const point = this.data[i]
 
-            const xVal = Math.floor(point[0])
-            const yVal = Math.floor(point[1])
+            const xVal = Math.round(point[0])
+            const yVal = Math.round(point[1])
 
             if (!this.pointCache[yVal]) {
                 this.pointCache[yVal] = []
-                this.densityMap[yVal] = []
             }
             if (!this.pointCache[yVal][xVal]) {
                 this.pointCache[yVal][xVal] = []
-                this.densityMap[yVal][xVal] = 0
             }
 
             this.pointCache[yVal][xVal].push({
@@ -48,9 +45,15 @@ export default class twoDimensionalDensity {
 
 
         this.maxDensity = 0
-        for (let y = 0; y < Math.ceil(this.options.shape[1]); y++) {
-            for (let x = 0; x < Math.ceil(this.options.shape[0]); x++) {
+        for (let y = 0; y < Math.ceil(this.options.shape[1]) + 1; y++) {
+            for (let x = 0; x < Math.ceil(this.options.shape[0]) + 1; x++) {
                 let density = 0
+                if (!this.densityMap[y]) {
+                    this.densityMap[y] = []
+                }
+                if (!this.densityMap[y][x]) {
+                    this.densityMap[y][x] = 0
+                }
 
                 // Calculate the density of neighbouring points
                 for (let i = y - densityWidth; i < y + densityWidth; i++) {
@@ -65,24 +68,29 @@ export default class twoDimensionalDensity {
                     }
                 }
 
-                if (density === 0) { continue }
-
-                if (!this.densityMap[y]) {
-                    this.densityMap[y] = []
-                }
-
                 this.densityMap[y][x] = density
 
                 this.maxDensity = density > this.maxDensity ? density : this.maxDensity
             }
         }
 
-        console.log(this.maxDensity)
+        // Log scale will break for values <= 0
+        const xScale = d3.scaleLog()
+            .range([0, 1])
+            .base(Math.E)
+            .domain([Math.exp(0), Math.exp(Math.log(this.maxDensity))])
 
-        if (this.maxDensity > 300 && densityWidth > 1) {
-            this.calculateDensity(densityWidth - 1)
-        } else if (this.maxDensity < 10 && densityWidth < 100) {
-            this.calculateDensity(densityWidth + 1)
+        window.xScale = xScale
+
+        this.maxDensity = 0
+        for (let i = 0; i < this.densityMap.length; i++) {
+            if (!this.densityMap[i]) {
+                continue
+            }
+            for (let j = 0; j < this.densityMap[i].length; j++) {
+                this.densityMap[i][j] = this.densityMap[i][j] === 0 ? 0 : xScale(this.densityMap[i][j])
+                this.maxDensity = this.densityMap[i][j] > this.maxDensity ? this.densityMap[i][j] : this.maxDensity
+            }
         }
     }
 

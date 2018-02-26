@@ -41,6 +41,8 @@ const mapStateToProps = (state, ownProps) => {
             newSample.parentTitle = parent.title
         }
 
+        console.log(newSample)
+
         return { api: state.api, workspaceId: workspace.id, sample: newSample, gates }
     } else {
         return { api: state.api, sample: { subSamples: [] }, gates: [] }

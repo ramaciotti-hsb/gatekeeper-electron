@@ -1,4 +1,5 @@
 import { combineReducers } from 'redux'
+import { removeSample } from '../actions/sample-actions'
 import sampleReducer from './sample-reducer'
 import workspaceReducer from './workspace-reducer'
 import gateReducer from './gate-reducer'
@@ -103,43 +104,68 @@ const applicationReducer = (state = initialState, action) => {
     // Remove a sample, any subsamples and unselect if selected
     // --------------------------------------------------
     } else if (action.type === 'REMOVE_SAMPLE') {
-        // Find the workspace that the sample is inside and remove it from there
-        const workspaceIndex = _.findIndex(state.workspaces, w => w.sampleIds.includes(action.payload.sampleId))
+        // Find all samples that will be affected, including subsamples
+        const samplesToRemove = []
+        const addSubSamples = (sampleId) => {
+            const sample = _.find(newState.samples, s => s.id === sampleId)
+            if (sampleId) {
+                samplesToRemove.push(sampleId)
 
-        if (workspaceIndex > -1) {
-            const newWorkspace = _.clone(state.workspaces[workspaceIndex])
-            newWorkspace.sampleIds = newWorkspace.sampleIds.slice(0)
-
-            if (newWorkspace.selectedSampleId === action.payload.sampleId) {
-                const selectedSampleIndex = _.findIndex(newWorkspace.sampleIds, s => s === action.payload.sampleId)
-                if (selectedSampleIndex > -1) {
-
-                    // Select another sample if there is one available to select, otherwise do nothing
-                    if (newWorkspace.sampleIds.length > 1) {
-
-                        if (selectedSampleIndex < newWorkspace.sampleIds.length - 1) {
-                            newWorkspace.selectedSampleId = newWorkspace.sampleIds[Math.min(Math.max(selectedSampleIndex + 1, 0), newWorkspace.sampleIds.length - 1)]
-                        } else {
-                            newWorkspace.selectedSampleId = newWorkspace.sampleIds[newWorkspace.sampleIds.length - 2]
-                        }
-                    } else {
-                        newWorkspace.selectedSampleId = null
+                if (sample.subSampleIds) {
+                    for (let subSampleId of sample.subSampleIds) {
+                        addSubSamples(subSampleId)
                     }
-
-                    newState.workspaces = newState.workspaces.slice(0, workspaceIndex).concat([ newWorkspace ]).concat(newState.workspaces.slice(workspaceIndex + 1))
-                } else {
-                    console.log('REMOVE_SAMPLE failed: no sample with id', action.payload.sampleId, 'was found in sampleIds of workspace with id', action.payload.workspaceId)       
                 }
             }
-
-            newState.workspaces = workspaceReducer(newState.workspaces, action)
         }
 
-        newState.samples = sampleReducer(newState.samples, action)
-        // Delete any gates that no longer point to a valid sample (i.e. their parent or child has been deleted)
-        let orphanGates = _.filter(newState.gates, g => !_.find(newState.samples, s => g.parentSampleId === s.id) || !_.find(newState.samples, s => g.childSampleId === s.id))
-        for (let gate of orphanGates) {
-            newState.gates = gateReducer(newState.gates, { type: 'REMOVE_GATE', payload: { gateId: gate.id } })
+        addSubSamples(action.payload.sampleId)
+        
+        for (let sampleId of samplesToRemove) {
+            const newAction = removeSample(sampleId)
+            // Find the workspace that the sample is inside and remove it from there
+            const workspaceIndex = _.findIndex(state.workspaces, w => w.sampleIds.includes(newAction.payload.sampleId))
+
+            if (workspaceIndex > -1) {
+                const newWorkspace = _.clone(state.workspaces[workspaceIndex])
+                newWorkspace.sampleIds = newWorkspace.sampleIds.slice(0)
+
+                if (newWorkspace.selectedSampleId === newAction.payload.sampleId) {
+                    const selectedSampleIndex = _.findIndex(newWorkspace.sampleIds, s => s === newAction.payload.sampleId)
+                    if (selectedSampleIndex > -1) {
+
+                        // Select another sample if there is one available to select, otherwise do nothing
+                        if (newWorkspace.sampleIds.length > 1) {
+
+                            if (selectedSampleIndex < newWorkspace.sampleIds.length - 1) {
+                                newWorkspace.selectedSampleId = newWorkspace.sampleIds[Math.min(Math.max(selectedSampleIndex + 1, 0), newWorkspace.sampleIds.length - 1)]
+                            } else {
+                                newWorkspace.selectedSampleId = newWorkspace.sampleIds[newWorkspace.sampleIds.length - 2]
+                            }
+                        } else {
+                            newWorkspace.selectedSampleId = null
+                        }
+
+                        newState.workspaces = newState.workspaces.slice(0, workspaceIndex).concat([ newWorkspace ]).concat(newState.workspaces.slice(workspaceIndex + 1))
+                    } else {
+                        console.log('REMOVE_SAMPLE failed: no sample with id', newAction.payload.sampleId, 'was found in sampleIds of workspace with id', newAction.payload.workspaceId)       
+                    }
+                }
+
+                newState.workspaces = workspaceReducer(newState.workspaces, newAction)
+            }
+
+            newState.samples = sampleReducer(newState.samples, newAction)
+            // Delete any gates that no longer point to a valid sample (i.e. their parent or child has been deleted)
+            let orphanGates = _.filter(newState.gates, g => !_.find(newState.samples, s => g.parentSampleId === s.id) || !_.find(newState.samples, s => g.childSampleId === s.id))
+            for (let gate of orphanGates) {
+                newState.gates = gateReducer(newState.gates, { type: 'REMOVE_GATE', payload: { gateId: gate.id } })
+            }
+            // Remove any references to deleted samples from workspaces
+            let orphanSampleIds = _.filter(newState.workspaces, g => !_.find(newState.samples, s => g.parentSampleId === s.id) || !_.find(newState.samples, s => g.childSampleId === s.id))
+            for (let gate of orphanGates) {
+                newState.gates = gateReducer(newState.gates, { type: 'REMOVE_GATE', payload: { gateId: gate.id } })
+            }
         }
     // --------------------------------------------------
     // Pass on any unmatched actions to workspaceReducer and

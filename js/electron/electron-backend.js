@@ -16,7 +16,7 @@ import mkdirp from 'mkdirp'
 import { getPlotImageKey, heatMapRGBForValue, getScalesForSample } from '../lib/utilities'
 import constants from '../lib/constants'
 import Density from '../lib/2d-density'
-import persistentHomology from '../lib/persistent-homology.js'
+import PersistentHomology from '../lib/persistent-homology.js'
 import pointInsidePolygon from 'point-in-polygon'
 import applicationReducer from '../reducers/application-reducer'
 import { updateSample, removeSample, setSamplePlotImage } from '../actions/sample-actions'
@@ -119,6 +119,7 @@ const initializeSampleData = async (sample) => {
                 label: FCSFile.text[key],
                 statistics: {
                     min: Infinity,
+                    positiveMin: Infinity,
                     max: -Infinity,
                     mean: 0
                 }
@@ -136,6 +137,10 @@ const initializeSampleData = async (sample) => {
         for (let j = 0; j < FCSFile.dataAsNumbers[i].length; j++) {
             if (FCSFile.dataAsNumbers[i][j] < FCSParameters[j].statistics.min) {
                 FCSParameters[j].statistics.min = FCSFile.dataAsNumbers[i][j]
+            }
+
+            if (FCSFile.dataAsNumbers[i][j] < FCSParameters[j].statistics.positiveMin && FCSFile.dataAsNumbers[i][j] > 0) {
+                FCSParameters[j].statistics.positiveMin = FCSFile.dataAsNumbers[i][j]
             }
 
             if (FCSFile.dataAsNumbers[i][j] > FCSParameters[j].statistics.max) {
@@ -202,6 +207,8 @@ const getImageForPlot = async (sample, width = 600, height = 460) => {
 
     window.scales = scales
 
+    console.log(scales)
+
     const densityMap = new Density(densityPoints, {
         shape: [width - xOffset, height - yOffset]
     })
@@ -217,8 +224,8 @@ const getImageForPlot = async (sample, width = 600, height = 460) => {
 
     //     for (let x = 0; x < column.length; x++) {
     //         const density = column[x]
-    //         const index = (y * canvas.width + x) * 4
-    //         const color = heatMapRGBForValue(Math.min((densityMap.getDensityMap()[y][x] / densityMap.getMaxDensity() * 1.5), 1))
+    //         const index = (y * width + x) * 4
+    //         const color = heatMapRGBForValue(densityMap.getDensityMap()[y][x])
     //         tempPNGFile.data[index] = color[0]
     //         tempPNGFile.data[index + 1] = color[1]
     //         tempPNGFile.data[index + 2] = color[2]
@@ -230,43 +237,49 @@ const getImageForPlot = async (sample, width = 600, height = 460) => {
         const xValue = Math.floor(scales.xScale(subPopulation[i][sample.selectedXParameterIndex]))
         const yValue = Math.floor(scales.yScale(subPopulation[i][sample.selectedYParameterIndex]))
         const index = (yValue * (width - xOffset) + xValue) * 4
-        const color = heatMapRGBForValue(Math.min((densityMap.getDensityMap()[yValue][xValue] / densityMap.getMaxDensity() * 1.5), 1))
-        tempPNGFile.data[index] = color[0]
-        tempPNGFile.data[index + 1] = color[1]
-        tempPNGFile.data[index + 2] = color[2]
-        tempPNGFile.data[index + 3] = 255 // Alpha channel
+        if (densityMap.getDensityMap()[yValue] && densityMap.getDensityMap()[yValue][xValue]) {
+            const color = heatMapRGBForValue(densityMap.getDensityMap()[yValue][xValue])
+            tempPNGFile.data[index] = color[0]
+            tempPNGFile.data[index + 1] = color[1]
+            tempPNGFile.data[index + 2] = color[2]
+            tempPNGFile.data[index + 3] = 255 // Alpha channel
+        }
     }
 
     // If we're looking at cytof data, render histograms at the left and bottom of the graph
     if (sample.selectedMachineType === constants.MACHINE_CYTOF) {
         PNGFile = new pngjs.PNG({ width: width, height: height })
         // Perform kernel density estimation to generate histograms for zero points
-        const densityY = kernelDensityEstimator(kernelEpanechnikov(7), _.range(0, width))(xChannelZeroes.map(p => p[sample.selectedYParameterIndex]))
-        const densityX = kernelDensityEstimator(kernelEpanechnikov(7), _.range(0, width))(yChannelZeroes.map(p => p[sample.selectedXParameterIndex]))
+        const densityY = kernelDensityEstimator(kernelEpanechnikov(7), _.range(0, width - xOffset))(yChannelZeroes.map(p => scales.xScale(p[sample.selectedXParameterIndex])))
+        const densityX = kernelDensityEstimator(kernelEpanechnikov(7), _.range(0, height - yOffset))(xChannelZeroes.map(p => scales.yScale(p[sample.selectedYParameterIndex])))
 
-        window.densityY = densityY
-        window.densityX = densityX
+        const maxDensityY = densityY.reduce((accumulator, currentValue) => { return Math.max(currentValue[1], accumulator) }, densityY[0][1])
+        const maxDensityX = densityX.reduce((accumulator, currentValue) => { return Math.max(currentValue[1], accumulator) }, densityX[0][1])
+
+        console.log(maxDensityY, maxDensityX)
 
         // Build a new image with the graph and histograms
         for (let i = 0; i < width * height * 4; i += 4) {
             // If we're in the bottom left xOffset * yOffset corner, render nothing
-            if (i % (width * 4) < xOffset * 4 && Math.floor(i / (width * 4)) > height - yOffset) {
+            if (i % (width * 4) <= xOffset * 4 && Math.floor((i) / (width * 4)) >= height - yOffset) {
                 PNGFile.data[i] = 255
                 PNGFile.data[i + 1] = 255
                 PNGFile.data[i + 2] = 255
                 PNGFile.data[i + 3] = 255 // Alpha channel
             }
-            // If we're in the first `xOffset` pixels of a row, render the histogram
+            // If we're in the first `xOffset` pixels of a row, render the histogram for the X == 0 points
             else if (i % (width * 4) < xOffset * 4) {
-                PNGFile.data[i] = 0
-                PNGFile.data[i + 1] = 0
-                PNGFile.data[i + 2] = 0
+                const xColour = heatMapRGBForValue(densityX[Math.floor(i / (width * 4))][1] / maxDensityY * 0.5)
+                PNGFile.data[i] = xColour[0]
+                PNGFile.data[i + 1] = xColour[1]
+                PNGFile.data[i + 2] = xColour[2]
                 PNGFile.data[i + 3] = 255 // Alpha channel
             // If we're in the last `yOffset` rows, render the histogram
             } else if (Math.floor(i / (width * 4)) > height - yOffset) {
-                PNGFile.data[i] = 0
-                PNGFile.data[i + 1] = 0
-                PNGFile.data[i + 2] = 0
+                const xColour = heatMapRGBForValue(densityY[(i % (width * 4) / 4) - xOffset][1] / maxDensityX * 0.5)
+                PNGFile.data[i] = xColour[0]
+                PNGFile.data[i + 1] = xColour[1]
+                PNGFile.data[i + 2] = xColour[2]
                 PNGFile.data[i + 3] = 255 // Alpha channel
             // Otherwise just render the previously generated graph pixel
             } else {
@@ -445,6 +458,7 @@ export const api = {
             selectedYScale: parentSample.selectedYScale,
             FCSParameters: _.clone(parentSample.FCSParameters),
             statistics: _.clone(parentSample.statistics),
+            includeEventIds: sampleParameters.includeEventIds,
             // Below are defaults
             subSampleIds: [],
             plotImages: {}
@@ -561,16 +575,7 @@ export const api = {
 
         const scales = getScalesForSample(sample, width, height)
 
-        // Find the related sample
-        const fullPopulation = (await getFCSFileFromPath(sample.filePath)).dataAsNumbers
-        let subPopulation = []
-        if (sample.includeEventIds) {
-            for (let i = 0; i < sample.includeEventIds.length; i++) {
-                subPopulation.push(fullPopulation[sample.includeEventIds[i]])
-            }
-        } else {
-            subPopulation = fullPopulation
-        }
+        const subPopulation = await api.getPopulationForSample(sampleId)
             
         const densityPoints = subPopulation.map((point) => {
             return [
@@ -582,9 +587,13 @@ export const api = {
         const densityMap = new Density(densityPoints, {
             shape: [scales.xScale(sample.FCSParameters[sample.selectedXParameterIndex].statistics.max), height - scales.yScale(sample.FCSParameters[sample.selectedYParameterIndex].statistics.max)]
         })
-        densityMap.calculateDensity(3)
+        densityMap.calculateDensity(5)
 
-        const truePeaks = await persistentHomology(densityMap)
+        const homology = new PersistentHomology({
+            densityMap
+        })
+
+        const truePeaks = await homology.findPeaks(densityMap)
 
         for (let peak of truePeaks) {
             // Convert the gate polygon back into real space
@@ -619,8 +628,27 @@ export const api = {
             )
         }
 
-        // Dispatch a redux action to mark the sample as loading
+        // Dispatch a redux action to mark the sample as finished loading
         const loadingFinishedAction = updateSample(sampleId, { loading: false, loadingMessage: null })
         store.dispatch(loadingFinishedAction)
+    },
+
+    getPopulationForSample: async function (sampleId) {
+        // Find the related sample
+        const sample = _.find(currentState.samples, s => s.id === sampleId)
+
+        if (!sample) { console.log('Error in getPopulationForSample(): no sample with id ', sampleId, 'was found'); return }
+
+        const fullPopulation = (await getFCSFileFromPath(sample.filePath)).dataAsNumbers
+        let subPopulation = []
+        if (sample.includeEventIds) {
+            for (let i = 0; i < sample.includeEventIds.length; i++) {
+                subPopulation.push(fullPopulation[sample.includeEventIds[i]])
+            }
+        } else {
+            subPopulation = fullPopulation
+        }
+
+        return subPopulation
     }
 }

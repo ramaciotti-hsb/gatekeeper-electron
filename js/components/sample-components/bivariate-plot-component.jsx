@@ -15,7 +15,9 @@ import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import Density from '../../lib/2d-density.js'
 import Gates from './sample-gates-component.jsx'
 import constants from '../../lib/constants.js'
+import area from 'area-polygon'
 import { heatMapHSLStringForValue, getPlotImageKey, getScalesForSample } from '../../lib/utilities.js'
+import PersistantHomology from '../../lib/persistent-homology'
 
 export default class BivariatePlot extends Component {
     
@@ -25,8 +27,56 @@ export default class BivariatePlot extends Component {
             graphWidth: 600,
             graphHeight: 460,
             graphMargin: {top: 20, right: 20, bottom: 20, left: 50},
-            gateSelection: null
+            gateSelection: null,
+            truePeaks: [],
+            homologyPeaks: [],
+            iterations: 0,
+            homologyHeight: 1
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Uses the Persistent Homology technique to discover peaks / populations in
+    // 2d data. Each iteration is calculated on a different iteration of the
+    // event loop to prevent blocking for large datasets.
+    // -------------------------------------------------------------------------
+
+    // This function takes a two dimensional array (e.g foo[][]) and returns an array of polygons
+    // representing discovered peaks. e.g:
+    // [[2, 1], [2, 2], [1, 2]]
+
+    initHomologyIteration () {
+        const width = 600
+        const height = 480
+        const population = this.props.api.getPopulationForSample(this.props.sample.id).then((subPopulation) => {
+            const scales = getScalesForSample(this.props.sample, width, height)
+            const densityPoints = subPopulation.map((point) => {
+                return [
+                    scales.xScale(point[this.props.sample.selectedXParameterIndex]),
+                    scales.yScale(point[this.props.sample.selectedYParameterIndex])
+                ]
+            })
+
+            const densityMap = new Density(densityPoints, {
+                shape: [scales.xScale(this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.max), height - scales.yScale(this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.max)]
+            })
+            densityMap.calculateDensity(5)
+
+            const homology = new PersistantHomology({
+                densityMap
+            })
+
+            this.setState({
+                densityMap,
+                homology
+            })
+        })
+    }
+
+    performHomologyIteration (edgeDistance = 20, minPeakHeight = 4) {
+        this.state.homology.performHomologyIteration(this.state.homologyHeight)
+        this.state.homologyPeaks = this.state.homology.homologyPeaks
+        this.setState({ homologyHeight: this.state.homologyHeight - 0.01 }, this.createGraphLayout)
     }
 
     createGraphLayout () {
@@ -193,6 +243,7 @@ export default class BivariatePlot extends Component {
                     gatesExist = true
                 }
             }
+            gatesExist = this.state.homologyPeaks.length === 0 && gatesExist
 
             if (gatesExist) {
                 // Redraw the image and greyscale any points that are outside the gate
@@ -243,6 +294,46 @@ export default class BivariatePlot extends Component {
                     context.closePath()
                     context.stroke()
                 }
+            } else if (this.state.homologyHeight < 1) {
+                // Redraw the image and greyscale any points that are outside the gate
+                const imageData = context.getImageData(0, 0, this.state.graphWidth, this.state.graphHeight);
+                const data = imageData.data;
+                let gatesToRender = []
+
+                for (let i = 0; i < data.length; i += 4) {
+                    // Get the position of the pixel as X and Y
+                    const position = [
+                        scales.xScale.invert((i % (this.state.graphWidth * 4)) / 4),
+                        scales.yScale.invert(Math.floor(i / (this.state.graphWidth * 4)))
+                    ]
+
+                    // console.log(this.state.densityMap.getDensityMap()[Math.floor(i / (this.state.graphWidth * 4))])
+                    let shouldGreyscale = !this.state.densityMap.getDensityMap()[Math.floor(i / (this.state.graphWidth * 4))]
+                        || !this.state.densityMap.getDensityMap()[Math.floor(i / (this.state.graphWidth * 4))][(i % (this.state.graphWidth * 4)) / 4]
+                        || this.state.densityMap.getDensityMap()[Math.floor(i / (this.state.graphWidth * 4))][(i % (this.state.graphWidth * 4)) / 4] < this.state.homologyHeight
+
+                    if (shouldGreyscale) {
+                        // Inside the gate, render as greyscale
+                        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                        data[i]     = 255; // red
+                        data[i + 1] = 255; // green
+                        data[i + 2] = 255; // blue
+                    }
+                }
+                
+                context.putImageData(imageData, 0, 0);
+
+                // Render the gate outlines over the top
+                for (let i = 0; i < this.state.homologyPeaks.length; i++) {
+                    const gate = this.state.homologyPeaks[i]
+                    context.beginPath();
+                    context.moveTo(gate.polygon[0][0], gate.polygon[0][1])
+                    for (let point of gate.polygon) {
+                        context.lineTo(point[0], point[1])
+                    }
+                    context.closePath()
+                    context.stroke()
+                }
             }
 
 
@@ -259,6 +350,7 @@ export default class BivariatePlot extends Component {
 
     componentDidMount() {
         this.createGraphLayout()
+        // this.initHomologyIteration()
     }
 
     componentDidUpdate(prevProps) {
@@ -298,6 +390,7 @@ export default class BivariatePlot extends Component {
             <div className='svg-outer'>
                 <svg width={this.state.graphWidth + this.state.graphMargin.left + this.state.graphMargin.right} height={this.state.graphHeight + this.state.graphMargin.bottom + this.state.graphMargin.top} ref="graph"></svg>
                 <canvas className="canvas"/>
+                {/*<div className='step' onClick={this.performHomologyIteration.bind(this, 15, 4)}>Step</div>*/}
             </div>
         )
     }

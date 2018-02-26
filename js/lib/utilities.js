@@ -59,7 +59,7 @@ const getScalesForSample = (sample, graphWidth, graphHeight) => {
         scales.xScale = d3.scaleLog()
             .range([0, graphWidth])
             .base(Math.E)
-            .domain([Math.exp(Math.log(Math.max(0.1, 0))), Math.exp(Math.log(statisticsX.max))])
+            .domain([0.01, statisticsX.max])
     // Biexponential Scale
     } else if (sample.selectedXScale === constants.SCALE_BIEXP) {
         scales.xScale = logicleScale().range([0, graphWidth])
@@ -78,7 +78,7 @@ const getScalesForSample = (sample, graphWidth, graphHeight) => {
         scales.yScale = d3.scaleLog()
             .range([graphHeight, 0])
             .base(Math.E)
-            .domain([Math.exp(Math.log(Math.max(0.1, 0))), Math.exp(Math.log(statisticsY.max))])
+            .domain([0.01, statisticsY.max])
     // Biexponential Scale
     } else if (sample.selectedYScale === constants.SCALE_BIEXP) {
         scales.yScale = logicleScale().range([graphHeight, 0])

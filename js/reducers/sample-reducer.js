@@ -28,6 +28,7 @@ const samples = (state = [], action = {}) => {
             selectedYParameterIndex: action.payload.selectedYParameterIndex,
             selectedXScale: action.payload.selectedXScale,
             selectedYScale: action.payload.selectedYScale,
+            includeEventIds: action.payload.includeEventIds || [],
             subSampleIds: [],
             plotImages: action.payload.plotImages || {}
         }
@@ -37,21 +38,11 @@ const samples = (state = [], action = {}) => {
     // Remove a sample, all it's children and any references to it in it's parent
     // --------------------------------------------------
     } else if (action.type === 'REMOVE_SAMPLE') {
-        // First, recursively remove all the children
-        const removeElementAndChildren = function (sample) {
-            if (sample.subSampleIds.length > 0) {
-                for (let sample of sample.subSampleIds) {
-                    removeElementAndChildren(sample)
-                }
-            }
-            const sampleIndex = _.findIndex(state, s => s.id === sample.id)
-            newState = newState.slice(0, sampleIndex).concat(newState.slice(sampleIndex + 1))
-        }
-
         const sample = _.find(state, s => s.id === action.payload.sampleId)
 
         if (sample) {
-            removeElementAndChildren(sample)
+            const sampleIndex = _.findIndex(state, s => s.id === sample.id)
+            newState = newState.slice(0, sampleIndex).concat(newState.slice(sampleIndex + 1))
 
             // Then remove the id of the removed sample from the parents subSampleIds array if there is a parent
             const parentSampleIndex = _.findIndex(state, s => s.subSampleIds.includes(action.payload.sampleId))
