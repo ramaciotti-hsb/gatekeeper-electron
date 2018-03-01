@@ -3,6 +3,7 @@ import { removeSample } from '../actions/sample-actions'
 import sampleReducer from './sample-reducer'
 import workspaceReducer from './workspace-reducer'
 import gateReducer from './gate-reducer'
+import gateTemplateReducer from './gate-template-reducer'
 import _ from 'lodash'
 import path from 'path'
 import { remote } from 'electron'
@@ -12,16 +13,19 @@ let initialState = {
     samples: sampleReducer(),
     workspaces: workspaceReducer(),
     gates: gateReducer(),
+    gateTemplates: gateTemplateReducer(),
     selectedWorkspaceId: null,
     sessionLoading: true, // Display a global loading spinner while the session loads
     api: {}
 }
 
 const applicationReducer = (state = initialState, action) => {
+    // console.log(state)
     let newState = {
-        samples: state.samples.slice(0),
-        workspaces: state.workspaces.slice(0),
-        gates: state.gates.slice(0),
+        samples: state.samples ? state.samples.slice(0) : [],
+        workspaces: state.workspaces ? state.workspaces.slice(0) : [],
+        gates: state.gates ? state.gates.slice(0) : [],
+        gateTemplates: state.gateTemplates ? state.gateTemplates.slice(0) : [],
         selectedWorkspaceId: state.selectedWorkspaceId,
         sessionLoading: state.sessionLoading,
         api: state.api
@@ -33,9 +37,10 @@ const applicationReducer = (state = initialState, action) => {
     // filesystem.
     // --------------------------------------------------
     if (action.type === 'SET_SESSION_STATE') {
-        newState.samples = action.payload.samples.slice(0)
-        newState.workspaces = action.payload.workspaces.slice(0)
-        newState.gates = action.payload.gates.slice(0)
+        newState.samples = action.payload.samples ? action.payload.samples.slice(0) : []
+        newState.workspaces = action.payload.workspaces ? action.payload.workspaces.slice(0) : []
+        newState.gates = action.payload.gates ? action.payload.gates.slice(0) : []
+        newState.gateTemplates = action.payload.gateTemplates ? action.payload.gateTemplates.slice(0) : []
         newState.selectedWorkspaceId = action.payload.selectedWorkspaceId
         newState.sessionLoading = false
     }
@@ -58,6 +63,20 @@ const applicationReducer = (state = initialState, action) => {
     // --------------------------------------------------
     } else if (action.type === 'SELECT_WORKSPACE') {
         newState.selectedWorkspaceId = action.payload.id
+    // --------------------------------------------------
+    // Create a gate template and add it to a particular workspace
+    // --------------------------------------------------
+    } else if (action.type === 'CREATE_GATE_TEMPLATE_AND_ADD_TO_WORKSPACE') {
+        // Find the workspace the user wants to add to
+        const workspace = _.find(state.workspaces, w => w.id === action.payload.workspaceId)
+        if (workspace) {
+            // Create a new gate template with the gate template reducer
+            newState.gateTemplates = gateTemplateReducer(newState.gateTemplates, { type: 'CREATE_GATE_TEMPLATE', payload: action.payload })
+            newState.workspaces = workspaceReducer(newState.workspaces, { type: 'ADD_GATE_TEMPLATE_TO_WORKSPACE', payload: { workspaceId: workspace.id, gateTemplateId: action.payload.gateTemplate.id } })
+            newState.workspaces = workspaceReducer(newState.workspaces, { type: 'SELECT_GATE_TEMPLATE', payload: { workspaceId: workspace.id, gateTemplateId: action.payload.gateTemplate.id } })
+        } else {
+            console.log('CREATE_GATE_TEMPLATE_AND_ADD_TO_WORKSPACE failed: workspace with id', action.payload.workspaceId, 'was found')   
+        }
     // --------------------------------------------------
     // Create a sample and add it to a particular workspace
     // --------------------------------------------------
@@ -161,11 +180,6 @@ const applicationReducer = (state = initialState, action) => {
             for (let gate of orphanGates) {
                 newState.gates = gateReducer(newState.gates, { type: 'REMOVE_GATE', payload: { gateId: gate.id } })
             }
-            // Remove any references to deleted samples from workspaces
-            let orphanSampleIds = _.filter(newState.workspaces, g => !_.find(newState.samples, s => g.parentSampleId === s.id) || !_.find(newState.samples, s => g.childSampleId === s.id))
-            for (let gate of orphanGates) {
-                newState.gates = gateReducer(newState.gates, { type: 'REMOVE_GATE', payload: { gateId: gate.id } })
-            }
         }
     // --------------------------------------------------
     // Pass on any unmatched actions to workspaceReducer and
@@ -175,6 +189,7 @@ const applicationReducer = (state = initialState, action) => {
         newState.workspaces = workspaceReducer(newState.workspaces, action)
         newState.samples = sampleReducer(newState.samples, action)
         newState.gates = gateReducer(newState.gates, action)
+        newState.gateTemplates = gateTemplateReducer(newState.gateTemplates, action)
     }
 
     return newState

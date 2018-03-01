@@ -11,7 +11,8 @@ const initialState = [
         id: uuidv4(),
         title: 'New Workspace',
         description: 'Empty Workspace',
-        sampleIds: []
+        sampleIds: [],
+        gateTemplateIds: []
     }
 ]
 
@@ -32,6 +33,42 @@ const workspaces = (state = initialState, action = {}) => {
             newState = newState.slice(0, workspaceIndex).concat(newState.slice(workspaceIndex + 1))
         } else {
             console.log('REMOVE_WORKSPACE failed: no workspace with id', action.payload.id, 'was found')
+        }
+    // --------------------------------------------------
+    // Add an existing gate template to a workspace
+    // --------------------------------------------------
+    } else if (action.type === 'ADD_GATE_TEMPLATE_TO_WORKSPACE') {
+        const workspaceIndex = _.findIndex(state, w => w.id === action.payload.workspaceId)
+
+        if (workspaceIndex > -1) {
+            const newWorkspace = _.clone(state[workspaceIndex])
+            console.log(newWorkspace)
+            newWorkspace.gateTemplateIds = state[workspaceIndex].gateTemplateIds.slice(0)
+            if (!newWorkspace.gateTemplateIds.includes(action.payload.gateTemplateId)) {
+                newWorkspace.gateTemplateIds.push(action.payload.gateTemplateId)
+
+                newState = newState.slice(0, workspaceIndex).concat([ newWorkspace ]).concat(newState.slice(workspaceIndex + 1))
+            }
+        } else {
+            console.log('ADD_GATE_TEMPLATE_TO_WORKSPACE failed: no workspace with id', action.payload.workspaceId, 'was found')
+        }
+    // --------------------------------------------------
+    // Select a gate template that is already within a workspace
+    // --------------------------------------------------
+    } else if (action.type === 'SELECT_GATE_TEMPLATE') {
+        const workspaceIndex = _.findIndex(state, w => w.id === action.payload.workspaceId)
+
+        if (workspaceIndex > -1) {
+            const newWorkspace = _.clone(state[workspaceIndex])
+            newWorkspace.gateTemplateIds = state[workspaceIndex].gateTemplateIds.slice(0)
+            if (newWorkspace.gateTemplateIds.includes(action.payload.gateTemplateId)) {
+                newWorkspace.selectedGateTemplateId = action.payload.gateTemplateId
+                newState[workspaceIndex] = newWorkspace
+            } else {
+                console.log('SELECT_GATE_TEMPLATE failed: no gateTemplate with id', action.payload.gateTemplateId, 'was found in gateTemplateIds of workspace with id', action.payload.workspaceId)       
+            }
+        } else {
+            console.log('SELECT_SAMPLE failed: no workspace with id', action.payload.workspaceId, 'was found')
         }
     // --------------------------------------------------
     // Add an existing sample to a workspace

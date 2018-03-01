@@ -9,7 +9,7 @@ import { sampleLoadingFinished } from '../actions/sample-actions'
 
 const samples = (state = [], action = {}) => {
     let newState = state.slice(0)
-    console.log(action)
+    // console.log(action)
 
     // --------------------------------------------------
     // Create a new sample and add to state
@@ -28,7 +28,10 @@ const samples = (state = [], action = {}) => {
             selectedYParameterIndex: action.payload.selectedYParameterIndex,
             selectedXScale: action.payload.selectedXScale,
             selectedYScale: action.payload.selectedYScale,
+            populationCount: action.payload.populationCount,
             includeEventIds: action.payload.includeEventIds || [],
+            loading: action.payload.loading,
+            loadingMessage: action.payload.loadingMessage,
             subSampleIds: [],
             plotImages: action.payload.plotImages || {}
         }

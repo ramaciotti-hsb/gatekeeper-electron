@@ -11,6 +11,7 @@ const gates = (state = [], action = {}) => {
     // Create a new gate and add to state
     // --------------------------------------------------
     if (action.type === 'CREATE_GATE') {
+        console.log(action.payload.gate)
         const newGate = {
             id: action.payload.gate.id,
             type: action.payload.gate.type,
@@ -20,7 +21,11 @@ const gates = (state = [], action = {}) => {
             selectedXParameterIndex: action.payload.gate.selectedXParameterIndex,
             selectedYParameterIndex: action.payload.gate.selectedYParameterIndex,
             selectedXScale: action.payload.gate.selectedXScale,
-            selectedYScale: action.payload.gate.selectedYScale
+            selectedYScale: action.payload.gate.selectedYScale,
+            gateCreator: action.payload.gate.gateCreator, // string constant for how this gate was created, e.g constants.GATE_CREATOR_MANUAL or constants.GATE_CREATOR_PERSISTENT_HOMOLOGY
+            gateCreatorData: _.cloneDeep(action.payload.gate.gateCreatorData), // Additional information from / for the gate creator
+            xCutoffs: action.payload.gate.xCutoffs,
+            yCutoffs: action.payload.gate.yCutoffs
         }
 
         newState.push(newGate)
@@ -37,7 +42,7 @@ const gates = (state = [], action = {}) => {
         }
     }
     // --------------------------------------------------
-    // Highlight a gate and it's target subsample
+    // Update a parameter on a gate
     // --------------------------------------------------
     else if (action.type === 'UPDATE_GATE') {
         const gateIndex = _.findIndex(state, g => g.id === action.payload.gateId)

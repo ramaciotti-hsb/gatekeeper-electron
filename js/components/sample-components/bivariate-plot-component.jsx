@@ -8,7 +8,6 @@ import '../../../scss/sample-view.scss'
 import fs from 'fs'
 import logicleScale from '../../scales/logicle.js'
 import uuidv4 from 'uuid/v4'
-import GrahamScan from '../../lib/graham-scan.js'
 import polygonsIntersect from 'polygon-overlap'
 import pointInsidePolygon from 'point-in-polygon'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
@@ -16,7 +15,7 @@ import Density from '../../lib/2d-density.js'
 import Gates from './sample-gates-component.jsx'
 import constants from '../../lib/constants.js'
 import area from 'area-polygon'
-import { heatMapHSLStringForValue, getPlotImageKey, getScalesForSample } from '../../lib/utilities.js'
+import { heatMapHSLStringForValue, getPlotImageKey, getScalesForSample, getPolygonCenter } from '../../lib/utilities.js'
 import PersistantHomology from '../../lib/persistent-homology'
 
 export default class BivariatePlot extends Component {
@@ -31,7 +30,8 @@ export default class BivariatePlot extends Component {
             truePeaks: [],
             homologyPeaks: [],
             iterations: 0,
-            homologyHeight: 1
+            homologyHeight: 1,
+            visibleGateTooltipId: null
         }
     }
 
@@ -82,7 +82,7 @@ export default class BivariatePlot extends Component {
     createGraphLayout () {
         if (!this.props.sample.plotImages[getPlotImageKey(this.props.sample)]) { return }
 
-        d3.selectAll("svg > *").remove();
+        d3.selectAll("svg.axis > *").remove();
 
         // Need to offset the whole graph if we're including cytof 0 histograms
         const xOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
@@ -145,7 +145,9 @@ export default class BivariatePlot extends Component {
             return "M" + [x, y] + " l" + [w, 0] + " l" + [0, h] + " l" + [-w, 0] + "z";
         }
 
-        var selection = svg.append("path")
+
+        const svgGates = d3.select("svg.gates")
+        var selection = svgGates.append("path")
           .attr("class", "selection")
           .attr("visibility", "hidden");
 
@@ -153,7 +155,6 @@ export default class BivariatePlot extends Component {
         var startSelection = (start) => {
             selection.attr("d", rect(start[0] - margin.left, start[1] - margin.top, 0, 0))
               .attr("visibility", "visible");
-            redrawGraph()
         };
 
         var moveSelection = function(start, moved) {
@@ -178,7 +179,7 @@ export default class BivariatePlot extends Component {
             }
 
             const gate = {
-                type: constants.GATE_POLYGON,
+                type: constants.GATE_TYPE_POLYGON,
                 gateData: [
                     [startXFixed, startYFixed],
                     [endXFixed, startYFixed],
@@ -188,7 +189,8 @@ export default class BivariatePlot extends Component {
                 selectedXParameterIndex: this.props.sample.selectedXParameterIndex,
                 selectedYParameterIndex: this.props.sample.selectedYParameterIndex,
                 selectedXScale: this.props.sample.selectedXScale,
-                selectedYScale: this.props.sample.selectedYScale
+                selectedYScale: this.props.sample.selectedYScale,
+                gateCreator: constants.GATE_MANUAL
             }
 
             this.props.api.createSubSampleAndAddToWorkspace(
@@ -208,7 +210,7 @@ export default class BivariatePlot extends Component {
             )
         };
 
-        svg.on("mousedown", function (event) {
+        svgGates.on("mousedown", function (event) {
           var subject = d3.select(window), parent = this.parentNode,
               start = d3.mouse(parent);
             startSelection(start);
@@ -258,16 +260,32 @@ export default class BivariatePlot extends Component {
                     gatesToRender = this.props.gates
                 }
 
+                const gateData = gatesToRender.map((gate) => {
+                    const toReturn = {
+                        gateData: gate.gateData.map(p => [ Math.floor(scales.xScale(p[0])) + xOffset, Math.floor(scales.yScale(p[1])) ])
+                    }
+                    if (gate.xCutoffs) {
+                        toReturn.xCutoffs = gate.xCutoffs.map(p => Math.floor(scales.yScale(p)))                        
+                    }
+                    if (gate.yCutoffs) {
+                        toReturn.yCutoffs = gate.yCutoffs.map(p => Math.floor(scales.xScale(p)))                        
+                    }
+                    return toReturn
+                })
+
                 for (let i = 0; i < data.length; i += 4) {
-                    // Get the position of the pixel as X and Y
+                    // Get the position of the pixel as X and Y in real space
                     const position = [
-                        scales.xScale.invert((i % (this.state.graphWidth * 4)) / 4),
-                        scales.yScale.invert(Math.floor(i / (this.state.graphWidth * 4)))
+                        i % (this.state.graphWidth * 4) / 4,
+                        Math.floor(i / (this.state.graphWidth * 4))
                     ]
 
                     let shouldGreyscale = true
-                    for (let gate of gatesToRender) {
+                    for (let gate of gateData) {
                         if (pointInsidePolygon(position, gate.gateData)) {
+                            shouldGreyscale = false
+                        } else if ((position[0] < xOffset && gate.xCutoffs && position[1] >= gate.xCutoffs[0] && position[1] <= gate.xCutoffs[1])
+                            || (position[1] > this.state.graphHeight - yOffset && gate.yCutoffs && position[0] >= gate.yCutoffs[0] + xOffset && position[0] <= gate.yCutoffs[1] + xOffset)) {
                             shouldGreyscale = false
                         }
                     }
@@ -282,18 +300,6 @@ export default class BivariatePlot extends Component {
                 }
                 
                 context.putImageData(imageData, 0, 0);
-
-                // Render the gate outlines over the top
-                for (let i = 0; i < gatesToRender.length; i++) {
-                    const gate = gatesToRender[i]
-                    context.beginPath();
-                    context.moveTo(scales.xScale(gate.gateData[0][0]), scales.yScale(gate.gateData[0][1]))
-                    for (let point of gate.gateData) {
-                        context.lineTo(scales.xScale(point[0]), scales.yScale(point[1]))
-                    }
-                    context.closePath()
-                    context.stroke()
-                }
             } else if (this.state.homologyHeight < 1) {
                 // Redraw the image and greyscale any points that are outside the gate
                 const imageData = context.getImageData(0, 0, this.state.graphWidth, this.state.graphHeight);
@@ -338,14 +344,19 @@ export default class BivariatePlot extends Component {
 
 
             let selectionMinX, selectionMaxX, selectionMinY, selectionMaxY
-            const svg = d3.select("svg")
-
-            context.fillStyle = '#999'
         }
 
         image.onload = () => {
             redrawGraph()
         }
+    }
+
+    showGateTooltip (gateId, event) {
+        event.stopPropagation()
+
+        this.setState({
+            visibleGateTooltipId: gateId
+        })
     }
 
     componentDidMount() {
@@ -386,9 +397,60 @@ export default class BivariatePlot extends Component {
     }
 
     render () {
+        const gateCreators = {}
+        gateCreators[constants.GATE_CREATOR_PERSISTENT_HOMOLOGY] = 'Calculated with Persistent Homology'
+        gateCreators[constants.GATE_CREATOR_MANUAL] = 'Created Manually'
+
+        // Need to offset the whole graph if we're including cytof 0 histograms
+        const xOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
+        const yOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+        const scales = getScalesForSample(this.props.sample, this.state.graphWidth - xOffset, this.state.graphHeight - yOffset)
+
+        let tooltip
+        const gates = this.props.gates.map((gate) => {
+            const scaledPoints = gate.gateData.map(p => [ Math.floor(scales.xScale(p[0])) + xOffset, Math.floor(scales.yScale(p[1])) ])
+            const points = scaledPoints.reduce((string, point) => {
+                return string + point[0] + " " + point[1] + " "
+            }, "")
+            if (this.state.visibleGateTooltipId === gate.id) {
+                const polygonCenter = getPolygonCenter(scaledPoints)
+                const tooltipWidth = 250
+                const tooltipHeight = 100
+                tooltip = (
+                    <div className="tooltip" style={{width: tooltipWidth, height: tooltipHeight, left: (polygonCenter[0] - tooltipWidth / 2) + this.state.graphMargin.left, top: (polygonCenter[1] - tooltipHeight * 1.5) + this.state.graphMargin.top}}
+                        onClick={(event) => { event.stopPropagation() }}>
+                        <div className='tooltip-inner'>
+                            <div className='title'>Gate {gate.id.substring(0, 5)}</div>
+                            <div className='creator'>{gateCreators[gate.gateCreator]}</div>
+                            <div className='divider'></div>
+                            <div className='parameter width'>
+                                <div className='text'>Additional Width:</div>
+                                <div className='value'>{gate.gateCreatorData.bonusIterations}</div>
+                                <i className='lnr lnr-plus-circle' /><i className='lnr lnr-circle-minus' />
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+            return (
+                <svg onMouseEnter={this.props.updateGate.bind(null, gate.id, { highlighted: true })}
+                    onMouseLeave={this.props.updateGate.bind(null, gate.id, { highlighted: false })}
+                    onClick={this.showGateTooltip.bind(this, gate.id)}
+                    key={gate.id}>
+                    <polygon points={points} className={'gate' + (gate.highlighted ? ' highlighted' : '')} />
+                </svg>
+            )
+        })
+
         return (
-            <div className='svg-outer'>
-                <svg width={this.state.graphWidth + this.state.graphMargin.left + this.state.graphMargin.right} height={this.state.graphHeight + this.state.graphMargin.bottom + this.state.graphMargin.top} ref="graph"></svg>
+            <div className='svg-outer' onClick={this.showGateTooltip.bind(this, null)}>
+                {/* D3 Axis */}
+                <svg width={this.state.graphWidth + this.state.graphMargin.left + this.state.graphMargin.right} height={this.state.graphHeight + this.state.graphMargin.bottom + this.state.graphMargin.top} ref="graph" className='axis'></svg>
+                {/* Gate Paths */}
+                <svg width={this.state.graphWidth + this.state.graphMargin.left + this.state.graphMargin.right} height={this.state.graphHeight + this.state.graphMargin.bottom + this.state.graphMargin.top} ref="gates" className='gates'>
+                    {gates}
+                </svg>
+                {tooltip}
                 <canvas className="canvas"/>
                 {/*<div className='step' onClick={this.performHomologyIteration.bind(this, 15, 4)}>Step</div>*/}
             </div>

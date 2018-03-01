@@ -8,26 +8,30 @@ import React from 'react'
 import { Component } from 'react'
 import _ from 'lodash'
 import '../../scss/workspace-view.scss'
-import SampleView from '../containers/sample-view-container.jsx'
+import SampleSelector from '../containers/sample-selector-container.jsx'
 
 export default class WorkspaceView extends Component {
 
-    removeSample (sampleId, workspaceId, event) {
+    removeGateTemplate (gateTemplateId, workspaceId, event) {
         event.stopPropagation()
-        this.props.api.removeSample(sampleId, workspaceId)
+        this.props.api.removeGateTemplate(gateTemplateId, workspaceId)
     }
 
-    renderSubSamples (sample) {
-        if (sample.subSampleIds) {
-            return sample.subSampleIds.map((subSampleId) => {
-                const subSample = _.find(this.props.workspace.samples, s => s.id === subSampleId)
+    renderSubGateTemplates (gateTemplate) {
+        if (gateTemplate.childGateTemplateIds) {
+            return gateTemplate.childGateTemplateIds.map((childGateTemplateId) => {
+                const childGateTemplate = _.find(this.props.workspace.gateTemplates, gt => gt.id === childGateTemplateId)
                 return (
-                    <div className={'sidebar-sample' + (subSample.id === this.props.workspace.selectedSampleId ? ' selected' : '') + (subSample.id === this.props.highlightedGate.childSampleId ? ' highlighted' : '')} key={subSample.id}>
-                        <div className='body' onClick={this.props.api.selectSample.bind(null, subSample.id, this.props.workspace.id)}>
-                            <div className='title'>{subSample.title}</div>
-                            <div className='remove-sample' onClick={this.removeSample.bind(this, subSample.id, this.props.workspace.id)}><i className='lnr lnr-cross'></i></div>
+                    <div className={'sidebar-gate-template' + (childGateTemplate.id === this.props.workspace.selectedGateTemplateId ? ' selected' : '') + (childGateTemplate.id === this.props.highlightedGate.childGateTemplateId ? ' highlighted' : '')}
+                    onMouseEnter={this.props.updateGate.bind(null, childGateTemplate.gate.id, { highlighted: true })}
+                    onMouseLeave={this.props.updateGate.bind(null, childGateTemplate.gate.id, { highlighted: false })}
+                    key={childGateTemplate.id}>
+                        <div className='body' onClick={this.props.api.selectGateTemplate.bind(null, childGateTemplate.id, this.props.workspace.id)}>
+                            <div className='title'>{childGateTemplate.title}</div>
+                            <div className='number'>{childGateTemplate.populationCount}</div>
+                            <div className='remove-gate-template' onClick={this.removeGateTemplate.bind(this, childGateTemplate.id, this.props.workspace.id)}><i className='lnr lnr-cross'></i></div>
                         </div>
-                        <div className='sub-samples'>{this.renderSubSamples(subSample)}</div>
+                        <div className='child-gate-templates'>{this.renderSubGateTemplates(childGateTemplate)}</div>
                     </div>
                 )
             })
@@ -35,33 +39,31 @@ export default class WorkspaceView extends Component {
     }
 
     render () {
-        const workspacesSamplesRendered = []
+        const workspacesGateTemplatesRendered = []
 
-        for (let sample of this.props.workspace.samples) {
-            // Don't render a sample here if it has a parent
-            const found = _.find(this.props.workspace.samples, s => s.subSampleIds.includes(sample.id))
+        for (let gateTemplate of this.props.workspace.gateTemplates) {
+            // Don't render a gateTemplate here if it has a parent
+            const found = _.find(this.props.workspace.gateTemplates, gt => gt.childGateTemplateIds.includes(gateTemplate.id))
             if (!found) {
-                workspacesSamplesRendered.push((
-                    <div className={'sidebar-sample' + (sample.id === this.props.workspace.selectedSampleId ? ' selected' : '') + (sample.id === this.props.highlightedGate.childSampleId ? ' highlighted' : '')} key={sample.id}>
-                        <div className='body' onClick={this.props.api.selectSample.bind(null, sample.id, this.props.workspace.id)}>
-                            <div className='title'>{sample.title}</div>
-                            <div className='remove-sample' onClick={this.removeSample.bind(this, sample.id, this.props.workspace.id)}><i className='lnr lnr-cross'></i></div>
+                workspacesGateTemplatesRendered.push((
+                    <div className={'sidebar-gate-template' + (gateTemplate.id === this.props.workspace.selectedGateTemplateId ? ' selected' : '') + (gateTemplate.id === this.props.highlightedGate.childGateTemplateId ? ' highlighted' : '')} key={gateTemplate.id}>
+                        <div className='body' onClick={this.props.api.selectGateTemplate.bind(null, gateTemplate.id, this.props.workspace.id)}>
+                            <div className='title'>{gateTemplate.title}</div>
+                            <div className='number'>{gateTemplate.populationCount}</div>
+                            <div className='remove-gate-template' onClick={this.removeGateTemplate.bind(this, gateTemplate.id, this.props.workspace.id)}><i className='lnr lnr-cross'></i></div>
                         </div>
-                        <div className='sub-samples'>{this.renderSubSamples(sample)}</div>
+                        <div className='child-gate-templates'>{this.renderSubGateTemplates(gateTemplate)}</div>
                     </div>
                 ))
             }
         }
 
-        let panel = <div className='panel'></div>
+        const panel = <SampleSelector selectedSample={this.props.workspace.selectedSample} workspaceId={this.props.workspace.id} />
 
-        if (this.props.workspace.selectedSample) {
-            panel = <SampleView sampleId={this.props.workspace.selectedSample.id} />
-        }
         return (
             <div className='workspace'>
                 <div className='sidebar'>
-                    {workspacesSamplesRendered}
+                    {workspacesGateTemplatesRendered}
                 </div>
                 {panel}
             </div>

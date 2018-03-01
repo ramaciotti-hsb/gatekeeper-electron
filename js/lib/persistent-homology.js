@@ -10,11 +10,29 @@ import pointInsidePolygon from 'point-in-polygon'
 import area from 'area-polygon'
 import _ from 'lodash'
 import uuidv4 from 'uuid/v4'
+import constants from './constants'
+import { getPolygonCenter } from './utilities'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 
 // This function takes a two dimensional array (e.g foo[][]) and returns an array of polygons
 // representing discovered peaks. e.g:
 // [[2, 1], [2, 2], [1, 2]]
+
+
+// Calculate 1d density using kernel density estimation for drawing histograms
+function kernelDensityEstimator(kernel, X) {
+  return function(V) {
+    return X.map(function(x) {
+      return [x, d3.mean(V, function(v) { return kernel(x - v); })];
+    });
+  };
+}
+
+function kernelEpanechnikov(k) {
+  return function(v) {
+    return Math.abs(v /= k) <= 1 ? 0.75 * (1 - v * v) / k : 0;
+  };
+}
 
 export default class PersistentHomology {
 
@@ -26,8 +44,6 @@ export default class PersistentHomology {
             densityMap: null
         }, options)
 
-        console.log(this.options, options)
-
         if (!this.options.densityMap) {
             throw 'Error initializing PersistantHomology: options.densityMap is required'
         }
@@ -36,7 +52,7 @@ export default class PersistentHomology {
         this.truePeaks = []
     }
 
-    async findPeaks (densityMap) {
+    async findPeaks (densityMap, stepCallback) {
         return new Promise((resolve, reject) => {
             let currentHeight = this.options.densityMap.getMaxDensity()
 
@@ -44,15 +60,25 @@ export default class PersistentHomology {
                 if (currentHeight > 0.2) {
                     this.performHomologyIteration(currentHeight)
                     currentHeight = currentHeight - 0.01
+                    if (stepCallback) { stepCallback(currentHeight) }
                 } else {
                     clearInterval(intervalToken)
                     if (this.truePeaks.length > 5) {
                         console.log("Error in PersistantHomology.findPeaks: too many peaks were found (", this.truePeaks.length + ")")
                     } else {
+                        // If we're at the end of the peak finding, order the peaks by their mid x and y points
+                        const sortedByX = this.truePeaks.slice(0)
+                        sortedByX.sort((a, b) => { return Math.floor(getPolygonCenter(b.polygon)[0] - getPolygonCenter(a.polygon)[0]) })
+                        const sortedByY = this.truePeaks.slice(0)
+                        sortedByY.sort((a, b) => { return Math.floor(getPolygonCenter(b.polygon)[1] - getPolygonCenter(a.polygon)[1]) })
+                        for (let peak of this.truePeaks) {
+                            peak.xOrder = _.findIndex(sortedByX, p => p.id === peak.id)
+                            peak.yOrder = _.findIndex(sortedByY, p => p.id === peak.id)
+                        }
                         resolve(this.truePeaks)
                     }
                 }
-            }, 1)
+            }, 0)
         })
     }
 
@@ -168,9 +194,13 @@ export default class PersistentHomology {
 
             if (!_.find(this.truePeaks, p => p.id === this.homologyPeaks[i].id)) {
                 // If a peak has reached it's bonus iterations count, clone it into true peaks
-                if (this.homologyPeaks[i].bonusIterations > this.options.maxIterations) {
+                if (this.homologyPeaks[i].bonusIterations >= this.options.maxIterations) {
                     // console.log('peak ', this.homologyPeaks[i], 'has exceeded its bonus iterations count')
-                    this.truePeaks.push(_.cloneDeep(this.homologyPeaks[i]))
+                    const truePeak = _.cloneDeep(this.homologyPeaks[i])
+                    truePeak.homologyParameters = {
+                        bonusIterations: this.options.maxIterations
+                    }
+                    this.truePeaks.push(truePeak)
                 } else if (this.homologyPeaks[i].truePeak) {
                     this.homologyPeaks[i].bonusIterations++
                 }

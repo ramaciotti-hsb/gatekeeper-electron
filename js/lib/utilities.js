@@ -13,6 +13,16 @@ const heatMapHSLStringForValue = function (value) {
     return "hsl(" + h + ", 100%, 50%)";
 }
 
+const getPolygonCenter = function(polygon) {
+    var x = polygon.map(function(a){ return a[0] });
+    var y = polygon.map(function(a){ return a[1] });
+    var minX = Math.min.apply(null, x);
+    var maxX = Math.max.apply(null, x);
+    var minY = Math.min.apply(null, y);
+    var maxY = Math.max.apply(null, y);
+    return [(minX + maxX)/2, (minY + maxY)/2];
+}
+
 const heatMapRGBForValue = function (value) {
     const h = (1.0 - value) * 240
     const s = 1
@@ -90,4 +100,4 @@ const getScalesForSample = (sample, graphWidth, graphHeight) => {
     return scales
 }
 
-export { heatMapHSLStringForValue, heatMapRGBForValue, getPlotImageKey, getScalesForSample }
+export { heatMapHSLStringForValue, heatMapRGBForValue, getPlotImageKey, getScalesForSample, getPolygonCenter }

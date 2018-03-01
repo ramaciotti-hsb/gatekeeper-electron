@@ -4,6 +4,7 @@
 
 import { connect } from 'react-redux'
 import { createSubSampleAndAddToWorkspace } from '../actions/workspace-actions'
+import { updateGate } from '../actions/gate-actions'
 import BivariatePlot from '../components/sample-components/bivariate-plot-component.jsx'
 import _ from 'lodash'
 
@@ -41,8 +42,6 @@ const mapStateToProps = (state, ownProps) => {
             newSample.parentTitle = parent.title
         }
 
-        console.log(newSample)
-
         return { api: state.api, workspaceId: workspace.id, sample: newSample, gates }
     } else {
         return { api: state.api, sample: { subSamples: [] }, gates: [] }
@@ -50,7 +49,11 @@ const mapStateToProps = (state, ownProps) => {
 }
 
 const mapDispatchToProps = dispatch => {
-    return {}
+    return {
+        updateGate: (gateId, parameters) => {
+            dispatch(updateGate(gateId, parameters))
+        }
+    }
 }
 
 const BivariatePlotWrapped = connect(

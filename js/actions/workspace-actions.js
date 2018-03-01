@@ -20,6 +20,22 @@ export const createWorkspace = (workspace) => {
     }
 }
 
+export const createGateTemplateAndAddToWorkspace = (workspaceId, gateTemplateParameters) => {
+    return {
+        type: 'CREATE_GATE_TEMPLATE_AND_ADD_TO_WORKSPACE',
+        payload: { workspaceId, gateTemplate: gateTemplateParameters }
+    }
+}
+
+
+// Selects a gate template within a workspace
+export const selectGateTemplate = (gateTemplateId, workspaceId) => {
+    return {
+        type: 'SELECT_GATE_TEMPLATE',
+        payload: { gateTemplateId, workspaceId }
+    }
+}
+
 export const createSampleAndAddToWorkspace = (workspaceId, sampleParameters) => {
     return {
         type: 'CREATE_SAMPLE_AND_ADD_TO_WORKSPACE',

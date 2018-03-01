@@ -1,0 +1,36 @@
+// ----------------------------------------------
+// Styles for sample-selector-component.jsx
+// ----------------------------------------------
+
+@import 'mixins.scss';
+
+.sample-selector-outer {
+    flex-grow: 1;
+
+    .sample-selector-inner {
+        flex-grow: 1;
+        flex-direction: column;
+        
+        &.empty {
+            align-items: center;
+            justify-content: center;
+        }
+
+        & > .header {
+            padding: 10px;
+            font-size: 14px;
+
+            .sample-selector-dropdown {
+                flex-grow: 1;
+            }
+
+            .dropdown-inline {
+                width: 200px;
+            }
+        }
+
+        .panel.sample {
+            flex-grow: 1;
+        }
+    }
+}

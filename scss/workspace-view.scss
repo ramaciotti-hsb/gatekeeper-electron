@@ -15,7 +15,7 @@
         border-right: 1px solid #eee;
         overflow-y: auto;
 
-        .sidebar-sample {
+        .sidebar-gate-template {
             flex-shrink: 0;
             align-items: center;
             flex-direction: column;
@@ -27,7 +27,7 @@
                 @include backgroundClick(#fafafa);    
                 border-right: 5px solid $highlight-colour;
 
-                .remove-sample {
+                .remove-gate-template {
                     @include backgroundHover(#ededed);
                     @include backgroundClick(#ededed);
                 }
@@ -37,7 +37,7 @@
                 @include backgroundHover(lighten(#A7DBD8, 20%));
                 @include backgroundClick(lighten(#A7DBD8, 20%));    
 
-                .remove-sample {
+                .remove-gate-template {
                     @include backgroundHover(darken(lighten(#A7DBD8, 20%), 5%));
                     @include backgroundClick(darken(lighten(#A7DBD8, 20%), 5%));
                 }
@@ -50,19 +50,19 @@
                 padding: 8px 8px 8px 10px;
                 font-size: 12px;
                 flex-grow: 1;
-                flex-direction: column;
+                align-items: center;
                 border-right: 5px solid transparent;
                 border-bottom: 1px solid #eee;
                 box-sizing: border-box;
 
                 &:hover {
 
-                    .remove-sample {
+                    .remove-gate-template {
                         display: flex;
                     }
                 }
 
-                .remove-sample {
+                .remove-gate-template {
                     display: none;
                     color: #f00;
                     position: absolute;
@@ -82,14 +82,15 @@
                     font-size: 12px;
                     font-weight: 600;
                     color: #666;
+                    flex-grow: 1;
                 }
             }
 
-            .sub-samples {
+            .child-gate-templates {
                 padding-left: 15px;
                 flex-direction: column;
                 align-items: stretch;
             }
-        } // .sidebar-sample
+        } // .sidebar-gate-template
     } // .sidebar
 } // .workspace

@@ -30,7 +30,7 @@ export default class SampleGates extends Component {
             const scales = getScalesForSample(scaleSample, this.props.graphWidth, this.props.graphHeight)
             // Get the center point of where the gate is targeted
             let x1Boundary, x2Boundary, y1Boundary, y2Boundary
-            if (gate.type === constants.GATE_POLYGON) {
+            if (gate.type === constants.GATE_TYPE_POLYGON) {
                 // Iterate through the polygon vertices and get the min / max values for drawing squares
                 for (let i = 0; i < gate.gateData.length; i++) {
                     const xValue = scales.xScale(gate.gateData[i][0])

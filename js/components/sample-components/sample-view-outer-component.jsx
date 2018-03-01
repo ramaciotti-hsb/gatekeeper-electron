@@ -32,6 +32,11 @@ export default class SampleView extends Component {
         this.props.api.updateSample(this.props.sample.id, newState)
     }
 
+    calculateHomology () {
+        this.props.api.calculateHomology(this.props.sample.id, this.props.workspaceId)
+        this.refs['homologyDropdown'].getInstance().hideDropdown()
+    }
+
     showGate (gateId) {
         const gate = _.find(this.props.gates, g => g.id === gateId)
         if (this.props.sample.selectedXParameterIndex !== gate.selectedXParameterIndex
@@ -46,23 +51,6 @@ export default class SampleView extends Component {
     }
 
     render () {
-        const machineTypes = [
-            {
-                id: constants.MACHINE_CYTOF,
-                label: 'Mass Cytometry'
-            },
-            {
-                id: constants.MACHINE_FLORESCENT,
-                label: 'Florescent'
-            },
-        ]
-        let machineTypesRendered = machineTypes.map((param, index) => {
-            return {
-                value: param.label,
-                component: <div className='item' onClick={this.handleDropdownSelection.bind(this, 'machineTypeDropdown', { selectedMachineType: param.id })} key={param.label}>{param.label}</div>
-            }
-        })
-
         let parametersXRendered = this.props.sample.FCSParameters.map((param, index) => {
             const label = param.label || param.key
             return {
@@ -115,7 +103,7 @@ export default class SampleView extends Component {
         const autoGates = [
             {
                 value: 'persistent-homology',
-                component: <div className='item' onClick={this.props.api.calculateHomology.bind(null, this.props.sample.id, this.props.workspaceId)} key={'persistent-homology'}>Persistent Homology</div>
+                component: <div className='item' onClick={this.calculateHomology.bind(this)} key={'persistent-homology'}>Persistent Homology</div>
             }
         ]
 
@@ -131,12 +119,12 @@ export default class SampleView extends Component {
 
         return (
             <div className='panel sample'>
+                <div className={`loader-outer${this.props.sample.loading ? ' active' : ''}`}><div className='loader'></div><div className='text'>{this.props.sample.loadingMessage}</div></div>
                 <div className='panel-inner'>
                     <div className='header'>
                         {upperTitle}
                         <div className='lower'>
                             <div className='title'>{this.props.sample.title}</div>
-                            <Dropdown items={machineTypesRendered} textLabel={_.find(machineTypes, m => m.id === this.props.sample.selectedMachineType).label} ref={'machineTypeDropdown'} />
                         </div>
                     </div>
                     <div className='graph'>
@@ -153,7 +141,7 @@ export default class SampleView extends Component {
                         </div>
                     </div>
                     <div className='header gates'>
-                        <div className='lower'>Gates <Dropdown items={autoGates} textLabel={'Auto Gate...'} /></div>
+                        <div className='lower'>Gates <Dropdown items={autoGates} textLabel={'Auto Gate...'} ref='homologyDropdown' /></div>
                     </div>
                     <Gates gates={this.props.gates} subSamples={this.props.sample.subSamples} sample={this.props.sample} updateGate={this.props.updateGate} showGate={this.showGate.bind(this)} graphWidth={600} graphHeight={460} />
                 </div>
