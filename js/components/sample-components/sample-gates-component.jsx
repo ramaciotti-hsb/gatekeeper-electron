@@ -8,7 +8,7 @@ import { Component } from 'react'
 import _ from 'lodash'
 import constants from '../../lib/constants'
 import pointInsidePolygon from 'point-in-polygon'
-import { heatMapHSLStringForValue, getScalesForSample, getPlotImageKey } from '../../lib/utilities.js'
+import { heatMapHSLStringForValue, getScales, getPlotImageKey } from '../../lib/utilities.js'
 import '../../../scss/sample-view/sample-gates.scss'
 
 const GATE_WIDTH = 200
@@ -20,14 +20,14 @@ export default class SampleGates extends Component {
 
     renderGatePreview () {
         for (let gate of this.props.gates) {
-            const scaleSample = {
-                FCSParameters: _.cloneDeep(this.props.sample.FCSParameters),
-                selectedXParameterIndex: gate.selectedXParameterIndex,
-                selectedYParameterIndex: gate.selectedYParameterIndex,
-                selectedXScale: gate.selectedXScale,
-                selectedYScale: gate.selectedYScale
-            }
-            const scales = getScalesForSample(scaleSample, this.props.graphWidth, this.props.graphHeight)
+            const scales = getScales({
+                selectedXScale: this.props.sample.selectedXScale,
+                selectedYScale: this.props.sample.selectedYScale,
+                xRange: [ this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.max ],
+                yRange: [ this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.max ],
+                width: this.props.graphWidth,
+                height: this.props.graphHeight
+            })
             // Get the center point of where the gate is targeted
             let x1Boundary, x2Boundary, y1Boundary, y2Boundary
             if (gate.type === constants.GATE_TYPE_POLYGON) {
@@ -90,7 +90,7 @@ export default class SampleGates extends Component {
 
             // Render the pixels from the cache image that fall inside the preview square
             const image = new Image()
-            image.src = this.props.sample.plotImages[getPlotImageKey(scaleSample)]
+            image.src = this.props.sample.plotImages[getPlotImageKey(this.props.sample)]
             image.onload = () => {
                 // First paint a white background
                 context.rect(0, 0, GATE_WIDTH, GATE_HEIGHT)
@@ -173,8 +173,8 @@ export default class SampleGates extends Component {
                 const subSample = _.find(this.props.subSamples, s => s.id === gate.childSampleId)
                 return (
                     <div className='gate' key={gate.id}
-                        onMouseEnter={this.props.updateGate.bind(null, gate.id, { highlighted: true })}
-                        onMouseLeave={this.props.updateGate.bind(null, gate.id, { highlighted: false })}
+                        onMouseEnter={this.props.updateGateTemplate.bind(null, gate.id, { highlighted: true })}
+                        onMouseLeave={this.props.updateGateTemplate.bind(null, gate.id, { highlighted: false })}
                         >
                         <div className='subsample-name'>{subSample.title}</div>
                         <canvas ref={'canvas-' + gate.id} width={200} height={140} />

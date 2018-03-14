@@ -1,12 +1,36 @@
 import {ticks} from "d3-array";
 import {format} from "d3-format";
-import constant from "./constant";
-import nice from "./nice";
-import {default as continuous, copy} from "./continuous";
+import fs from 'fs'
+import constant from "../../node_modules/d3-scale/src/constant";
+import nice from "../../node_modules/d3-scale/src/nice";
+import {default as continuous, copy} from "../../node_modules/d3-scale/src/continuous";
+
+const logTable = JSON.parse(fs.readFileSync(__dirname + '/../cli-utilities/logTable.json', 'utf8'));
+
+const findLog = function (value) {
+  let minIndex = 0
+  let maxIndex = logTable.length - 1
+  while (true) {
+    let checkIndex = Math.floor((minIndex + maxIndex) / 2)
+    // console.log(checkIndex)
+
+    if (maxIndex - minIndex < 3) {
+      return logTable[checkIndex].logValue
+    }
+
+    if (logTable[checkIndex].value > value) {
+      maxIndex = checkIndex
+    } else if (logTable[checkIndex].value < value) {
+      minIndex = checkIndex
+    } else if (logTable[checkIndex].value === value) {
+      return logTable[checkIndex].logValue
+    }
+  }
+}
 
 function deinterpolate(a, b) {
-  return (b = Math.log(b / a))
-      ? function(x) { return Math.log(x / a) / b; }
+  return (b = findLog(b / a))
+      ? function(x) { return findLog(x / a) / b; }
       : constant(b);
 }
 
@@ -28,9 +52,9 @@ function powp(base) {
 
 function logp(base) {
   return base === Math.E ? Math.log
-      : base === 10 && Math.log10
+      : base === 10 && findLog
       || base === 2 && Math.log2
-      || (base = Math.log(base), function(x) { return Math.log(x) / base; });
+      || (base = findLog(base), function(x) { return findLog(x) / base; });
 }
 
 function reflect(f) {

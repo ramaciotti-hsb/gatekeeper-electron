@@ -3,102 +3,62 @@
 // -------------------------------------------------------------------------
 
 import { distanceBetweenPoints } from 'distance-to-polygon'
+import constants from './constants'
 import * as d3 from 'd3'
 
 // Data should be an array of 2d points, in [x, y] format i.e. [[1, 1], [2, 2]]
-export default class twoDimensionalDensity {
+export default function (points, densityWidth = 2) {
+    // Create a sorted point cache that's accessible by [row][column] for faster density estimation
+    const pointCache = []
+    let maxDensity = 0
+    
+    for (let i = 0; i < points.length; i++) {
+        const point = points[i]
 
-    constructor (data, options = { densityWidth: null }) {
-        this.data = data
-        this.options = options
-        // If the user didn't specify density width, calculate it automatically
+        const xVal = Math.round(point[0])
+        const yVal = Math.round(point[1])
 
-        if (this.options.densityWidth === null || typeof this.options.densityWidth === 'undefined') {
-            this.options.autoDensity = true
-            this.options.densityWidth = 0.1
+        if (!pointCache[yVal]) {
+            pointCache[yVal] = []
         }
-    }
-
-    calculateDensity (densityWidth = 2) {
-        // Create a sorted point cache that's accessible by [row][column] for faster density estimation
-        this.pointCache = []
-        this.densityMap = []
-
-        for (let i = 0; i < this.data.length; i++) {
-            const point = this.data[i]
-
-            const xVal = Math.round(point[0])
-            const yVal = Math.round(point[1])
-
-            if (!this.pointCache[yVal]) {
-                this.pointCache[yVal] = []
-            }
-            if (!this.pointCache[yVal][xVal]) {
-                this.pointCache[yVal][xVal] = []
-            }
-
-            this.pointCache[yVal][xVal].push({
-                x: point[0],
-                y: point[1]
-            })
+        if (!pointCache[yVal][xVal]) {
+            pointCache[yVal][xVal] = 1
         }
 
+        // Increment the density of neighbouring points
+        for (let y = yVal - densityWidth; y < yVal + densityWidth; y++) {
+            const columnDens = pointCache[y]
+            if (!columnDens) {
+                pointCache[y] = []
+            }
 
-        this.maxDensity = 0
-        for (let y = 0; y < Math.ceil(this.options.shape[1]) + 1; y++) {
-            for (let x = 0; x < Math.ceil(this.options.shape[0]) + 1; x++) {
-                let density = 0
-                if (!this.densityMap[y]) {
-                    this.densityMap[y] = []
-                }
-                if (!this.densityMap[y][x]) {
-                    this.densityMap[y][x] = 0
-                }
-
-                // Calculate the density of neighbouring points
-                for (let i = y - densityWidth; i < y + densityWidth; i++) {
-                    const columnDens = this.pointCache[i]
-                    if (!columnDens) { continue }
-
-                    for (let j = x - densityWidth; j < x + densityWidth; j++) {
-                        const rowDens = this.pointCache[i][j]
-                        if (!rowDens) { continue }
-
-                        density += rowDens.length
+            for (let x = xVal - densityWidth; x < xVal + densityWidth; x++) {
+                const rowDens = pointCache[y][x]
+                if (!rowDens) {
+                    pointCache[y][x] = ((1 - Math.abs(xVal - x) / densityWidth) + (1 - Math.abs(yVal - y) / densityWidth)) * 10
+                    // console.log(pointCache[y][x])
+                } else {
+                    pointCache[y][x] += ((1 - Math.abs(xVal - x) / densityWidth) + (1 - Math.abs(yVal - y) / densityWidth)) * 10
+                    if (pointCache[y][x] > maxDensity) {
+                        maxDensity = pointCache[y][x]
                     }
                 }
-
-                this.densityMap[y][x] = density
-
-                this.maxDensity = density > this.maxDensity ? density : this.maxDensity
-            }
-        }
-
-        // Log scale will break for values <= 0
-        const xScale = d3.scaleLog()
-            .range([0, 1])
-            .base(Math.E)
-            .domain([Math.exp(0), Math.exp(Math.log(this.maxDensity))])
-
-        window.xScale = xScale
-
-        this.maxDensity = 0
-        for (let i = 0; i < this.densityMap.length; i++) {
-            if (!this.densityMap[i]) {
-                continue
-            }
-            for (let j = 0; j < this.densityMap[i].length; j++) {
-                this.densityMap[i][j] = this.densityMap[i][j] === 0 ? 0 : xScale(this.densityMap[i][j])
-                this.maxDensity = this.densityMap[i][j] > this.maxDensity ? this.densityMap[i][j] : this.maxDensity
             }
         }
     }
 
-    getDensityMap () {
-        return this.densityMap
+    const scale = d3.scaleLog().range([0, 1]).domain([10, maxDensity])
+
+    for (let y = 0; y < pointCache.length; y++) {
+        if (!pointCache[y]) { continue }
+        for (let x = 0; x < pointCache[y].length; x++) {
+            if (!pointCache[y][x]) { continue }
+            pointCache[y][x] = scale(pointCache[y][x])
+        }
     }
 
-    getMaxDensity () {
-        return this.maxDensity
+    return {
+        densityMap: pointCache,
+        maxDensity
     }
 }

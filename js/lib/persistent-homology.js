@@ -1,7 +1,6 @@
 // -------------------------------------------------------------------------
 // Uses the Persistent Homology technique to discover peaks / populations in
-// 2d data. Each iteration is calculated on a different iteration of the
-// event loop to prevent blocking for large datasets.
+// 2d data.
 // -------------------------------------------------------------------------
 
 import GrahamScan from './graham-scan.js'
@@ -38,9 +37,9 @@ export default class PersistentHomology {
 
     constructor (options) {
         this.options = _.merge({
-            edgeDistance: 10,
-            minPeakHeight: 15,
-            maxIterations: 10,
+            edgeDistance: constants.PLOT_WIDTH * 0.03,
+            minPeakHeight: constants.PLOT_WIDTH * 0.04,
+            maxIterations: 0,//constants.PLOT_WIDTH * 0.02,
             densityMap: null
         }, options)
 
@@ -52,46 +51,188 @@ export default class PersistentHomology {
         this.truePeaks = []
     }
 
-    async findPeaks (densityMap, stepCallback) {
-        return new Promise((resolve, reject) => {
-            let currentHeight = this.options.densityMap.getMaxDensity()
+    // Returns this.truePeaks arranged into groups along the x and y axis
+    getAxisGroups (truePeaks) {
+        // Percentage of maximum distance between furthest peak to group together
+        const maxGroupDistance = 0.3
+        // Divide peaks into groups along the x and y axis
+        // Get [minX, maxX] range of peaks along x axis
+        let xRange = this.truePeaks.reduce((acc, curr) => { return [ Math.min(acc[0], getPolygonCenter(curr.polygon)[0]), Math.max(acc[1], getPolygonCenter(curr.polygon)[0]) ] }, [Infinity, -Infinity])
+        // Get [minY, maxY] range of peaks along y axis
+        let yRange = this.truePeaks.reduce((acc, curr) => { return [ Math.min(acc[0], getPolygonCenter(curr.polygon)[1]), Math.max(acc[1], getPolygonCenter(curr.polygon)[1]) ] }, [Infinity, -Infinity])
+        // Create buckets and place peaks into groups along each axis
+        // console.log(this.truePeaks)
+        // console.log(xRange, yRange)
+        // console.log((xRange[1] - xRange[0]) * 0.2, (yRange[1] - yRange[0]) * 0.2)
+        let xGroups = []
+        let yGroups = []
+        for (let peak of truePeaks) {
+            let peakCenter = getPolygonCenter(peak.polygon)
+            // console.log(peakCenter)
+            
+            const newXGroup = () => {
+                xGroups.push({
+                    position: peakCenter[0],
+                    peaks: [ peak.id ]
+                })
+            }
 
-            const intervalToken = setInterval(() => {
-                if (currentHeight > 0.2) {
-                    this.performHomologyIteration(currentHeight)
-                    currentHeight = currentHeight - 0.01
-                    if (stepCallback) { stepCallback(currentHeight) }
-                } else {
-                    clearInterval(intervalToken)
-                    if (this.truePeaks.length > 5) {
-                        console.log("Error in PersistantHomology.findPeaks: too many peaks were found (", this.truePeaks.length + ")")
-                    } else {
-                        // If we're at the end of the peak finding, order the peaks by their mid x and y points
-                        const sortedByX = this.truePeaks.slice(0)
-                        sortedByX.sort((a, b) => { return Math.floor(getPolygonCenter(b.polygon)[0] - getPolygonCenter(a.polygon)[0]) })
-                        const sortedByY = this.truePeaks.slice(0)
-                        sortedByY.sort((a, b) => { return Math.floor(getPolygonCenter(b.polygon)[1] - getPolygonCenter(a.polygon)[1]) })
-                        for (let peak of this.truePeaks) {
-                            peak.xOrder = _.findIndex(sortedByX, p => p.id === peak.id)
-                            peak.yOrder = _.findIndex(sortedByY, p => p.id === peak.id)
-                        }
-                        resolve(this.truePeaks)
+            // Create a group from the first peak
+            if (xGroups.length === 0) {
+                newXGroup()
+            } else {
+                let found = false
+            
+                for (let group of xGroups) {
+                    // If the peak is within 10% of an existing group, add it to that group
+                    if (Math.abs(group.position - peakCenter[0]) <= ((xRange[1] - xRange[0]) * 0.3)) {
+                        group.peaks.push(peak.id)
+                        found = true
                     }
                 }
-            }, 0)
-        })
+            
+                // Otherwise create a new group
+                if (!found) {
+                    newXGroup()
+                }
+            }
+
+            const newYGroup = () => {
+                yGroups.push({
+                    position: peakCenter[1],
+                    peaks: [ peak.id ]
+                })
+            }
+
+            // Create a group from the first peak
+            if (yGroups.length === 0) {
+                newYGroup()
+            } else {
+                let found = false
+            
+                for (let group of yGroups) {
+                    // If the peak is within 10% of an existing group, add it to that group
+                    if (Math.abs(group.position - peakCenter[1]) <= ((yRange[1] - yRange[0]) * 0.3)) {
+                        group.peaks.push(peak.id)
+                        found = true
+                    }
+                }
+            
+                // Otherwise create a new group
+                if (!found) {
+                    newYGroup()
+                }
+            }
+        }
+        xGroups.sort((a, b) => { return a.position - b.position })
+        yGroups.sort((a, b) => { return a.position - b.position })
+        return { xGroups, yGroups } 
     }
 
-    performHomologyIteration (height)  {
-        // console.log('performing homology iteration ', height)
-        for (let y = 0; y < this.options.densityMap.getDensityMap().length; y++) {
-            const column = this.options.densityMap.getDensityMap()[y]
+    // Find peaks using gating template information
+    findPeaksWithTemplate (stepCallback) {
+        // First find true peaks at their original size
+        this.options.maxIterations = 0
+        this.findPeaks(stepCallback)
+        // Try and match them to options.gateTemplates
+        if (this.truePeaks.length !== this.options.gateTemplates.length) {
+            console.log(this.options)
+            console.log('Error, peak number didnt match templates', this.truePeaks)
+            return []
+        } else {
+            const groups = this.getAxisGroups(this.truePeaks)
+            // console.log(groups)
+            for (let peak of this.truePeaks) {
+                peak.xGroup = _.findIndex(groups.xGroups, g => g.peaks.includes(peak.id))
+                peak.yGroup = _.findIndex(groups.yGroups, g => g.peaks.includes(peak.id))
+            }
+
+            // Compare the orders to the templates
+            let orderMatches = true
+            for (let i = 0; i < this.options.gateTemplates.length; i++) {
+                // If there's no matching template for the peak we're looking at
+                if (!_.find(this.truePeaks, p => p.yGroup === this.options.gateTemplates[i].yGroup && p.xGroup === this.options.gateTemplates[i].xGroup)) {
+                    orderMatches = false
+                }
+            }
+            // If we match along one of the axis, it's likely that the peaks have just shifted order slightly. Re order them so they match the other axis
+            if (!orderMatches) {
+                console.log('neither order matches, aborting')
+                return []
+            }
+
+            for (let i = 0; i < this.options.gateTemplates.length; i++) {
+                const matchingPeak = _.find(this.truePeaks, p => p.yGroup === this.options.gateTemplates[i].yGroup && p.xGroup === this.options.gateTemplates[i].xGroup)
+                this.options.gateTemplates[i].centerPoint = getPolygonCenter(matchingPeak.polygon)
+            }
+
+            this.homologyPeaks = []
+            this.truePeaks = []
+
+            let currentHeight = this.options.densityMap.maxDensity
+
+            while (currentHeight > 0.2) {
+                this.performHomologyIteration(currentHeight, this.options.gateTemplates)
+                currentHeight = currentHeight - 0.01
+                if (stepCallback) { stepCallback('Applying existing templates to sample: ' + (100 - currentHeight) + '% complete.') }
+            }
+
+            if (this.truePeaks.length > 5) {
+                console.log("Error in PersistantHomology.findPeaks: too many peaks were found (", this.truePeaks.length + ")")
+            } else {
+                const groups = this.getAxisGroups(this.truePeaks)
+                for (let peak of this.truePeaks) {
+                    peak.xGroup = _.findIndex(groups.xGroups, g => g.peaks.includes(peak.id))
+                    peak.yGroup = _.findIndex(groups.yGroups, g => g.peaks.includes(peak.id))
+                }
+                return this.truePeaks
+            }
+        }
+    }
+
+    findPeaks (stepCallback) {
+        let currentHeight = 100
+
+        while (currentHeight > 0) {
+            this.performHomologyIteration(currentHeight)
+            currentHeight = currentHeight - 1
+            if (stepCallback) { stepCallback('Gating using Persistent Homology: ' + (100 - currentHeight) + '% complete.') }
+        }
+        
+        if (this.truePeaks.length > 5) {
+            console.log("Error in PersistantHomology.findPeaks: too many peaks were found (", this.truePeaks.length + ")")
+        } else {
+            console.log(this.truePeaks.length)
+            for (let peak of this.homologyPeaks) {
+                if (peak.truePeak && !_.find(this.truePeaks, p => p.id === peak.id)) {
+                    const truePeak = _.cloneDeep(peak)
+                    truePeak.homologyParameters = {
+                        bonusIterations: peak.maxIterations
+                    }
+                    this.truePeaks.push(truePeak)
+                }
+            }
+            console.log(this.truePeaks)
+            const groups = this.getAxisGroups(this.truePeaks)
+            // console.log(groups)
+            for (let peak of this.truePeaks) {
+                peak.xGroup = _.findIndex(groups.xGroups, g => g.peaks.includes(peak.id))
+                peak.yGroup = _.findIndex(groups.yGroups, g => g.peaks.includes(peak.id))
+            }
+            // console.log(this.truePeaks)
+            return this.truePeaks
+        }
+    }
+
+    performHomologyIteration (height, gateTemplates)  {
+        for (let y = 0; y < this.options.densityMap.densityMap.length; y++) {
+            const column = this.options.densityMap.densityMap[y]
             if (!column || column.length === 0) { continue }
 
             for (let x = 0; x < column.length; x++) {
                 const density = column[x]
 
-                if (density >= height && density < height + 0.01) {
+                if (density >= (height / 100 * this.options.densityMap.maxDensity) && density < (height + 2) / 100 * this.options.densityMap.maxDensity) {
                     let foundPeak = false
 
                     for (var i = 0; i < this.homologyPeaks.length; i++) {
@@ -125,6 +266,7 @@ export default class PersistentHomology {
                                 polygon: [[x, y]],
                                 height: 0,
                                 bonusIterations: 0,
+                                maxIterations: this.options.maxIterations,
                                 pointsToAdd: []
                             })
                         }
@@ -151,8 +293,18 @@ export default class PersistentHomology {
             let intersected = false
             for (let j = 0; j < this.homologyPeaks.length; j++) {
                 if (i === j) { continue }
+                let intersected = polygonsIntersect(this.homologyPeaks[i].polygon, this.homologyPeaks[j].polygon)
+                if (!intersected) {
+                    // If the edge of a polygon is within a small distance of the nearby polygon, count them as intersected
+                    for (let p = 0; p < this.homologyPeaks[i].polygon.length; p++) {
+                        if (distanceToPolygon([this.homologyPeaks[i].polygon[p]], this.homologyPeaks[j].polygon) < this.options.edgeDistance) {
+                            intersected = true
+                            break
+                        }
+                    }
+                }
                 // Silently merge if the polygons are below a certain size
-                if (polygonsIntersect(this.homologyPeaks[i].polygon, this.homologyPeaks[j].polygon)) {
+                if (intersected) {
                     // console.log(i, j)
                     // console.log('polygon height of', this.homologyPeaks[i], ' before merging:', this.homologyPeaks[i].height)
                     // console.log('polygon height of', this.homologyPeaks[j], ' before merging:', this.homologyPeaks[j].height)
@@ -167,7 +319,8 @@ export default class PersistentHomology {
                             height: this.homologyPeaks[i].height,
                             id: this.homologyPeaks[i].id,
                             truePeak: this.homologyPeaks[i].truePeak,
-                            bonusIterations: this.homologyPeaks[i].bonusIterations
+                            bonusIterations: this.homologyPeaks[i].bonusIterations,
+                            maxIterations: this.homologyPeaks[i].maxIterations
                         })
                         this.homologyPeaks.splice(j, 1)
 
@@ -183,8 +336,14 @@ export default class PersistentHomology {
                         this.homologyPeaks[i].pointsToAdd = []
                         intersected = true
                     } else if (iSize > 5000) {
-                        // console.log('Adding peak', this.homologyPeaks[i], 'as true peak')
                         this.homologyPeaks[i].truePeak = true
+                        if (gateTemplates) {
+                            const centerPoint = getPolygonCenter(this.homologyPeaks[i].polygon)
+                            const template = _.find(gateTemplates, g => Math.abs(g.centerPoint[0] - centerPoint[0]) < 20 && Math.abs(g.centerPoint[1] - centerPoint[1]) < 20)
+                            if (template) {
+                                this.homologyPeaks[i].maxIterations = template.typeSpecificData.bonusIterations
+                            }
+                        }
                     }
                 }
             }
@@ -192,17 +351,18 @@ export default class PersistentHomology {
                 this.homologyPeaks[i].height++
             }
 
-            if (!_.find(this.truePeaks, p => p.id === this.homologyPeaks[i].id)) {
+            if (this.homologyPeaks[i].truePeak && !_.find(this.truePeaks, p => p.id === this.homologyPeaks[i].id)) {
+                const peak = this.homologyPeaks[i]
                 // If a peak has reached it's bonus iterations count, clone it into true peaks
-                if (this.homologyPeaks[i].bonusIterations >= this.options.maxIterations) {
-                    // console.log('peak ', this.homologyPeaks[i], 'has exceeded its bonus iterations count')
-                    const truePeak = _.cloneDeep(this.homologyPeaks[i])
+                // console.log(peak.maxIterations)
+                if (peak.bonusIterations > peak.maxIterations) {
+                    const truePeak = _.cloneDeep(peak)
                     truePeak.homologyParameters = {
-                        bonusIterations: this.options.maxIterations
+                        bonusIterations: peak.maxIterations
                     }
                     this.truePeaks.push(truePeak)
-                } else if (this.homologyPeaks[i].truePeak) {
-                    this.homologyPeaks[i].bonusIterations++
+                } else if (peak.truePeak) {
+                    peak.bonusIterations++
                 }
             }
         }

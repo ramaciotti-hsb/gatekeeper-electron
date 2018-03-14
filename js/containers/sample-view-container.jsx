@@ -43,9 +43,12 @@ const mapStateToProps = (state, ownProps) => {
             newSample.parentId = parent.id
         }
 
+        // Find the gate template that created this sample
+        const gateTemplate = _.find(state.gateTemplates, gt => gt.id === sample.gateTemplateId)
+
         newSample.selectedMachineType = newSample.selectedMachineType || constants.MACHINE_FLORESCENT
 
-        return { api: state.api, workspaceId: workspace.id, sample: newSample, gates }
+        return { api: state.api, workspaceId: workspace.id, sample: newSample, gates, gateTemplate }
     } else {
         return { api: state.api, sample: { subSamples: [] }, gates: [] }
     }
@@ -53,8 +56,8 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = dispatch => {
     return {
-        updateGate: (gateId, parameters) => {
-            dispatch(updateGate(gateId, parameters))
+        updateGateTemplate: (gateTemplateId, parameters) => {
+            dispatch(updateGateTemplate(gateTemplateId, parameters))
         }
     }
 }

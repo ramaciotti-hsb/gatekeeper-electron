@@ -4,7 +4,7 @@
 
 import { connect } from 'react-redux'
 import { createSubSampleAndAddToWorkspace } from '../actions/workspace-actions'
-import { updateGate } from '../actions/gate-actions'
+import { updateGateTemplate } from '../actions/gate-template-actions'
 import BivariatePlot from '../components/sample-components/bivariate-plot-component.jsx'
 import _ from 'lodash'
 
@@ -36,22 +36,27 @@ const mapStateToProps = (state, ownProps) => {
             }
         }
 
+        // Find gate templates that gates refer to
+        const gateTemplates = gates.map(g => _.find(state.gateTemplates, gt => g.gateTemplateId === gt.id))
+        // Find gate template groups that templates are in
+        const gateTemplateGroups = gateTemplates.map(gt => _.find(state.gateTemplateGroups, g => g.childGateTemplateIds.includes(gt.id)))
+
         // Find the parent sample if there is one
         const parent = _.find(state.samples, s => s.subSampleIds.includes(ownProps.sampleId))
         if (parent) {
             newSample.parentTitle = parent.title
         }
 
-        return { api: state.api, workspaceId: workspace.id, sample: newSample, gates }
+        return { api: state.api, workspaceId: workspace.id, sample: newSample, gates, gateTemplates, gateTemplateGroups }
     } else {
-        return { api: state.api, sample: { subSamples: [] }, gates: [] }
+        return { api: state.api, sample: { subSamples: [] }, gates: [], gateTemplates: [] }
     }
 }
 
 const mapDispatchToProps = dispatch => {
     return {
-        updateGate: (gateId, parameters) => {
-            dispatch(updateGate(gateId, parameters))
+        updateGateTemplate: (gateTemplateId, parameters) => {
+            dispatch(updateGateTemplate(gateTemplateId, parameters))
         }
     }
 }

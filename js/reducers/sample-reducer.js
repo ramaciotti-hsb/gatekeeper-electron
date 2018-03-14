@@ -30,6 +30,7 @@ const samples = (state = [], action = {}) => {
             selectedYScale: action.payload.selectedYScale,
             populationCount: action.payload.populationCount,
             includeEventIds: action.payload.includeEventIds || [],
+            gateTemplateId: action.payload.gateTemplateId,
             loading: action.payload.loading,
             loadingMessage: action.payload.loadingMessage,
             subSampleIds: [],

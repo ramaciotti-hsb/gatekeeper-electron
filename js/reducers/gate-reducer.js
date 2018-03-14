@@ -22,8 +22,7 @@ const gates = (state = [], action = {}) => {
             selectedYParameterIndex: action.payload.gate.selectedYParameterIndex,
             selectedXScale: action.payload.gate.selectedXScale,
             selectedYScale: action.payload.gate.selectedYScale,
-            gateCreator: action.payload.gate.gateCreator, // string constant for how this gate was created, e.g constants.GATE_CREATOR_MANUAL or constants.GATE_CREATOR_PERSISTENT_HOMOLOGY
-            gateCreatorData: _.cloneDeep(action.payload.gate.gateCreatorData), // Additional information from / for the gate creator
+            gateTemplateId: action.payload.gate.gateTemplateId,
             xCutoffs: action.payload.gate.xCutoffs,
             yCutoffs: action.payload.gate.yCutoffs
         }

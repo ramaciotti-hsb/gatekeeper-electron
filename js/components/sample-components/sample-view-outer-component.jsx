@@ -33,7 +33,13 @@ export default class SampleView extends Component {
     }
 
     calculateHomology () {
-        this.props.api.calculateHomology(this.props.sample.id, this.props.workspaceId)
+        this.props.api.calculateHomology(this.props.sample.id, {
+            selectedXParameterIndex: this.props.sample.selectedXParameterIndex,
+            selectedYParameterIndex: this.props.sample.selectedYParameterIndex,
+            selectedXScale: this.props.sample.selectedXScale,
+            selectedYScale: this.props.sample.selectedYScale,
+            selectedMachineType: this.props.sample.selectedMachineType
+        })
         this.refs['homologyDropdown'].getInstance().hideDropdown()
     }
 
@@ -108,14 +114,14 @@ export default class SampleView extends Component {
         ]
 
         let upperTitle
-        if (this.props.sample.parentId) {
+        if (this.props.gateTemplate.parentId) {
             upperTitle = <div className='upper'>Subsample of<a onClick={this.props.api.selectSample.bind(null, this.props.sample.parentId, this.props.workspaceId)}>{this.props.sample.parentTitle}</a></div>
         } else {
-            upperTitle = <div className='upper'>Root Sample</div>
+            upperTitle = <div className='upper'>Root Gate</div>
         }
 
-        const xParamLabel = this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].label || this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].key
-        const yParamLabel = this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].label || this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].key
+        const xParamLabel = this.props.sample.FCSParameters.length > 0 ? this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].label || this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].key : 'Parameter ' + this.props.sample.selectedXParameterIndex
+        const yParamLabel = this.props.sample.FCSParameters.length > 0 ? this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].label || this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].key : 'Parameter ' + this.props.sample.selectedYParameterIndex
 
         return (
             <div className='panel sample'>
@@ -124,7 +130,7 @@ export default class SampleView extends Component {
                     <div className='header'>
                         {upperTitle}
                         <div className='lower'>
-                            <div className='title'>{this.props.sample.title}</div>
+                            <div className='title'>{this.props.gateTemplate.title}</div>
                         </div>
                     </div>
                     <div className='graph'>
@@ -143,7 +149,7 @@ export default class SampleView extends Component {
                     <div className='header gates'>
                         <div className='lower'>Gates <Dropdown items={autoGates} textLabel={'Auto Gate...'} ref='homologyDropdown' /></div>
                     </div>
-                    <Gates gates={this.props.gates} subSamples={this.props.sample.subSamples} sample={this.props.sample} updateGate={this.props.updateGate} showGate={this.showGate.bind(this)} graphWidth={600} graphHeight={460} />
+                    <Gates gates={this.props.gates} subSamples={this.props.sample.subSamples} sample={this.props.sample} updateGateTemplate={this.props.updateGateTemplate} showGate={this.showGate.bind(this)} graphWidth={600} graphHeight={460} />
                 </div>
             </div>
         )

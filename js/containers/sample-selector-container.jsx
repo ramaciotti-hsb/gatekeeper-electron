@@ -3,7 +3,7 @@
 // -------------------------------------------------------------
 
 import { connect } from 'react-redux'
-import { updateGate } from '../actions/gate-actions'
+import { updateGateTemplate } from '../actions/gate-template-actions'
 import constants from '../lib/constants'
 import SampleSelector from '../components/sample-selector-component.jsx'
 import '../../scss/sample-selector-component.scss'

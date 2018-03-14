@@ -5,7 +5,7 @@
 import { connect } from 'react-redux'
 import { createSample, removeSample } from '../actions/sample-actions.js'
 import { selectSample } from '../actions/workspace-actions.js'
-import { updateGate } from '../actions/gate-actions'
+import { updateGateTemplate } from '../actions/gate-template-actions'
 import WorkspaceView from '../components/workspace-component.jsx'
 import _ from 'lodash'
 
@@ -54,6 +54,16 @@ const mapStateToProps = (state, ownProps) => {
             }
         }
 
+        newWorkspace.gateTemplateGroups = []
+        // If the workspace contains gate template groups, find them and add them as complete objects
+        if (newWorkspace.gateTemplateGroupIds) {
+            for (let sampleId of newWorkspace.gateTemplateGroupIds) {
+                const sample = _.find(state.gateTemplateGroups, s => s.id === sampleId)
+                if (sample) { newWorkspace.gateTemplateGroups.push(sample) }
+            }
+            newWorkspace.gateTemplateGroupIds = null
+        }
+
         // If there is a highlighted gate, highlight it's subsample
         const highlightedGate = _.find(state.gates, g => g.highlighted && workspace.sampleIds.includes(g.childSampleId)) || {}
         return { api: state.api, workspace: newWorkspace, highlightedGate }
@@ -64,8 +74,8 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = dispatch => {
     return {
-        updateGate: (gateId, parameters) => {
-            dispatch(updateGate(gateId, parameters))
+        updateGateTemplate: (gateTemplateId, parameters) => {
+            dispatch(updateGateTemplate(gateTemplateId, parameters))
         }
     }
 }

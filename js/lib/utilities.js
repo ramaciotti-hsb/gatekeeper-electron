@@ -4,9 +4,25 @@
 
 import hslToRGB from 'hsl-to-rgb-for-reals'
 import * as d3 from "d3"
+import logScale from '../scales/log-scale'
 import logicleScale from '../scales/logicle.js'
 import arcsinScale from '../scales/arcsinh-scale'
 import constants from './constants'
+
+// Calculate 1d density using kernel density estimation for drawing histograms
+const kernelDensityEstimator = function (kernel, X) {
+  return function(V) {
+    return X.map(function(x) {
+      return [x, d3.mean(V, function(v) { return kernel(x - v); })];
+    });
+  };
+}
+
+const kernelEpanechnikov = function (k) {
+  return function(v) {
+    return Math.abs(v /= k) <= 1 ? 0.75 * (1 - v * v) / k : 0;
+  };
+}
 
 const heatMapHSLStringForValue = function (value) {
     var h = (1.0 - value) * 240
@@ -55,49 +71,59 @@ const getPlotImageKey = function (sample) {
     return `${sample.selectedXParameterIndex}_${sample.selectedXScale}-${sample.selectedYParameterIndex}_${sample.selectedYScale}`
 }
 
-const getScalesForSample = (sample, graphWidth, graphHeight) => {
+
+// options shape:
+// {
+//     selectedXScale,
+//     selectedYScale,
+//     xRange,
+//     yRange,
+//     width,
+//     height
+// }
+const getScales = (options) => {
     const scales = {}
-    const statisticsX = sample.FCSParameters[sample.selectedXParameterIndex].statistics
-    const statisticsY = sample.FCSParameters[sample.selectedYParameterIndex].statistics
-    if (sample.selectedXScale === constants.SCALE_LINEAR) {
-        scales.xScale = d3.scaleLinear().range([0, graphWidth]) // value -> display
+    // console.log(options)
+    if (options.selectedXScale === constants.SCALE_LINEAR) {
+        scales.xScale = d3.scaleLinear().range([0, options.width]) // value -> display
         // don't want dots overlapping axis, so add in buffer to data domain
-        scales.xScale.domain([statisticsX.min, statisticsX.max]);
+        scales.xScale.domain([options.xRange[0], options.xRange[1]]);
     // Log Scale
-    } else if (sample.selectedXScale === constants.SCALE_LOG) {
+    } else if (options.selectedXScale === constants.SCALE_LOG) {
         // Log scale will break for values <= 0
         scales.xScale = d3.scaleLog()
-            .range([0, graphWidth])
+            .range([0, options.width])
             .base(Math.E)
-            .domain([0.01, statisticsX.max])
+            .domain([0.01, options.xRange[1]])
     // Biexponential Scale
-    } else if (sample.selectedXScale === constants.SCALE_BIEXP) {
-        scales.xScale = logicleScale().range([0, graphWidth])
+    } else if (options.selectedXScale === constants.SCALE_BIEXP) {
+        scales.xScale = logicleScale().range([0, options.width])
     // Arcsin scale
-    } else if (sample.selectedXScale === constants.SCALE_ARCSIN) {
-        scales.xScale = arcsinScale().range([0, graphWidth])
+    } else if (options.selectedXScale === constants.SCALE_ARCSIN) {
+        scales.xScale = arcsinScale().range([0, options.width])
     }
 
     // setup y
-    if (sample.selectedYScale === constants.SCALE_LINEAR) {
-        scales.yScale = d3.scaleLinear().range([graphHeight, 0]) // value -> display
-        scales.yScale.domain([statisticsY.min, statisticsY.max]);
+    if (options.selectedYScale === constants.SCALE_LINEAR) {
+        scales.yScale = d3.scaleLinear().range([options.height, 0]) // value -> display
+        scales.yScale.domain([options.yRange[0], options.yRange[1]]);
     // Log Scale
-    } else if (sample.selectedYScale === constants.SCALE_LOG) {
-        // yValue = (d) => { return Math.max(0.1, d[sample.selectedYParameterIndex]) } // data -> value
+    } else if (options.selectedYScale === constants.SCALE_LOG) {
         scales.yScale = d3.scaleLog()
-            .range([graphHeight, 0])
+            .range([options.height, 0])
             .base(Math.E)
-            .domain([0.01, statisticsY.max])
+            .domain([0.01, options.yRange[1]])
     // Biexponential Scale
-    } else if (sample.selectedYScale === constants.SCALE_BIEXP) {
-        scales.yScale = logicleScale().range([graphHeight, 0])
+    } else if (options.selectedYScale === constants.SCALE_BIEXP) {
+        scales.yScale = logicleScale().range([options.height, 0])
     // Arcsin scale
-    } else if (sample.selectedYScale === constants.SCALE_ARCSIN) {
-        scales.yScale = arcsinScale().range([graphHeight, 0])
+    } else if (options.selectedYScale === constants.SCALE_ARCSIN) {
+        scales.yScale = arcsinScale().range([options.height, 0])
     }
+
+    // window.scales = scales
 
     return scales
 }
 
-export { heatMapHSLStringForValue, heatMapRGBForValue, getPlotImageKey, getScalesForSample, getPolygonCenter }
+export { heatMapHSLStringForValue, heatMapRGBForValue, getPlotImageKey, getScales, getPolygonCenter, kernelDensityEstimator, kernelEpanechnikov }

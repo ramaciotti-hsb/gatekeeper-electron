@@ -150,7 +150,7 @@ export default class Application extends Component {
                     title: filePath.split(path.sep).slice(-1), // Returns just the filename without the path
                     description: 'Root Sample',
                 }
-                this.props.api.createSampleAndAddToWorkspace(this.props.selectedWorkspaceId, sample)
+                this.props.api.createSampleAndAddToWorkspace(this.props.selectedWorkspaceId, this.props.selectedGateTemplateId, sample)
             }
         }
     }

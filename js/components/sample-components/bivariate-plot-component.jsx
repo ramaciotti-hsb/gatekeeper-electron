@@ -15,7 +15,7 @@ import Density from '../../lib/2d-density.js'
 import Gates from './sample-gates-component.jsx'
 import constants from '../../lib/constants.js'
 import area from 'area-polygon'
-import { heatMapHSLStringForValue, getPlotImageKey, getScalesForSample, getPolygonCenter } from '../../lib/utilities.js'
+import { heatMapHSLStringForValue, getPlotImageKey, getScales, getPolygonCenter } from '../../lib/utilities.js'
 import PersistantHomology from '../../lib/persistent-homology'
 
 export default class BivariatePlot extends Component {
@@ -30,7 +30,7 @@ export default class BivariatePlot extends Component {
             truePeaks: [],
             homologyPeaks: [],
             iterations: 0,
-            homologyHeight: 1,
+            homologyHeight: 100,
             visibleGateTooltipId: null
         }
     }
@@ -48,26 +48,25 @@ export default class BivariatePlot extends Component {
     initHomologyIteration () {
         const width = 600
         const height = 480
-        const population = this.props.api.getPopulationForSample(this.props.sample.id).then((subPopulation) => {
-            const scales = getScalesForSample(this.props.sample, width, height)
-            const densityPoints = subPopulation.map((point) => {
-                return [
-                    scales.xScale(point[this.props.sample.selectedXParameterIndex]),
-                    scales.yScale(point[this.props.sample.selectedYParameterIndex])
-                ]
+        // Offset the entire graph and add histograms if we're looking at cytof data
+        let xOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
+        let yOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+        const population = this.props.api.getPopulationDataForSample(this.props.sample.id, this.props.sample).then((population) => {
+            const scales = getScales({
+                selectedXScale: this.props.sample.selectedXScale,
+                selectedYScale: this.props.sample.selectedYScale,
+                xRange: [ this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.max ],
+                yRange: [ this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.max ],
+                width: constants.PLOT_WIDTH - xOffset,
+                height: constants.PLOT_HEIGHT - yOffset
             })
-
-            const densityMap = new Density(densityPoints, {
-                shape: [scales.xScale(this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.max), height - scales.yScale(this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.max)]
-            })
-            densityMap.calculateDensity(5)
 
             const homology = new PersistantHomology({
-                densityMap
+                densityMap: population.densityMap
             })
 
             this.setState({
-                densityMap,
+                densityMap: population.densityMap,
                 homology
             })
         })
@@ -76,7 +75,7 @@ export default class BivariatePlot extends Component {
     performHomologyIteration (edgeDistance = 20, minPeakHeight = 4) {
         this.state.homology.performHomologyIteration(this.state.homologyHeight)
         this.state.homologyPeaks = this.state.homology.homologyPeaks
-        this.setState({ homologyHeight: this.state.homologyHeight - 0.01 }, this.createGraphLayout)
+        this.setState({ homologyHeight: this.state.homologyHeight - 1 }, this.createGraphLayout)
     }
 
     createGraphLayout () {
@@ -85,10 +84,17 @@ export default class BivariatePlot extends Component {
         d3.selectAll("svg.axis > *").remove();
 
         // Need to offset the whole graph if we're including cytof 0 histograms
-        const xOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
-        const yOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+        const xOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH * (this.state.graphWidth / constants.PLOT_WIDTH) : 0
+        const yOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT * (this.state.graphHeight / constants.PLOT_HEIGHT) : 0
 
-        const scales = getScalesForSample(this.props.sample, this.state.graphWidth - xOffset, this.state.graphHeight - yOffset)
+        const scales = getScales({
+            selectedXScale: this.props.sample.selectedXScale,
+            selectedYScale: this.props.sample.selectedYScale,
+            xRange: [ this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.max ],
+            yRange: [ this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.max ],
+            width: this.state.graphWidth - xOffset,
+            height: this.state.graphHeight - yOffset
+        })
 
         const xAxis = d3.axisBottom().scale(scales.xScale).tickFormat(d3.format(".2s"))
         const yAxis = d3.axisLeft().scale(scales.yScale).tickFormat(d3.format(".2s"))
@@ -235,7 +241,7 @@ export default class BivariatePlot extends Component {
         image.src = this.props.sample.plotImages[getPlotImageKey(this.props.sample)]
 
         const redrawGraph = () => {
-            context.drawImage(image, 0, 0)
+            context.drawImage(image, 0, 0, this.state.graphWidth, this.state.graphHeight)
 
             // Determine if there are any 2d gates in the subsamples that match these parameters
             let gatesExist = false
@@ -251,14 +257,7 @@ export default class BivariatePlot extends Component {
                 // Redraw the image and greyscale any points that are outside the gate
                 const imageData = context.getImageData(0, 0, this.state.graphWidth, this.state.graphHeight);
                 const data = imageData.data;
-                let gatesToRender = []
-
-                // If there is a selected subSample 
-                if (this.state.highlightSubsampleId) {
-                    gatesToRender = [_.find(this.props.subSamples, s => s.id === this.state.highlightSubsampleId)]
-                } else {
-                    gatesToRender = this.props.gates
-                }
+                let gatesToRender = this.props.gates
 
                 const gateData = gatesToRender.map((gate) => {
                     const toReturn = {
@@ -300,7 +299,7 @@ export default class BivariatePlot extends Component {
                 }
                 
                 context.putImageData(imageData, 0, 0);
-            } else if (this.state.homologyHeight < 1) {
+            } else if (this.state.homologyHeight < 100) {
                 // Redraw the image and greyscale any points that are outside the gate
                 const imageData = context.getImageData(0, 0, this.state.graphWidth, this.state.graphHeight);
                 const data = imageData.data;
@@ -309,21 +308,25 @@ export default class BivariatePlot extends Component {
                 for (let i = 0; i < data.length; i += 4) {
                     // Get the position of the pixel as X and Y
                     const position = [
-                        scales.xScale.invert((i % (this.state.graphWidth * 4)) / 4),
-                        scales.yScale.invert(Math.floor(i / (this.state.graphWidth * 4)))
+                        (i % (this.state.graphWidth * 4)) / 4,
+                        Math.floor(i / (this.state.graphWidth * 4))
                     ]
 
-                    // console.log(this.state.densityMap.getDensityMap()[Math.floor(i / (this.state.graphWidth * 4))])
-                    let shouldGreyscale = !this.state.densityMap.getDensityMap()[Math.floor(i / (this.state.graphWidth * 4))]
-                        || !this.state.densityMap.getDensityMap()[Math.floor(i / (this.state.graphWidth * 4))][(i % (this.state.graphWidth * 4)) / 4]
-                        || this.state.densityMap.getDensityMap()[Math.floor(i / (this.state.graphWidth * 4))][(i % (this.state.graphWidth * 4)) / 4] < this.state.homologyHeight
+                    if (position[0] < xOffset || position[1] > this.state.graphHeight - yOffset) {
+                        continue
+                    }
+
+                    // console.log(this.state.densityMap.densityMap[Math.floor(i / (this.state.graphWidth * 4))])
+                    let shouldGreyscale = !this.state.densityMap.densityMap[position[1]]
+                        || !this.state.densityMap.densityMap[position[1]][position[0] - xOffset]
+                        || this.state.densityMap.densityMap[position[1]][position[0] - xOffset] < (this.state.homologyHeight / this.state.densityMap.maxDensity) * 100
 
                     if (shouldGreyscale) {
                         // Inside the gate, render as greyscale
                         const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                        data[i]     = 255; // red
-                        data[i + 1] = 255; // green
-                        data[i + 2] = 255; // blue
+                        data[i]     = avg; // red
+                        data[i + 1] = avg; // green
+                        data[i + 2] = avg; // blue
                     }
                 }
                 
@@ -333,9 +336,9 @@ export default class BivariatePlot extends Component {
                 for (let i = 0; i < this.state.homologyPeaks.length; i++) {
                     const gate = this.state.homologyPeaks[i]
                     context.beginPath();
-                    context.moveTo(gate.polygon[0][0], gate.polygon[0][1])
+                    context.moveTo(gate.polygon[0][0] + xOffset, gate.polygon[0][1])
                     for (let point of gate.polygon) {
-                        context.lineTo(point[0], point[1])
+                        context.lineTo(point[0] + xOffset, point[1])
                     }
                     context.closePath()
                     context.stroke()
@@ -349,6 +352,10 @@ export default class BivariatePlot extends Component {
         image.onload = () => {
             redrawGraph()
         }
+    }
+
+    updateBonusIterations (gateTemplate, iterations) {
+        this.props.api.updateGateTemplate(gateTemplate.id, { typeSpecificData: _.merge(gateTemplate.typeSpecificData, { bonusIterations: iterations }) })
     }
 
     showGateTooltip (gateId, event) {
@@ -397,6 +404,13 @@ export default class BivariatePlot extends Component {
     }
 
     render () {
+        // FCS File not ready yet
+        if (this.props.sample.FCSParameters.length === 0) {
+            return (
+                <div className='svg-outer'><svg className='axis'></svg><canvas className="canvas"/></div>
+            )
+        }
+
         const gateCreators = {}
         gateCreators[constants.GATE_CREATOR_PERSISTENT_HOMOLOGY] = 'Calculated with Persistent Homology'
         gateCreators[constants.GATE_CREATOR_MANUAL] = 'Created Manually'
@@ -404,10 +418,19 @@ export default class BivariatePlot extends Component {
         // Need to offset the whole graph if we're including cytof 0 histograms
         const xOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
         const yOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
-        const scales = getScalesForSample(this.props.sample, this.state.graphWidth - xOffset, this.state.graphHeight - yOffset)
+        const scales = getScales({
+            selectedXScale: this.props.sample.selectedXScale,
+            selectedYScale: this.props.sample.selectedYScale,
+            xRange: [ this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.max ],
+            yRange: [ this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.max ],
+            width: this.state.graphWidth - xOffset,
+            height:  this.state.graphHeight - yOffset
+        })
 
         let tooltip
         const gates = this.props.gates.map((gate) => {
+            const gateTemplate = _.find(this.props.gateTemplates, gt => gt.id === gate.gateTemplateId)
+            const gateTemplateGroup = _.find(this.props.gateTemplateGroups, g => g.childGateTemplateIds.includes(gateTemplate.id))
             const scaledPoints = gate.gateData.map(p => [ Math.floor(scales.xScale(p[0])) + xOffset, Math.floor(scales.yScale(p[1])) ])
             const points = scaledPoints.reduce((string, point) => {
                 return string + point[0] + " " + point[1] + " "
@@ -420,24 +443,25 @@ export default class BivariatePlot extends Component {
                     <div className="tooltip" style={{width: tooltipWidth, height: tooltipHeight, left: (polygonCenter[0] - tooltipWidth / 2) + this.state.graphMargin.left, top: (polygonCenter[1] - tooltipHeight * 1.5) + this.state.graphMargin.top}}
                         onClick={(event) => { event.stopPropagation() }}>
                         <div className='tooltip-inner'>
-                            <div className='title'>Gate {gate.id.substring(0, 5)}</div>
-                            <div className='creator'>{gateCreators[gate.gateCreator]}</div>
+                            <div className='title'>Gate Template {gateTemplate.id.substring(0, 5)}</div>
+                            <div className='creator'>{gateCreators[gateTemplateGroup.creator]}</div>
                             <div className='divider'></div>
                             <div className='parameter width'>
                                 <div className='text'>Additional Width:</div>
-                                <div className='value'>{gate.gateCreatorData.bonusIterations}</div>
-                                <i className='lnr lnr-plus-circle' /><i className='lnr lnr-circle-minus' />
+                                <div className='value'>{gateTemplate.typeSpecificData.bonusIterations}</div>
+                                <i className='lnr lnr-plus-circle' onClick={this.updateBonusIterations.bind(this, gateTemplate, gateTemplate.typeSpecificData.bonusIterations + 10)} />
+                                <i className='lnr lnr-circle-minus' onClick={this.updateBonusIterations.bind(this, gateTemplate, gateTemplate.typeSpecificData.bonusIterations - 10)} />
                             </div>
                         </div>
                     </div>
                 )
             }
             return (
-                <svg onMouseEnter={this.props.updateGate.bind(null, gate.id, { highlighted: true })}
-                    onMouseLeave={this.props.updateGate.bind(null, gate.id, { highlighted: false })}
+                <svg onMouseEnter={this.props.updateGateTemplate.bind(null, gateTemplate.id, { highlighted: true })}
+                    onMouseLeave={this.props.updateGateTemplate.bind(null, gateTemplate.id, { highlighted: false })}
                     onClick={this.showGateTooltip.bind(this, gate.id)}
                     key={gate.id}>
-                    <polygon points={points} className={'gate' + (gate.highlighted ? ' highlighted' : '')} />
+                    <polygon points={points} className={'gate' + (gateTemplate.highlighted ? ' highlighted' : '')} />
                 </svg>
             )
         })
@@ -452,7 +476,7 @@ export default class BivariatePlot extends Component {
                 </svg>
                 {tooltip}
                 <canvas className="canvas"/>
-                {/*<div className='step' onClick={this.performHomologyIteration.bind(this, 15, 4)}>Step</div>*/}
+                {<div className='step' onClick={this.performHomologyIteration.bind(this, 15, 4)}>Step</div>}
             </div>
         )
     }
