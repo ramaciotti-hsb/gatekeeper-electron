@@ -43,6 +43,11 @@ export default class SampleView extends Component {
         this.refs['homologyDropdown'].getInstance().hideDropdown()
     }
 
+    recursiveHomology () {
+        this.props.api.recursiveHomology(this.props.sample.id)
+        this.refs['homologyDropdown'].getInstance().hideDropdown()
+    }
+
     showGate (gateId) {
         const gate = _.find(this.props.gates, g => g.id === gateId)
         if (this.props.sample.selectedXParameterIndex !== gate.selectedXParameterIndex
@@ -109,7 +114,11 @@ export default class SampleView extends Component {
         const autoGates = [
             {
                 value: 'persistent-homology',
-                component: <div className='item' onClick={this.calculateHomology.bind(this)} key={'persistent-homology'}>Persistent Homology</div>
+                component: <div className='item' onClick={this.calculateHomology.bind(this)} key={'persistent-homology'}>Persistent Homology - Current parameters</div>
+            },
+            {
+                value: 'recursive-homology',
+                component: <div className='item' onClick={this.recursiveHomology.bind(this)} key={'recursive-homology'}>Persistent Homology - All parameter combinations</div>
             }
         ]
 

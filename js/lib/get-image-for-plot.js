@@ -84,7 +84,7 @@ export default async (sample, subPopulation, options) => {
     })
 
     for (let i = 0; i < subPopulation.subPopulation.length; i++) {
-        const point = [Math.round(scales.xScale(subPopulation.subPopulation[i][options.selectedXParameterIndex])), Math.round(scales.yScale(subPopulation.subPopulation[i][options.selectedYParameterIndex]))]
+        const point = [ Math.round(scales.xScale(subPopulation.subPopulation[i][0])), Math.round(scales.yScale(subPopulation.subPopulation[i][1])) ]
         if (subPopulation.densityMap.densityMap[point[1]] && subPopulation.densityMap.densityMap[point[1]][point[0]]) {
             // console.log(subPopulation.densityMap.densityMap[point[1]][point[0]])
             const color = heatMapRGBForValue(subPopulation.densityMap.densityMap[point[1]][point[0]] / subPopulation.densityMap.maxDensity)

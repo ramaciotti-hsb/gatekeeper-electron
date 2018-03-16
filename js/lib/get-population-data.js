@@ -76,21 +76,23 @@ export default async function getPopulationForSample (sample, options) {
     process.stdout.write(JSON.stringify({ data: 'Removing zeroes and calculating statistics' }))
     for (let i = 0; i < FCSFile.dataAsNumbers.length; i++) {
         if (selectedMachineType === constants.MACHINE_CYTOF) {
-            // Every point that has a zero in the selected X channel
-            if (FCSFile.dataAsNumbers[i][options.selectedXParameterIndex] === 0 && FCSFile.dataAsNumbers[i][options.selectedYParameterIndex] === 0) {
-                // doubleChannelZeroes.push(scales.yScale(sample.FCSParameters[options.selectedYParameterIndex].statistics.max))
+            if (sample.includeEventIds.length === 0 || sample.includeEventIds[i]) {
+                // Every point that has a zero in the selected X channel
+                if (FCSFile.dataAsNumbers[i][options.selectedXParameterIndex] === 0 && FCSFile.dataAsNumbers[i][options.selectedYParameterIndex] === 0) {
+                    // doubleChannelZeroes.push(scales.yScale(sample.FCSParameters[options.selectedYParameterIndex].statistics.max))
+                }
+                // Every point that has a zero in the selected X channel
+                else if (FCSFile.dataAsNumbers[i][options.selectedXParameterIndex] === 0) {
+                    xChannelZeroes.push(FCSFile.dataAsNumbers[i][options.selectedYParameterIndex])
+                // Every point that has a zero in the selected Y channel
+                } else if (FCSFile.dataAsNumbers[i][options.selectedYParameterIndex] === 0) {
+                    yChannelZeroes.push(FCSFile.dataAsNumbers[i][options.selectedXParameterIndex])
+                } else {
+                    subPopulation.push([ FCSFile.dataAsNumbers[i][options.selectedXParameterIndex], FCSFile.dataAsNumbers[i][options.selectedYParameterIndex] ])
+                }
             }
-            // Every point that has a zero in the selected X channel
-            else if (FCSFile.dataAsNumbers[i][options.selectedXParameterIndex] === 0) {
-                xChannelZeroes.push(FCSFile.dataAsNumbers[i][options.selectedYParameterIndex])
-            // Every point that has a zero in the selected Y channel
-            } else if (FCSFile.dataAsNumbers[i][options.selectedYParameterIndex] === 0) {
-                yChannelZeroes.push(FCSFile.dataAsNumbers[i][options.selectedXParameterIndex])
-            } else {
-                subPopulation.push(FCSFile.dataAsNumbers[i])
-            }
-        } else if (!sample.includeEventIds || (sample.includeEventIds && sample.includeEventIds.includes[i])) {
-            subPopulation.push(FCSFile.dataAsNumbers[i])
+        } else if (sample.includeEventIds.length === 0 || sample.includeEventIds.includes[i]) {
+            subPopulation.push([ FCSFile.dataAsNumbers[i][options.selectedXParameterIndex], FCSFile.dataAsNumbers[i][options.selectedYParameterIndex] ])
         }
 
         for (let j = 0; j < FCSFile.dataAsNumbers[i].length; j++) {
@@ -131,8 +133,8 @@ export default async function getPopulationForSample (sample, options) {
         for (let i = 0; i < points.length; i++) {
             const point = points[i]
 
-            const xVal = Math.round(scales.xScale(point[options.selectedXParameterIndex]))
-            const yVal = Math.round(scales.yScale(point[options.selectedYParameterIndex]))
+            const xVal = Math.round(scales.xScale(point[0]))
+            const yVal = Math.round(scales.yScale(point[1]))
 
             if (!pointCache[yVal]) {
                 pointCache[yVal] = []
@@ -187,9 +189,9 @@ export default async function getPopulationForSample (sample, options) {
             if (!pointCache[y]) { continue }
             for (let x = 0; x < pointCache[y].length; x++) {
                 if (!pointCache[y][x]) { continue }
-                if (pointCache[y][x] > meanDensity * 10) {
-                    const difference = Math.min((maxDensity - pointCache[y][x]) / (maxDensity - (meanDensity * 10)) + 0.5, 1)
-                    pointCache[y][x] = (meanDensity * 10) + (pointCache[y][x] - meanDensity * 10) * difference
+                if (pointCache[y][x] > meanDensity * 15) {
+                    const difference = Math.min((maxDensity - pointCache[y][x]) / (maxDensity - (meanDensity * 15)) + 0.5, 1)
+                    pointCache[y][x] = (meanDensity * 15) + (pointCache[y][x] - meanDensity * 15) * difference
                 }
             }   
         }
@@ -212,6 +214,6 @@ export default async function getPopulationForSample (sample, options) {
         densityMap,
         FCSParameters,
         selectedMachineType: selectedMachineType,
-        populationCount: FCSFile.dataAsNumbers.length
+        populationCount: subPopulation.length
     }
 }

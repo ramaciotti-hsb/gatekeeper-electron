@@ -19,21 +19,25 @@ const INVERSE_GATE_RATIO = GATE_HEIGHT / GATE_WIDTH
 export default class SampleGates extends Component {
 
     renderGatePreview () {
+        // Offset the entire graph and add histograms if we're looking at cytof data
+        let xOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
+        let yOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+        
         for (let gate of this.props.gates) {
             const scales = getScales({
                 selectedXScale: this.props.sample.selectedXScale,
                 selectedYScale: this.props.sample.selectedYScale,
                 xRange: [ this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.max ],
                 yRange: [ this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.max ],
-                width: this.props.graphWidth,
-                height: this.props.graphHeight
+                width: this.props.graphWidth - xOffset,
+                height: this.props.graphHeight - yOffset
             })
             // Get the center point of where the gate is targeted
             let x1Boundary, x2Boundary, y1Boundary, y2Boundary
             if (gate.type === constants.GATE_TYPE_POLYGON) {
                 // Iterate through the polygon vertices and get the min / max values for drawing squares
                 for (let i = 0; i < gate.gateData.length; i++) {
-                    const xValue = scales.xScale(gate.gateData[i][0])
+                    const xValue = scales.xScale(gate.gateData[i][0]) + xOffset
                     const yValue = scales.yScale(gate.gateData[i][1])
                     if (xValue < x1Boundary || typeof x1Boundary === 'undefined') { x1Boundary = xValue }
                     if (xValue > x2Boundary || typeof x2Boundary === 'undefined') { x2Boundary = xValue }
@@ -116,7 +120,7 @@ export default class SampleGates extends Component {
                 for (let i = 0; i < data.length; i += 4) {
                     // Get the position of the pixel as X and Y
                     const position = [
-                        scales.xScale.invert(((i % (GATE_WIDTH * 4)) / 4) * (1 / scalingFactorX) + x1Boundary),
+                        scales.xScale.invert(((i % (GATE_WIDTH * 4)) / 4) * (1 / scalingFactorX) + x1Boundary - xOffset),
                         scales.yScale.invert(Math.floor(i / (GATE_WIDTH * 4)) * (1 / scalingFactorY) + y1Boundary)
                     ]
                     if (!pointInsidePolygon(position, gate.gateData)) {
@@ -132,9 +136,9 @@ export default class SampleGates extends Component {
                 context.fillStyle = '#999'
                 // Render the gate outlines over the top
                 context.beginPath();
-                context.moveTo((scales.xScale(gate.gateData[0][0]) - x1Boundary) * scalingFactorX, (scales.yScale(gate.gateData[0][1]) - y1Boundary) * scalingFactorY)
+                context.moveTo((scales.xScale(gate.gateData[0][0]) - x1Boundary + xOffset) * scalingFactorX, (scales.yScale(gate.gateData[0][1]) - y1Boundary) * scalingFactorY)
                 for (let point of gate.gateData) {
-                    context.lineTo((scales.xScale(point[0]) - x1Boundary) * scalingFactorX, (scales.yScale(point[1]) - y1Boundary) * scalingFactorY)
+                    context.lineTo((scales.xScale(point[0]) - x1Boundary + xOffset) * scalingFactorX, (scales.yScale(point[1]) - y1Boundary) * scalingFactorY)
                 }
                 context.closePath()
                 context.stroke()

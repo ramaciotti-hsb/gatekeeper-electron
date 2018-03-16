@@ -62,7 +62,8 @@ export default class BivariatePlot extends Component {
             })
 
             const homology = new PersistantHomology({
-                densityMap: population.densityMap
+                sample: this.props.sample,
+                population
             })
 
             this.setState({
@@ -253,7 +254,7 @@ export default class BivariatePlot extends Component {
             }
             gatesExist = this.state.homologyPeaks.length === 0 && gatesExist
 
-            if (gatesExist) {
+            if (false) {
                 // Redraw the image and greyscale any points that are outside the gate
                 const imageData = context.getImageData(0, 0, this.state.graphWidth, this.state.graphHeight);
                 const data = imageData.data;
@@ -428,6 +429,7 @@ export default class BivariatePlot extends Component {
         })
 
         let tooltip
+        console.log(this.props.gates)
         const gates = this.props.gates.map((gate) => {
             const gateTemplate = _.find(this.props.gateTemplates, gt => gt.id === gate.gateTemplateId)
             const gateTemplateGroup = _.find(this.props.gateTemplateGroups, g => g.childGateTemplateIds.includes(gateTemplate.id))
