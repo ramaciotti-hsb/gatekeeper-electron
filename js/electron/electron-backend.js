@@ -300,8 +300,12 @@ export const api = {
         currentState = applicationReducer(currentState, selectAction)
         store.dispatch(selectAction)
 
+        // Find the associated workspace
+        const workspace = _.find(currentState.workspaces, w => w.id === workspaceId)
+        // Get the currently selected sample
+        const selectedSample = _.find(currentState.samples, s => s.id === workspace.selectedSampleId)
         // Select the related sample
-        const relatedSample = _.find(currentState.samples, s => s.gateTemplateId === gateTemplateId)
+        const relatedSample = _.find(currentState.samples, s => s.gateTemplateId === gateTemplateId && s.filePath === selectedSample.filePath)
         if (relatedSample) {
             await api.selectSample(relatedSample.id, workspaceId)
         }
@@ -485,7 +489,7 @@ export const api = {
         let sample = {
             id: sampleId,
             type: sampleParameters.type,
-            title: sampleParameters.title,
+            title: parentSample.title,
             description: sampleParameters.description,
             filePath: parentSample.filePath,
             gateTemplateId: sampleParameters.gateTemplateId,
@@ -580,8 +584,15 @@ export const api = {
     },
 
     selectSample: async function (sampleId, workspaceId) {
-        const selectAction = selectSample(sampleId, workspaceId)
+        const sample = _.find(currentState.samples, s => s.id === sampleId)
+        // Find the associated workspace
+        const workspace = _.find(currentState.workspaces, w => w.id === workspaceId)
+        // Get the currently selected gate template
+        const selectedGateTemplate = _.find(currentState.gateTemplates, gt => gt.id === workspace.selectedGateTemplateId)
+        // Select the related sub sample
+        const relatedSample = _.find(currentState.samples, s => s.gateTemplateId === selectedGateTemplate.id && s.filePath === sample.filePath)
 
+        const selectAction = selectSample(relatedSample.id, workspaceId)
         currentState = applicationReducer(currentState, selectAction)
         store.dispatch(selectAction)
 

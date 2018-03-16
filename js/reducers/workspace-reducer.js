@@ -85,7 +85,7 @@ const workspaces = (state = initialState, action = {}) => {
                 console.log('SELECT_GATE_TEMPLATE failed: no gateTemplate with id', action.payload.gateTemplateId, 'was found in gateTemplateIds of workspace with id', action.payload.workspaceId)       
             }
         } else {
-            console.log('SELECT_SAMPLE failed: no workspace with id', action.payload.workspaceId, 'was found')
+            console.log('SELECT_GATE_TEMPLATE failed: no workspace with id', action.payload.workspaceId, 'was found')
         }
     // --------------------------------------------------
     // Add an existing sample to a workspace
