@@ -44,7 +44,7 @@ export default class PersistentHomology {
             densityMap: null
         }, options)
 
-        if (!this.options.sample || !this.options.population) {
+        if (!this.options.sample || !this.options.options || !this.options.population) {
             throw 'Error initializing PersistantHomology: options.population and option.sample are required'
         }
 
@@ -58,10 +58,10 @@ export default class PersistentHomology {
         const inflectionWidth = 10
 
         const scales = getScales({
-            selectedXScale: this.options.sample.selectedXScale,
-            selectedYScale: this.options.sample.selectedYScale,
-            xRange: [ this.options.sample.FCSParameters[this.options.sample.selectedXParameterIndex].statistics.min, this.options.sample.FCSParameters[this.options.sample.selectedXParameterIndex].statistics.max ],
-            yRange: [ this.options.sample.FCSParameters[this.options.sample.selectedYParameterIndex].statistics.min, this.options.sample.FCSParameters[this.options.sample.selectedYParameterIndex].statistics.max ],
+            selectedXScale: this.options.options.selectedXScale,
+            selectedYScale: this.options.options.selectedYScale,
+            xRange: [ this.options.sample.FCSParameters[this.options.options.selectedXParameterIndex].statistics.min, this.options.sample.FCSParameters[this.options.options.selectedXParameterIndex].statistics.max ],
+            yRange: [ this.options.sample.FCSParameters[this.options.options.selectedYParameterIndex].statistics.min, this.options.sample.FCSParameters[this.options.options.selectedYParameterIndex].statistics.max ],
             width: constants.PLOT_WIDTH - constants.CYTOF_HISTOGRAM_WIDTH,
             height: constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT
         })
@@ -80,7 +80,7 @@ export default class PersistentHomology {
                     isPeak = false
                 }
             }
-            if (isPeak) {
+            if (isPeak && yPeaks.length < 10) {
                 yPeaks.push(i)
             }
         }
@@ -132,7 +132,7 @@ export default class PersistentHomology {
                     isPeak = false
                 }
             }
-            if (isPeak) {
+            if (isPeak && xPeaks.length < 10) {
                 xPeaks.push(i)
             }
         }
@@ -405,7 +405,7 @@ export default class PersistentHomology {
                     }
                 }
 
-                if (this.options.sample.selectedMachineType === constants.MACHINE_CYTOF) {
+                if (this.options.options.selectedMachineType === constants.MACHINE_CYTOF) {
                     this.expandToIncludeZeroes()
                 }
 
@@ -438,7 +438,7 @@ export default class PersistentHomology {
                 }
             }
 
-            if (this.options.sample.selectedMachineType === constants.MACHINE_CYTOF && !dontIncludeZeroes) {
+            if (this.options.options.selectedMachineType === constants.MACHINE_CYTOF && !dontIncludeZeroes) {
                 this.expandToIncludeZeroes()
             }
             const groups = this.getAxisGroups(this.truePeaks)

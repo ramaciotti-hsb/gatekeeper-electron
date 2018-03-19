@@ -85,9 +85,13 @@ export default async (sample, subPopulation, options) => {
 
     for (let i = 0; i < subPopulation.subPopulation.length; i++) {
         const point = [ Math.round(scales.xScale(subPopulation.subPopulation[i][0])), Math.round(scales.yScale(subPopulation.subPopulation[i][1])) ]
+        // if (point[0] >= 0 && point[0] < subPopulation.newDensityMap.densityX.length && point[1] >= 0 && point[1] < subPopulation.newDensityMap.densityY.length) {
         if (subPopulation.densityMap.densityMap[point[1]] && subPopulation.densityMap.densityMap[point[1]][point[0]]) {
-            // console.log(subPopulation.densityMap.densityMap[point[1]][point[0]])
+            // console.log(point)
             const color = heatMapRGBForValue(subPopulation.densityMap.densityMap[point[1]][point[0]] / subPopulation.densityMap.maxDensity)
+            // const density = (subPopulation.newDensityMap.densityX[point[0]][1] * subPopulation.newDensityMap.densityY[point[1]][1]) / subPopulation.newDensityMap.newMaxDensity
+            // console.log(density)
+            // const color = heatMapRGBForValue(density)
             for (let y = point[1] - pointRadius * 2; y < point[1] + pointRadius * 2; y++) {
                 for (let x = point[0] - pointRadius * 2; x < point[0] + pointRadius * 2; x++) {
                     // Draw a circular point of pointDiameter diameter
@@ -152,7 +156,7 @@ export default async (sample, subPopulation, options) => {
     }
 
     const directory = `/Users/nicbarker/Downloads/sample-images/${sample.id}`
-    const sampleKey = getPlotImageKey(sample)
+    const sampleKey = getPlotImageKey(options)
     const fileName = `${directory}/${sampleKey}.png`
     await mkdirpPromise(directory)
     return await packPNGFile(PNGFile, fileName)

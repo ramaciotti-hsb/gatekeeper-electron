@@ -7,7 +7,7 @@ import fs from 'fs'
 import FCS from 'fcs'
 import _ from 'lodash'
 import * as d3 from 'd3'
-import { getScales } from './utilities'
+import { getScales, kernelDensityEstimator, kernelEpanechnikov } from './utilities'
 
 // Wrap the read file function from FS in a promise
 const readFileBuffer = (path) => {
@@ -26,15 +26,26 @@ const getFCSFileFromPath = async (filePath) => {
         return FCSFileCache[filePath]
     }
     // Read in the data from the FCS file, and emit another action when finished
-    const buffer = await readFileBuffer(filePath)
-    const FCSFile = new FCS({ dataFormat: 'asNumber', eventsToRead: -1 }, buffer)
-    FCSFileCache[filePath] = FCSFile
-    return FCSFile
+    try {
+        const buffer = await readFileBuffer(filePath)        
+        const FCSFile = new FCS({ dataFormat: 'asNumber', eventsToRead: -1 }, buffer)
+        FCSFileCache[filePath] = FCSFile
+        return FCSFile
+    } catch (error) {
+        process.stderr.write(JSON.stringify(error))
+    }
 }
 
 export default async function getPopulationForSample (sample, options) {
-    process.stdout.write(JSON.stringify({ data: 'Reading FCS File' }))
-    const FCSFile = await getFCSFileFromPath(sample.filePath)
+    process.stdout.write(JSON.stringify({ data: 'Reading FCS File: ' + sample.filePath }))
+    process.stdout.write(JSON.stringify(options))
+    let FCSFile
+    try  {
+        FCSFile = await getFCSFileFromPath(sample.filePath)        
+    } catch (error) {
+        process.stderr.write(JSON.stringify(error))
+        return
+    }
 
     const selectedMachineType = FCSFile.text['$CYT'].match(/CYTOF/) ? constants.MACHINE_CYTOF : MACHINE_FLORESCENT
 
@@ -124,6 +135,23 @@ export default async function getPopulationForSample (sample, options) {
         height: constants.PLOT_HEIGHT - yOffset
     })
 
+
+    // process.stdout.write(JSON.stringify({ data: 'Calculating density' }))
+    // // Perform kernel density for each channel then combine for 2d density
+    // const densityX = kernelDensityEstimator(kernelEpanechnikov(constants.PLOT_WIDTH * 0.012), _.range(0, constants.PLOT_WIDTH - xOffset))(subPopulation.map(value => scales.xScale(value[0])))
+    // const densityY = kernelDensityEstimator(kernelEpanechnikov(constants.PLOT_HEIGHT * 0.012), _.range(0, constants.PLOT_HEIGHT - yOffset))(subPopulation.map(value => scales.yScale(value[1])))
+
+    // let newMaxDensity = 0
+    // for (let i = 0; i < densityX.length; i++) {
+    //     // densityX[i][1] = densityX[i][1] * 100
+    //     for (let j = 0; j < densityY.length; j++) {
+    //         // densityY[j][1] = densityY[j][1] * 100
+    //         if (densityX[i][1] * densityY[j][1] > newMaxDensity) {
+    //             newMaxDensity = densityX[i][1] * densityY[j][1]
+    //         }
+    //     }
+    // }
+
     // Data should be an array of 2d points, in [x, y] format i.e. [[1, 1], [2, 2]]
     const calculateDensity = function (points, scales, densityWidth = 2) {
         // Create a sorted point cache that's accessible by [row][column] for faster density estimation
@@ -212,6 +240,11 @@ export default async function getPopulationForSample (sample, options) {
         xChannelZeroes,
         yChannelZeroes,
         densityMap,
+        // newDensityMap: {
+        //     densityX,
+        //     densityY,
+        //     newMaxDensity
+        // },
         FCSParameters,
         selectedMachineType: selectedMachineType,
         populationCount: subPopulation.length

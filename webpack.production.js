@@ -4,6 +4,7 @@ const webpack = require('webpack')
 const MinifyPlugin = require('babel-minify-webpack-plugin')
 const ExtractTextPlugin = require("extract-text-webpack-plugin")
 const HtmlPlugin = require('html-webpack-plugin')
+const CopyPlugin = require('copy-webpack-plugin')
 
 const htmlPlugin = new HtmlPlugin({
     template: './index.production.html',

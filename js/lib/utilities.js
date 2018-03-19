@@ -4,7 +4,6 @@
 
 import hslToRGB from 'hsl-to-rgb-for-reals'
 import * as d3 from "d3"
-import logScale from '../scales/log-scale'
 import logicleScale from '../scales/logicle.js'
 import arcsinScale from '../scales/arcsinh-scale'
 import constants from './constants'

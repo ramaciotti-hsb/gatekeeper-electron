@@ -8,10 +8,10 @@ import path from 'path'
 import { remote } from 'electron'
 import fs from 'fs'
 import uuidv4 from 'uuid/v4'
-import os from 'os'
 import _ from 'lodash'
 import FCS from 'fcs'
 import * as d3 from "d3"
+import os from 'os'
 import { getPlotImageKey, heatMapRGBForValue, getScales, getPolygonCenter } from '../lib/utilities'
 import constants from '../lib/constants'
 import PersistentHomology from '../lib/persistent-homology.js'
@@ -20,50 +20,37 @@ import GrahamScan from '../lib/graham-scan.js'
 import pointInsidePolygon from 'point-in-polygon'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import applicationReducer from '../reducers/application-reducer'
-import { updateSample, removeSample, setSamplePlotImage } from '../actions/sample-actions'
+import { updateSample, removeSample, setSamplePlotImage, setSampleParametersLoading } from '../actions/sample-actions'
 import { updateGateTemplate, removeGateTemplate } from '../actions/gate-template-actions'
-import { createWorkspace, selectWorkspace, removeWorkspace,
+import isDev from 'electron-is-dev'
+import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace,
     createSampleAndAddToWorkspace, createSubSampleAndAddToWorkspace, selectSample,
     createGateTemplateAndAddToWorkspace, selectGateTemplate,
     createGateTemplateGroupAndAddToWorkspace } from '../actions/workspace-actions'
 
 window.d3 = d3
 
+import request from 'request'
+
 // Debug imports below
 // import getImageForPlotBackend from '../lib/get-image-for-plot'
-const jobQueue = []
-const jobListeners = {}
-const nextWorkerIndex = 0
 
-for (let i = 0; i < os.cpus().length; i++) {
-    // Fork a new node process for doing CPU intensive jobs
-    const workerFork = fork(__dirname + '/subprocess-wrapper.js', [], { silent: true })
-
-    workerFork.stdout.on('data', (result) => {
-        console.log(result.toString('utf8'))
-    })
-    workerFork.stderr.on('data', (result) => {
-        console.log(result.toString('utf8'))
-    })
-
-    workerFork.on('message', (data) => {
-        // console.log(data)
-        if (data.type === 'idle') {
-            if (jobQueue.length > 0) {
-                console.log('sending job', jobQueue[0], 'to idle worker')
-                workerFork.send(jobQueue.splice(0, 1)[0])
-            }
-        } else {
-            if (jobListeners[data.jobId]) {
-                jobListeners[data.jobId](data)
-            }
-        }
-    })
-
-    setInterval(() => {
-        workerFork.send({ type: 'heartbeat'})
-    }, 1000)
+// Fork a new node process for doing CPU intensive jobs
+console.log(__dirname)
+let workerFork
+if (isDev) {
+    console.log('test')
+    workerFork = fork(__dirname + '/js/electron/subprocess-wrapper.js', [], { silent: true })
+} else {
+    workerFork = fork(__dirname + '/webpack-build/fork.bundle.js', [], { silent: true })
 }
+
+workerFork.stdout.on('data', (result) => {
+    console.log(result.toString('utf8'))
+})
+workerFork.stderr.on('data', (result) => {
+    console.log(result.toString('utf8'))
+})
 
 // Wrap the read and write file functions from FS in promises
 const readFile = (path, opts = 'utf8') => {
@@ -126,28 +113,17 @@ const getFCSFileFromPath = async (filePath) => {
 
 // Generates an image for a 2d scatter plot
 const getImageForPlot = async (sample, subPopulation, options) => {
+
     if (sample.plotImages[getPlotImageKey(options)]) { return sample.plotImages[getPlotImageKey(options)] }
 
     const jobId = uuidv4()
 
-    jobQueue.push({ jobId: jobId, type: 'get-image-for-plot', payload: { sample, subPopulation, options } })
     const imagePath = await new Promise((resolve, reject) => {
-        jobListeners[jobId] = function (result) {
-            if (result.jobId === jobId) {
-                if (result.type === 'error') {
-                    console.log('Error generating image:', result.error)
-                    delete jobListeners[jobId]
-                    reject(result.error)
-                } else if (result.type === 'loading-update') {
-                    loadingMessage = result.data
-                } else if (result.type === 'complete') {
-                    delete jobListeners[jobId]
-                    resolve(result.data)
-                }
-            }
-        }
+        request.post({ url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-image-for-plot', payload: { sample, subPopulation, options } } }, function (error, response, body) {
+            resolve(body)
+        });
     })
-    
+
     return imagePath
     // return await getImageForPlotBackend(sample, subPopulation, options)
 }
@@ -178,7 +154,7 @@ export const setStore = (store) => { reduxStore = store }
 export const saveSessionToDisk = async function () {
     // Save the new state to the disk
     const sessionFilePath = path.join(remote.app.getPath('userData'), 'session2.json')
-    fs.writeFile(sessionFilePath, JSON.stringify(currentState, null, 4), () => {})
+    fs.writeFile(sessionFilePath, JSON.stringify(currentState), () => {})
 }
 
 // Load the workspaces and samples the user last had open when the app was used
@@ -229,6 +205,11 @@ export const api = {
             id: workspaceId,
             title: parameters.title,
             description: parameters.description,
+            selectedMachineType: parameters.selectedMachineType || constants.MACHINE_FLORESCENT,
+            selectedXParameterIndex: parameters.selectedXParameterIndex || 49,
+            selectedYParameterIndex: parameters.selectedYParameterIndex || 26,
+            selectedXScale: parameters.selectedXScale || constants.SCALE_LOG,
+            selectedYScale: parameters.selectedYScale || constants.SCALE_LOG,
             sampleIds: [],
             gateTemplateIds: [],
             gateTemplateGroupIds: []
@@ -281,15 +262,15 @@ export const api = {
     },
 
     // Update a gate template with arbitrary parameters
-    updateGateTemplate: async function (gateTemplateId, parameters) {
+    updateGateTemplateAndRecalculate: async function (gateTemplateId, parameters) {
         const updateAction = updateGateTemplate(gateTemplateId, parameters)
-
-        currentState = applicationReducer(currentState, updateAction)
-        store.dispatch(updateAction)
 
         // Update any child templates that depend on these
         const templateGroup = _.find(currentState.gateTemplateGroups, g => g.childGateTemplateIds.includes(gateTemplateId))
         await api.recalculateGateTemplateGroup(templateGroup.id)
+
+        currentState = applicationReducer(currentState, updateAction)
+        store.dispatch(updateAction)
 
         saveSessionToDisk()
     },
@@ -367,7 +348,7 @@ export const api = {
                     selectedMachineType: templateGroup.selectedMachineType
                 })
 
-                const imageAction = await setSamplePlotImage(sample.id, getPlotImageKey(templateGroup), imageForPlot)
+                const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(templateGroup), imageForPlot)
                 currentState = applicationReducer(currentState, imageAction)
                 store.dispatch(imageAction)
 
@@ -414,11 +395,17 @@ export const api = {
         saveSessionToDisk()
     },
 
-    createSampleAndAddToWorkspace: async function (workspaceId, gateTemplateId, sampleParameters) {
+    createSampleAndAddToWorkspace: async function (workspaceId, sampleParameters) {
         const sampleId = uuidv4()
 
         // Find the associated workspace
-        const workspace = _.find(currentState.workspaces, w => w.id === workspaceId)
+        let workspace = _.find(currentState.workspaces, w => w.id === workspaceId)
+
+        const parametersLoading = {}
+        parametersLoading[workspace.selectedXParameterIndex + '_' + workspace.selectedYParameterIndex] = {
+            loading: true,
+            loadingMessage: 'Reading FCS file and generating densities...',
+        }
 
         let sample = {
             id: sampleId,
@@ -426,15 +413,9 @@ export const api = {
             filePath: sampleParameters.filePath,
             title: sampleParameters.title,
             description: sampleParameters.description,
-            gateTemplateId: gateTemplateId || currentState.workspaces.gateTemplates[0].id,
+            gateTemplateId: workspace.gateTemplateIds[0],
+            parametersLoading,
             // Below are defaults
-            selectedXParameterIndex: 49,
-            selectedYParameterIndex: 26,
-            selectedMachineType: constants.MACHINE_FLORESCENT,
-            selectedXScale: constants.SCALE_LOG,
-            selectedYScale: constants.SCALE_LOG,
-            loading: true,
-            loadingMessage: 'Reading FCS file and generating densities...',
             plotImages: {}
         }
 
@@ -444,38 +425,50 @@ export const api = {
         store.dispatch(createAction)
 
         const population = await api.getPopulationDataForSample(sampleId, {
-            selectedXParameterIndex: sample.selectedXParameterIndex,
-            selectedYParameterIndex: sample.selectedYParameterIndex,
-            selectedXScale: sample.selectedXScale,
-            selectedYScale: sample.selectedYScale,
-            selectedMachineType: sample.selectedMachineType
+            selectedXParameterIndex: workspace.selectedXParameterIndex,
+            selectedYParameterIndex: workspace.selectedYParameterIndex,
+            selectedXScale: workspace.selectedXScale,
+            selectedYScale: workspace.selectedYScale,
+            workerIndex: 0
         })
 
-        const updateAction = updateSample(sampleId, { loading: true, loadingMessage: 'Generating image for plot...', populationCount: population.populationCount, FCSParameters: population.FCSParameters, selectedMachineType: population.selectedMachineType })
+        const updateAction = updateSample(sampleId, { populationCount: population.populationCount, FCSParameters: population.FCSParameters })
 
         currentState = applicationReducer(currentState, updateAction)
         store.dispatch(updateAction)
 
+        const loadingAction = setSampleParametersLoading(sampleId, workspace.selectedXParameterIndex + '_' + workspace.selectedYParameterIndex, { loading: true, loadingMessage: 'Generating image for plot...'})
+        currentState = applicationReducer(currentState, loadingAction)
+        store.dispatch(loadingAction)
+
+        const updateWorkspaceAction = updateWorkspace(workspaceId, { selectedMachineType: population.selectedMachineType, selectedGateTemplateId: workspace.gateTemplateIds[0] })
+
+        currentState = applicationReducer(currentState, updateWorkspaceAction)
+        store.dispatch(updateWorkspaceAction)
+
+        workspace = _.find(currentState.workspaces, w => w.id === workspaceId)
+
         const updatedSample = _.find(currentState.samples, s => s.id === sampleId)
         // Generate the cached images
         const imageForPlot = await getImageForPlot(updatedSample, population, {
-            selectedXParameterIndex: updatedSample.selectedXParameterIndex,
-            selectedYParameterIndex: updatedSample.selectedYParameterIndex,
-            selectedXScale: updatedSample.selectedXScale,
-            selectedYScale: updatedSample.selectedYScale,
-            selectedMachineType: updatedSample.selectedMachineType
+            selectedXParameterIndex: workspace.selectedXParameterIndex,
+            selectedYParameterIndex: workspace.selectedYParameterIndex,
+            selectedXScale: workspace.selectedXScale,
+            selectedYScale: workspace.selectedYScale,
+            selectedMachineType: workspace.selectedMachineType,
+            workerIndex: 0
         })
-        const imageAction = await setSamplePlotImage(updatedSample.id, getPlotImageKey(updatedSample), imageForPlot)
+
+        const imageAction = await setSamplePlotImage(updatedSample.id, getPlotImageKey(workspace), imageForPlot)
         currentState = applicationReducer(currentState, imageAction)
         store.dispatch(imageAction)
 
         // Recursively apply the existing gating hierarchy
         await api.applyGateTemplatesToSample(updatedSample.id)
 
-        const updateActionFinished = updateSample(sampleId, { loading: false, loadingMessage: null })
-
-        currentState = applicationReducer(currentState, updateActionFinished)
-        store.dispatch(updateActionFinished)
+        const loadingFinishedAction = setSampleParametersLoading(sampleId, workspace.selectedXParameterIndex + '_' + workspace.selectedYParameterIndex, { loading: false, loadingMessage: null})
+        currentState = applicationReducer(currentState, loadingFinishedAction)
+        store.dispatch(loadingFinishedAction)
 
         saveSessionToDisk()
     },
@@ -483,6 +476,9 @@ export const api = {
     createSubSampleAndAddToWorkspace: async function (workspaceId, parentSampleId, sampleParameters, gateParameters) {
         const sampleId = sampleParameters.id || uuidv4()
         const gateId = gateParameters.id || uuidv4()
+
+        // Find the associated workspace
+        let workspace = _.find(currentState.workspaces, w => w.id === workspaceId)
 
         const parentSample = _.find(currentState.samples, s => s.id === parentSampleId)
 
@@ -493,10 +489,6 @@ export const api = {
             description: sampleParameters.description,
             filePath: parentSample.filePath,
             gateTemplateId: sampleParameters.gateTemplateId,
-            selectedXParameterIndex: parentSample.selectedXParameterIndex,
-            selectedYParameterIndex: parentSample.selectedYParameterIndex,
-            selectedXScale: parentSample.selectedXScale,
-            selectedYScale: parentSample.selectedYScale,
             FCSParameters: _.clone(parentSample.FCSParameters),
             statistics: _.clone(parentSample.statistics),
             selectedMachineType: parentSample.selectedMachineType,
@@ -525,13 +517,13 @@ export const api = {
 
         if (gate.type === constants.GATE_TYPE_POLYGON) {
             for (let i = 0; i < FCSFile.dataAsNumbers.length; i++) {
-                if (pointInsidePolygon([FCSFile.dataAsNumbers[i][sample.selectedXParameterIndex], FCSFile.dataAsNumbers[i][sample.selectedYParameterIndex]], gate.gateData)) {
+                if (pointInsidePolygon([FCSFile.dataAsNumbers[i][workspace.selectedXParameterIndex], FCSFile.dataAsNumbers[i][workspace.selectedYParameterIndex]], gate.gateData)) {
                     includeEventIds[i] = true
                 } else {
-                    if (gate.xCutoffs && FCSFile.dataAsNumbers[i][sample.selectedXParameterIndex] === 0 && FCSFile.dataAsNumbers[i][sample.selectedYParameterIndex] >= gate.xCutoffs[0] && FCSFile.dataAsNumbers[i][sample.selectedYParameterIndex] <= gate.xCutoffs[1]) {
+                    if (gate.xCutoffs && FCSFile.dataAsNumbers[i][workspace.selectedXParameterIndex] === 0 && FCSFile.dataAsNumbers[i][workspace.selectedYParameterIndex] >= gate.xCutoffs[0] && FCSFile.dataAsNumbers[i][workspace.selectedYParameterIndex] <= gate.xCutoffs[1]) {
                         includeEventIds[i] = true
                     }
-                    if (gate.yCutoffs && FCSFile.dataAsNumbers[i][sample.selectedYParameterIndex] === 0 && FCSFile.dataAsNumbers[i][sample.selectedXParameterIndex] >= gate.yCutoffs[0] && FCSFile.dataAsNumbers[i][sample.selectedXParameterIndex] <= gate.yCutoffs[1]) {
+                    if (gate.yCutoffs && FCSFile.dataAsNumbers[i][workspace.selectedYParameterIndex] === 0 && FCSFile.dataAsNumbers[i][workspace.selectedXParameterIndex] >= gate.yCutoffs[0] && FCSFile.dataAsNumbers[i][workspace.selectedXParameterIndex] <= gate.yCutoffs[1]) {
                         includeEventIds[i] = true
                     }
                 }
@@ -550,24 +542,24 @@ export const api = {
         store.dispatch(createSubSampleAndAddToWorkspace(workspaceId, parentSampleId, sample, gate))
 
         const population = await api.getPopulationDataForSample(sampleId, {
-            selectedXParameterIndex: backendSample.selectedXParameterIndex,
-            selectedYParameterIndex: backendSample.selectedYParameterIndex,
-            selectedXScale: backendSample.selectedXScale,
-            selectedYScale: backendSample.selectedYScale,
-            selectedMachineType: backendSample.selectedMachineType
+            selectedXParameterIndex: workspace.selectedXParameterIndex,
+            selectedYParameterIndex: workspace.selectedYParameterIndex,
+            selectedXScale: workspace.selectedXScale,
+            selectedYScale: workspace.selectedYScale,
+            selectedMachineType: workspace.selectedMachineType
         })
 
         // Generate the cached images
         const imageForPlot = await getImageForPlot(backendSample, population, {
-            selectedXParameterIndex: sample.selectedXParameterIndex,
-            selectedYParameterIndex: sample.selectedYParameterIndex,
-            selectedXScale: sample.selectedXScale,
-            selectedYScale: sample.selectedYScale,
-            selectedMachineType: sample.selectedMachineType,
+            selectedXParameterIndex: workspace.selectedXParameterIndex,
+            selectedYParameterIndex: workspace.selectedYParameterIndex,
+            selectedXScale: workspace.selectedXScale,
+            selectedYScale: workspace.selectedYScale,
+            selectedMachineType: workspace.selectedMachineType,
             width: 600,
             height: 460
         })
-        const imageAction = await setSamplePlotImage(backendSample.id, getPlotImageKey(backendSample), imageForPlot)
+        const imageAction = await setSamplePlotImage(backendSample.id, getPlotImageKey(workspace), imageForPlot)
         currentState = applicationReducer(currentState, imageAction)
         store.dispatch(imageAction)
 
@@ -599,38 +591,44 @@ export const api = {
         saveSessionToDisk()
     },
 
-    // Update a sample with arbitrary parameters
-    updateSample: async function (sampleId, parameters) {
-        let updateAction = updateSample(sampleId, _.merge(parameters, { loading: true, loadingMessage: 'Reading FCS file and generating densities...' }))
-        currentState = applicationReducer(currentState, updateAction)
-        store.dispatch(updateAction)
+    // Update a workspace with arbitrary parameters
+    updateWorkspace: async function (workspaceId, parameters) {
+        const updateWorkspaceAction = updateWorkspace(workspaceId, parameters)
+        currentState = applicationReducer(currentState, updateWorkspaceAction)
+        store.dispatch(updateWorkspaceAction)
 
-        const sample = _.find(currentState.samples, s => s.id === sampleId)
+        // Find the associated workspace
+        const workspace = _.find(currentState.workspaces, w => w.id === workspaceId)
 
-        const population = await api.getPopulationDataForSample(sampleId, sample)
+        for (let sampleId of _.filter(workspace.sampleIds, s => s.gateTemplateId === workspace.selectedGateTemplateId)) {
+            let loadingAction = setSampleParametersLoading(sampleId, workspace.selectedXParameterIndex + '_' + workspace.selectedYParameterIndex, { loading: true, loadingMessage: 'Reading FCS file and generating densities...'})
+            currentState = applicationReducer(currentState, loadingAction)
+            store.dispatch(loadingAction)
 
-        updateAction = updateSample(sampleId, _.merge(parameters, { loading: true, loadingMessage: 'Generating image for plot...' }))
-        currentState = applicationReducer(currentState, updateAction)
-        store.dispatch(updateAction)
-        // Generate the cached images
-        const imageForPlot = await getImageForPlot(sample, population, {
-            selectedXParameterIndex: sample.selectedXParameterIndex,
-            selectedYParameterIndex: sample.selectedYParameterIndex,
-            selectedXScale: sample.selectedXScale,
-            selectedYScale: sample.selectedYScale,
-            selectedMachineType: sample.selectedMachineType,
-            width: 600,
-            height: 460
-        })
-        const imageAction = await setSamplePlotImage(sample.id, getPlotImageKey(sample), imageForPlot)
-        currentState = applicationReducer(currentState, imageAction)
-        store.dispatch(imageAction)
+            const sample = _.find(currentState.samples, s => s.id === sampleId)
 
-        const updateActionFinished = updateSample(sampleId, _.merge(parameters, { loading: false, loadingMessage: null }))
+            const population = await api.getPopulationDataForSample(sampleId, workspace)
 
-        currentState = applicationReducer(currentState, updateActionFinished)
-        store.dispatch(updateActionFinished)
+            loadingAction = setSampleParametersLoading(sampleId, workspace.selectedXParameterIndex + '_' + workspace.selectedYParameterIndex, { loading: true, loadingMessage: 'Generating image for plot...'})
+            currentState = applicationReducer(currentState, loadingAction)
+            store.dispatch(loadingAction)
+            // Generate the cached images
+            const imageForPlot = await getImageForPlot(sample, population, {
+                selectedXParameterIndex: workspace.selectedXParameterIndex,
+                selectedYParameterIndex: workspace.selectedYParameterIndex,
+                selectedXScale: workspace.selectedXScale,
+                selectedYScale: workspace.selectedYScale,
+                selectedMachineType: workspace.selectedMachineType,
+                workerIndex: 0
+            })
+            const imageAction = await setSamplePlotImage(sample.id, getPlotImageKey(workspace), imageForPlot)
+            currentState = applicationReducer(currentState, imageAction)
+            store.dispatch(imageAction)
 
+            loadingAction = setSampleParametersLoading(sampleId, workspace.selectedXParameterIndex + '_' + workspace.selectedYParameterIndex, { loading: false, loadingMessage: null})
+            currentState = applicationReducer(currentState, loadingAction)
+            store.dispatch(loadingAction)
+        }
         saveSessionToDisk()
     },
 
@@ -645,8 +643,8 @@ export const api = {
     //        selectedMachineType
     //    }
     calculateHomology: async function (sampleId, options) {
-        console.log('Calculating homology for parameters', options.selectedXParameterIndex, options.selectedYParameterIndex)
         const sample = _.find(currentState.samples, s => s.id === sampleId)
+        const gateTemplate = _.find(currentState.gateTemplates, gt => gt.id === sample.gateTemplateId)
         const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sampleId))
 
         let gateTemplateGroup = _.find(currentState.gateTemplateGroups, (group) => {
@@ -659,21 +657,15 @@ export const api = {
         })
 
         if (!sample) { console.log('Error in calculateHomology(): no sample with id ', sampleId, 'was found'); return }
-        // Dispatch a redux action to mark the sample as loading
+        // Dispatch a redux action to mark the gate template as loading
         let loadingMessage = 'Creating gates using Persistent Homology...'
-        const loadingStartedAction = updateSample(sampleId, { loading: true, loadingMessage })
-        store.dispatch(loadingStartedAction)
+        
+        const gtLoadingStartedAction = updateGateTemplate(sample.gateTemplateId, { loading: true, loadingMessage })
+        store.dispatch(gtLoadingStartedAction)
 
         let population = await api.getPopulationDataForSample(sampleId, options)
 
-        // Generate the cached images
-        const imageForPlot = await getImageForPlot(sample, population, options)
-
-        const imageAction = await setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
-        currentState = applicationReducer(currentState, imageAction)
-        store.dispatch(imageAction)
-
-        let homologyOptions = { sample, population }
+        let homologyOptions = { sample, options, population }
 
         // If there are already gating templates defined for this parameter combination
         if (gateTemplateGroup) {
@@ -683,35 +675,24 @@ export const api = {
         }
 
         const intervalToken = setInterval(() => {
-            const loadingPercentageAction = updateSample(sampleId, { loading: true, loadingMessage })
-            store.dispatch(loadingPercentageAction)
+            const loadingAction = setSampleParametersLoading(sampleId, workspace.selectedXParameterIndex + '_' + workspace.selectedYParameterIndex, { loading: true, loadingMessage: loadingMessage})
+            currentState = applicationReducer(currentState, loadingAction)
+            store.dispatch(loadingAction)
         }, 500)
 
         const jobId = uuidv4()
+        let postBody
 
         if (gateTemplateGroup) {
-            console.log("FIND PEAK WITH TEMPLATE")
-            jobQueue.push({ jobId: jobId, type: 'find-peaks-with-template', payload: homologyOptions })
+            postBody = { jobId: jobId, type: 'find-peaks-with-template', payload: homologyOptions }
         } else {
-            jobQueue.push({ jobId: jobId, type: 'find-peaks', payload: homologyOptions })
+            postBody = { jobId: jobId, type: 'find-peaks', payload: homologyOptions }
         }
 
-        let handleResult
         const truePeaks = await new Promise((resolve, reject) => {
-            jobListeners[jobId] = function (result) {
-                if (result.jobId === jobId) {
-                    if (result.type === 'error') {
-                        console.log('Error calculating homology:', result.error)
-                        delete jobListeners[jobId]
-                        reject(result.error)
-                    } else if (result.type === 'loading-update') {
-                        loadingMessage = result.data
-                    } else if (result.type === 'complete') {
-                        delete jobListeners[jobId]
-                        resolve(result.data)
-                    }
-                }
-            }
+            request.post({ url: 'http://127.0.0.1:3145', json: postBody }, function (error, response, body) {
+                resolve(body)
+            });
         })
 
         clearInterval(intervalToken)
@@ -760,7 +741,7 @@ export const api = {
             return gate
         })
 
-        if (!gateTemplateGroup) {
+        if (!gateTemplateGroup && gates.length > 0) {
             // Create a Gate Template Group for this parameter combination
             const newGateTemplateGroup = {
                 id: uuidv4(),
@@ -797,7 +778,7 @@ export const api = {
             const createGateTemplateGroupAction = createGateTemplateGroupAndAddToWorkspace(workspace.id, newGateTemplateGroup)
             currentState = applicationReducer(currentState, createGateTemplateGroupAction)
             store.dispatch(createGateTemplateGroupAction)
-        } else {
+        } else if (gates.length > 0) {
             const gateTemplates = _.filter(currentState.gateTemplates, g => gateTemplateGroup.childGateTemplateIds.includes(g.id))
             truePeaks.map((peak, index) => {
                 gates[index].gateTemplateId = _.find(gateTemplates, gt => gt.xGroup === peak.xGroup && gt.yGroup === peak.yGroup).id
@@ -831,31 +812,58 @@ export const api = {
             )
         }
 
-        // Dispatch a redux action to mark the sample as finished loading
-        const loadingFinishedAction = updateSample(sampleId, { loading: false, loadingMessage: null })
-        store.dispatch(loadingFinishedAction)
+        const gtLoadingFinishedAction = updateGateTemplate(sample.gateTemplateId, { loading: false, loadingMessage: null })
+        store.dispatch(gtLoadingFinishedAction)
     },
 
     recursiveHomology: async (sampleId) => {
         const sample = _.find(currentState.samples, s => s.id === sampleId)
         const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sampleId))
 
-        for (let x = 0; x < sample.FCSParameters.length; x++) {
+        let comparisons = []
+
+        for (let x = 3; x < sample.FCSParameters.length; x++) {
+            if (!sample.FCSParameters[x].label.match('_')) {
+                continue
+            }
             for (let y = x + 1; y < sample.FCSParameters.length; y++) {
-                if (sample.FCSParameters[x].label === sample.FCSParameters[x].key || sample.FCSParameters[y].label === sample.FCSParameters[y].key) {
+                if (!sample.FCSParameters[y].label.match('_')) {
                     continue
                 }
+                comparisons.push([x, y])
+            }
+        }
+
+        const calculate = async (workerIndex) => {
+            if (comparisons.length > 0) {
+                const comp = comparisons.splice(0, 1)
 
                 const options = {
-                    selectedXParameterIndex: x,
-                    selectedYParameterIndex: y,
+                    selectedXParameterIndex: comp[0][0],
+                    selectedYParameterIndex: comp[0][1],
                     selectedXScale: constants.SCALE_LOG,
                     selectedYScale: constants.SCALE_LOG,
-                    selectedMachineType: sample.selectedMachineType
+                    selectedMachineType: workspace.selectedMachineType,
+                    workerIndex: workerIndex
                 }
+                console.log('trying population', workerIndex)
+                const population = await api.getPopulationDataForSample(sampleId, options)
+                // Generate the cached images
+                console.log('trying image', workerIndex)
+                const imageForPlot = await getImageForPlot(sample, population, options)
+                const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
+                currentState = applicationReducer(currentState, imageAction)
+                store.dispatch(imageAction)
 
-                api.calculateHomology(sample.id, options)
+                console.log('trying homology', workerIndex)
+                await api.calculateHomology(sample.id, options)
+
+                calculate(workerIndex)
             }
+        }
+
+        for (let i = 0; i < os.cpus().length - 1; i++) {
+            calculate(i)
         }
     },
 
@@ -869,22 +877,10 @@ export const api = {
 
         const jobId = uuidv4()
 
-        jobQueue.push({ jobId: jobId, type: 'get-population-data', payload: { sample: sample, options: options } })
         const population = await new Promise((resolve, reject) => {
-            jobListeners[jobId] = function (result) {
-                if (result.jobId === jobId) {
-                    if (result.type === 'error') {
-                        console.log('Error calculating population:', result.error)
-                        delete jobListeners[jobId]
-                        reject(result.error)
-                    } else if (result.type === 'loading-update') {
-                        loadingMessage = result.data
-                    } else if (result.type === 'complete') {
-                        delete jobListeners[jobId]
-                        resolve(result.data)
-                    }
-                }
-            }
+            request.post({ url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-population-data', payload: { sample: sample, options: options } } }, function (error, response, body) {
+                resolve(body)
+            });
         })
 
         populationDataCache[key] = population

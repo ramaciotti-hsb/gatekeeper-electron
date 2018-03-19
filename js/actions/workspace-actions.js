@@ -20,6 +20,13 @@ export const createWorkspace = (workspace) => {
     }
 }
 
+export const updateWorkspace = (workspaceId, parameters) => {
+    return {
+        type: 'UPDATE_WORKSPACE',
+        payload: { workspaceId, parameters }
+    }
+}
+
 export const createGateTemplateAndAddToWorkspace = (workspaceId, gateTemplateParameters) => {
     return {
         type: 'CREATE_GATE_TEMPLATE_AND_ADD_TO_WORKSPACE',

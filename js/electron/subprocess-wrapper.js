@@ -26,64 +26,74 @@ require("babel-register")({
     }
 })
 
-let busy = false
 let heartbeatTime = process.hrtime()[0]
 
 const getSubPopulation = require('../lib/get-population-data.js').default
 const getImageForPlot = require('../lib/get-image-for-plot.js').default
 const PersistentHomology = require('../lib/persistent-homology.js').default
 
-process.on('message', (options) => {
-    const jobId = options.jobId
-    if (options.type === 'heartbeat') {
-        heartbeatTime = process.hrtime()[0]
-    } else {
-        busy = true
-        if (options.type === 'get-population-data') {
-            getSubPopulation(options.payload.sample, options.payload.options).then((data) => {
-                process.stdout.write(JSON.stringify({ jobId: options.jobId, data: 'Finished job on worker side'}))
-                process.send({ jobId: jobId, type: 'complete', data: data })
-                busy = false
-            }).catch((error) => {
-                process.stderr.write({ jobId, data: JSON.stringify(error) })
-                busy = false
-            })
-        } else if (options.type === 'get-image-for-plot') {
-            getImageForPlot(options.payload.sample, options.payload.subPopulation, options.payload.options).then((path) => {
-                process.send({ jobId: jobId, type: 'complete', data: path })
-                busy = false
-            }).catch((error) => {
-                process.stderr.write({ jobId, data: JSON.stringify(error) })
-                busy = false
-            })
-        } else if (options.type === 'find-peaks') {
-            const homology = new PersistentHomology(options.payload)
-            let percentageComplete = 0
-            const truePeaks = homology.findPeaks((message) => {
-                // console.log({ jobId: jobId, type: 'loading-update', data: message })
-                process.send({ jobId: jobId, type: 'loading-update', data: message })
-            })
-            process.send({ jobId: jobId, type: 'complete', data: truePeaks })
-            busy = false
-        } else if (options.type === 'find-peaks-with-template') {
-            const homology = new PersistentHomology(options.payload)
-            let percentageComplete = 0
-            const truePeaks = homology.findPeaksWithTemplate((message) => {
-                process.send({ jobId: jobId, type: 'loading-update', message })
-            })
-            process.send({ jobId: jobId, type: 'complete', data: truePeaks })
-            busy = false
-        }
-    }
-})
+const cluster = require('cluster');
+const http = require('http');
+const numCPUs = require('os').cpus().length - 1;
 
-setInterval(() => {
-    if (!busy) {
-        process.send({ type: 'idle' })
-    }
+if (cluster.isMaster) {
+  console.log(`Master ${process.pid} is running`);
 
-    // If it's been more than 10 seconds since the parent sent a heartbeat, just die
-    if (process.hrtime()[0] - heartbeatTime > 30) {
-        process.exit()
-    }
-}, 50)
+  // Fork workers.
+  for (let i = 0; i < numCPUs; i++) {
+    cluster.fork();
+  }
+
+  cluster.on('exit', (worker, code, signal) => {
+    console.log(`worker ${worker.process.pid} died`);
+  });
+} else {
+    http.createServer((req, res) => {
+        res.writeHead(200);
+        let bodyRaw = ''
+        req.on('data', chunk => bodyRaw += chunk)
+        req.on('end', () => {
+            const body = JSON.parse(bodyRaw)
+            const jobId = body.jobId
+            if (body.type === 'heartbeat') {
+                heartbeatTime = process.hrtime()[0]
+            } else {
+                if (body.type === 'get-population-data') {
+                    getSubPopulation(body.payload.sample, body.payload.options).then((data) => {
+                        process.stdout.write(JSON.stringify({ jobId: body.jobId, data: 'Finished job on worker side'}))
+                        res.end(JSON.stringify(data))
+                    }).catch((error) => {
+                        process.stderr.write(JSON.stringify({ jobId, data: JSON.stringify(error) }))
+                    })
+                } else if (body.type === 'get-image-for-plot') {
+                    getImageForPlot(body.payload.sample, body.payload.subPopulation, body.payload.options).then((data) => {
+                        res.end(JSON.stringify(data))
+                    }).catch((error) => {
+                        console.log(error)
+                        process.stderr.write(JSON.stringify({ jobId, data: JSON.stringify(error) }))
+                    })
+                } else if (body.type === 'find-peaks') {
+                    const homology = new PersistentHomology(body.payload)
+                    let percentageComplete = 0
+                    const data = homology.findPeaks((message) => {
+                        // console.log({ jobId: jobId, type: 'loading-update', data: message })
+                        // res.send({ jobId: jobId, type: 'loading-update', data: message })
+                    })
+                    res.end(JSON.stringify(data))
+                } else if (body.type === 'find-peaks-with-template') {
+                    const homology = new PersistentHomology(body.payload)
+                    let percentageComplete = 0
+                    const data = homology.findPeaksWithTemplate((message) => {
+                        // res.send({ jobId: jobId, type: 'loading-update', message })
+                    })
+                    res.end(JSON.stringify(data))
+                }
+            }  
+        })
+    }).listen(3145);
+}
+
+process.on('disconnect', function() {
+  console.log('parent exited')
+  process.exit();
+});

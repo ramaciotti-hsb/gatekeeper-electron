@@ -49,14 +49,14 @@ export default class BivariatePlot extends Component {
         const width = 600
         const height = 480
         // Offset the entire graph and add histograms if we're looking at cytof data
-        let xOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
-        let yOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+        let xOffset = this.props.workspace.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
+        let yOffset = this.props.workspace.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
         const population = this.props.api.getPopulationDataForSample(this.props.sample.id, this.props.sample).then((population) => {
             const scales = getScales({
-                selectedXScale: this.props.sample.selectedXScale,
-                selectedYScale: this.props.sample.selectedYScale,
-                xRange: [ this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.max ],
-                yRange: [ this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.max ],
+                selectedXScale: this.props.workspace.selectedXScale,
+                selectedYScale: this.props.workspace.selectedYScale,
+                xRange: [ this.props.sample.FCSParameters[this.props.workspace.selectedXParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.workspace.selectedXParameterIndex].statistics.max ],
+                yRange: [ this.props.sample.FCSParameters[this.props.workspace.selectedYParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.workspace.selectedYParameterIndex].statistics.max ],
                 width: constants.PLOT_WIDTH - xOffset,
                 height: constants.PLOT_HEIGHT - yOffset
             })
@@ -80,19 +80,22 @@ export default class BivariatePlot extends Component {
     }
 
     createGraphLayout () {
-        if (!this.props.sample.plotImages[getPlotImageKey(this.props.sample)]) { return }
+        console.log(this.props.sample.plotImages)
+        console.log(getPlotImageKey(this.props.workspace))
+        if (!this.props.sample.plotImages[getPlotImageKey(this.props.workspace)]) { return }
+        console.log('blah')
 
         d3.selectAll("svg.axis > *").remove();
 
         // Need to offset the whole graph if we're including cytof 0 histograms
-        const xOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH * (this.state.graphWidth / constants.PLOT_WIDTH) : 0
-        const yOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT * (this.state.graphHeight / constants.PLOT_HEIGHT) : 0
+        const xOffset = this.props.workspace.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH * (this.state.graphWidth / constants.PLOT_WIDTH) : 0
+        const yOffset = this.props.workspace.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT * (this.state.graphHeight / constants.PLOT_HEIGHT) : 0
 
         const scales = getScales({
-            selectedXScale: this.props.sample.selectedXScale,
-            selectedYScale: this.props.sample.selectedYScale,
-            xRange: [ this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.max ],
-            yRange: [ this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.max ],
+            selectedXScale: this.props.workspace.selectedXScale,
+            selectedYScale: this.props.workspace.selectedYScale,
+            xRange: [ this.props.sample.FCSParameters[this.props.workspace.selectedXParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.workspace.selectedXParameterIndex].statistics.max ],
+            yRange: [ this.props.sample.FCSParameters[this.props.workspace.selectedYParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.workspace.selectedYParameterIndex].statistics.max ],
             width: this.state.graphWidth - xOffset,
             height: this.state.graphHeight - yOffset
         })
@@ -193,25 +196,25 @@ export default class BivariatePlot extends Component {
                     [endXFixed, endYFixed],
                     [startXFixed, endYFixed]
                 ],
-                selectedXParameterIndex: this.props.sample.selectedXParameterIndex,
-                selectedYParameterIndex: this.props.sample.selectedYParameterIndex,
-                selectedXScale: this.props.sample.selectedXScale,
-                selectedYScale: this.props.sample.selectedYScale,
+                selectedXParameterIndex: this.props.workspace.selectedXParameterIndex,
+                selectedYParameterIndex: this.props.workspace.selectedYParameterIndex,
+                selectedXScale: this.props.workspace.selectedXScale,
+                selectedYScale: this.props.workspace.selectedYScale,
                 gateCreator: constants.GATE_MANUAL
             }
 
             this.props.api.createSubSampleAndAddToWorkspace(
-                this.props.workspaceId,
+                this.props.workspace.id,
                 this.props.sample.id,
                 {
                     filePath: this.props.sample.filePath,
                     FCSParameters: this.props.sample.FCSParameters,
                     plotImages: {},
                     subSampleIds: [],
-                    selectedXParameterIndex: this.props.sample.selectedXParameterIndex,
-                    selectedYParameterIndex: this.props.sample.selectedYParameterIndex,
-                    selectedXScale: this.props.sample.selectedXScale,
-                    selectedYScale: this.props.sample.selectedYScale,
+                    selectedXParameterIndex: this.props.workspace.selectedXParameterIndex,
+                    selectedYParameterIndex: this.props.workspace.selectedYParameterIndex,
+                    selectedXScale: this.props.workspace.selectedXScale,
+                    selectedYScale: this.props.workspace.selectedYScale,
                 },
                 gate,
             )
@@ -239,7 +242,7 @@ export default class BivariatePlot extends Component {
 
         var context = canvas.node().getContext('2d')
         const image = new Image()
-        image.src = this.props.sample.plotImages[getPlotImageKey(this.props.sample)]
+        image.src = this.props.sample.plotImages[getPlotImageKey(this.props.workspace)]
 
         const redrawGraph = () => {
             context.drawImage(image, 0, 0, this.state.graphWidth, this.state.graphHeight)
@@ -247,14 +250,14 @@ export default class BivariatePlot extends Component {
             // Determine if there are any 2d gates in the subsamples that match these parameters
             let gatesExist = false
             for (let gate of this.props.gates) {
-                if (gate.selectedXParameterIndex === this.props.sample.selectedXParameterIndex && 
-                    gate.selectedYParameterIndex === this.props.sample.selectedYParameterIndex) {
+                if (gate.selectedXParameterIndex === this.props.workspace.selectedXParameterIndex && 
+                    gate.selectedYParameterIndex === this.props.workspace.selectedYParameterIndex) {
                     gatesExist = true
                 }
             }
             gatesExist = this.state.homologyPeaks.length === 0 && gatesExist
 
-            if (false) {
+            if (gatesExist) {
                 // Redraw the image and greyscale any points that are outside the gate
                 const imageData = context.getImageData(0, 0, this.state.graphWidth, this.state.graphHeight);
                 const data = imageData.data;
@@ -356,7 +359,7 @@ export default class BivariatePlot extends Component {
     }
 
     updateBonusIterations (gateTemplate, iterations) {
-        this.props.api.updateGateTemplate(gateTemplate.id, { typeSpecificData: _.merge(gateTemplate.typeSpecificData, { bonusIterations: iterations }) })
+        this.props.api.updateGateTemplateAndRecalculate(gateTemplate.id, { typeSpecificData: _.merge(gateTemplate.typeSpecificData, { bonusIterations: iterations }) })
     }
 
     showGateTooltip (gateId, event) {
@@ -374,11 +377,7 @@ export default class BivariatePlot extends Component {
 
     componentDidUpdate(prevProps) {
         const sampleProps = [
-            'id',
-            'selectedXParameterIndex',
-            'selectedYParameterIndex',
-            'selectedXScale',
-            'selectedYScale'
+            'id'
         ]
 
         for (let prop of sampleProps) {
@@ -388,9 +387,25 @@ export default class BivariatePlot extends Component {
             }
         }
 
+        const workspaceProps = [
+            'id',
+            'selectedXParameterIndex',
+            'selectedYParameterIndex',
+            'selectedXScale',
+            'selectedYScale',
+            'selectedMachineType'
+        ]
+
+        for (let prop of workspaceProps) {
+            if (prevProps.workspace[prop] !== this.props.workspace[prop]) {
+                this.createGraphLayout()
+                return
+            }
+        }
+
         // Update the graph if visible gates have changed
-        const prevPropGates = _.filter(prevProps.gates, g => g.selectedXParameterIndex === prevProps.sample.selectedXParameterIndex && g.selectedYParameterIndex === prevProps.sample.selectedYParameterIndex)
-        const propGates = _.filter(this.props.gates, g => g.selectedXParameterIndex === this.props.sample.selectedXParameterIndex && g.selectedYParameterIndex === this.props.sample.selectedYParameterIndex)
+        const prevPropGates = _.filter(prevProps.gates, g => g.selectedXParameterIndex === prevProps.workspace.selectedXParameterIndex && g.selectedYParameterIndex === prevProps.workspace.selectedYParameterIndex)
+        const propGates = _.filter(this.props.gates, g => g.selectedXParameterIndex === this.props.workspace.selectedXParameterIndex && g.selectedYParameterIndex === this.props.workspace.selectedYParameterIndex)
 
         if (prevPropGates.length !== propGates.length) {
             this.createGraphLayout()
@@ -398,7 +413,7 @@ export default class BivariatePlot extends Component {
         }
 
         // Update the graph if images are now available
-        if (!prevProps.sample.plotImages[getPlotImageKey(prevProps.sample)] && this.props.sample.plotImages[getPlotImageKey(this.props.sample)]) {
+        if (!prevProps.sample.plotImages[getPlotImageKey(prevProps.workspace)] && this.props.sample.plotImages[getPlotImageKey(this.props.workspace)]) {
             this.createGraphLayout()
             return
         }
@@ -417,19 +432,18 @@ export default class BivariatePlot extends Component {
         gateCreators[constants.GATE_CREATOR_MANUAL] = 'Created Manually'
 
         // Need to offset the whole graph if we're including cytof 0 histograms
-        const xOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
-        const yOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+        const xOffset = this.props.workspace.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
+        const yOffset = this.props.workspace.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
         const scales = getScales({
-            selectedXScale: this.props.sample.selectedXScale,
-            selectedYScale: this.props.sample.selectedYScale,
-            xRange: [ this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.max ],
-            yRange: [ this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.max ],
+            selectedXScale: this.props.workspace.selectedXScale,
+            selectedYScale: this.props.workspace.selectedYScale,
+            xRange: [ this.props.sample.FCSParameters[this.props.workspace.selectedXParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.workspace.selectedXParameterIndex].statistics.max ],
+            yRange: [ this.props.sample.FCSParameters[this.props.workspace.selectedYParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.workspace.selectedYParameterIndex].statistics.max ],
             width: this.state.graphWidth - xOffset,
             height:  this.state.graphHeight - yOffset
         })
 
         let tooltip
-        console.log(this.props.gates)
         const gates = this.props.gates.map((gate) => {
             const gateTemplate = _.find(this.props.gateTemplates, gt => gt.id === gate.gateTemplateId)
             const gateTemplateGroup = _.find(this.props.gateTemplateGroups, g => g.childGateTemplateIds.includes(gateTemplate.id))

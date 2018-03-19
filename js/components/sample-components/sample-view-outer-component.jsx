@@ -15,8 +15,6 @@ import area from 'area-polygon'
 import Gates from './sample-gates-component.jsx'
 import constants from '../../lib/constants.js'
 import BivariatePlot from '../../containers/bivariate-plot-container.jsx'
-import { getFCSFileFromPath } from '../../data-access/electron/data-access.js'
-import { getImageForPlot, initializeSampleData } from '../../data-access/electron/data-access.js'
 import { getPlotImageKey } from '../../lib/utilities'
 
 export default class SampleView extends Component {
@@ -29,16 +27,16 @@ export default class SampleView extends Component {
 
     handleDropdownSelection (dropdown, newState) {
         this.refs[dropdown].getInstance().hideDropdown()
-        this.props.api.updateSample(this.props.sample.id, newState)
+        this.props.api.updateWorkspace(this.props.workspace.id, newState)
     }
 
     calculateHomology () {
         this.props.api.calculateHomology(this.props.sample.id, {
-            selectedXParameterIndex: this.props.sample.selectedXParameterIndex,
-            selectedYParameterIndex: this.props.sample.selectedYParameterIndex,
-            selectedXScale: this.props.sample.selectedXScale,
-            selectedYScale: this.props.sample.selectedYScale,
-            selectedMachineType: this.props.sample.selectedMachineType
+            selectedXParameterIndex: this.props.workspace.selectedXParameterIndex,
+            selectedYParameterIndex: this.props.workspace.selectedYParameterIndex,
+            selectedXScale: this.props.workspace.selectedXScale,
+            selectedYScale: this.props.workspace.selectedYScale,
+            selectedMachineType: this.props.workspace.selectedMachineType
         })
         this.refs['homologyDropdown'].getInstance().hideDropdown()
     }
@@ -50,9 +48,9 @@ export default class SampleView extends Component {
 
     showGate (gateId) {
         const gate = _.find(this.props.gates, g => g.id === gateId)
-        if (this.props.sample.selectedXParameterIndex !== gate.selectedXParameterIndex
-            || this.props.sample.selectedYParameterIndex !== gate.selectedYParameterIndex) {
-            this.props.api.updateSample(this.props.sample.id, {
+        if (this.props.workspace.selectedXParameterIndex !== gate.selectedXParameterIndex
+            || this.props.workspace.selectedYParameterIndex !== gate.selectedYParameterIndex) {
+            this.props.api.updateWorkspace(this.props.workspace.id, {
                 selectedXParameterIndex: gate.selectedXParameterIndex,
                 selectedYParameterIndex: gate.selectedYParameterIndex,
                 selectedXScale: gate.selectedXScale,
@@ -124,13 +122,13 @@ export default class SampleView extends Component {
 
         let upperTitle
         if (this.props.gateTemplate.parentId) {
-            upperTitle = <div className='upper'>Subsample of<a onClick={this.props.api.selectSample.bind(null, this.props.sample.parentId, this.props.workspaceId)}>{this.props.sample.parentTitle}</a></div>
+            upperTitle = <div className='upper'>Subsample of<a onClick={this.props.api.selectSample.bind(null, this.props.sample.parentId, this.props.workspace.id)}>{this.props.sample.parentTitle}</a></div>
         } else {
             upperTitle = <div className='upper'>Root Gate</div>
         }
 
-        const xParamLabel = this.props.sample.FCSParameters.length > 0 ? this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].label || this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].key : 'Parameter ' + this.props.sample.selectedXParameterIndex
-        const yParamLabel = this.props.sample.FCSParameters.length > 0 ? this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].label || this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].key : 'Parameter ' + this.props.sample.selectedYParameterIndex
+        const xParamLabel = this.props.sample.FCSParameters.length > 0 ? this.props.sample.FCSParameters[this.props.workspace.selectedXParameterIndex].label || this.props.sample.FCSParameters[this.props.workspace.selectedXParameterIndex].key : 'Parameter ' + this.props.workspace.selectedXParameterIndex
+        const yParamLabel = this.props.sample.FCSParameters.length > 0 ? this.props.sample.FCSParameters[this.props.workspace.selectedYParameterIndex].label || this.props.sample.FCSParameters[this.props.workspace.selectedYParameterIndex].key : 'Parameter ' + this.props.workspace.selectedYParameterIndex
 
         return (
             <div className='panel sample'>
@@ -146,19 +144,19 @@ export default class SampleView extends Component {
                         <div className='graph-upper'>
                             <div className='axis-selection y'>
                                 <Dropdown items={parametersYRendered} textLabel={yParamLabel} ref={'yParameterDropdown'} />
-                                <Dropdown items={scalesYRendered} textLabel={scales[_.findIndex(scales, s => s.id === this.props.sample.selectedYScale)].label} outerClasses={'scale'} ref={'yScaleDropdown'} />
+                                <Dropdown items={scalesYRendered} textLabel={scales[_.findIndex(scales, s => s.id === this.props.workspace.selectedYScale)].label} outerClasses={'scale'} ref={'yScaleDropdown'} />
                             </div>
                             <BivariatePlot sampleId={this.props.sample.id} />
                         </div>
                         <div className='axis-selection x'>
                             <Dropdown items={parametersXRendered} textLabel={xParamLabel} ref={'xParameterDropdown'} />
-                            <Dropdown items={scalesXRendered} textLabel={scales[_.findIndex(scales, s => s.id === this.props.sample.selectedXScale)].label} outerClasses={'scale'} ref={'xScaleDropdown'} />
+                            <Dropdown items={scalesXRendered} textLabel={scales[_.findIndex(scales, s => s.id === this.props.workspace.selectedXScale)].label} outerClasses={'scale'} ref={'xScaleDropdown'} />
                         </div>
                     </div>
                     <div className='header gates'>
                         <div className='lower'>Gates <Dropdown items={autoGates} textLabel={'Auto Gate...'} ref='homologyDropdown' /></div>
                     </div>
-                    <Gates gates={this.props.gates} subSamples={this.props.sample.subSamples} sample={this.props.sample} updateGateTemplate={this.props.updateGateTemplate} showGate={this.showGate.bind(this)} graphWidth={600} graphHeight={460} />
+                    <Gates gates={this.props.gates} subSamples={this.props.sample.subSamples} sample={this.props.sample} workspace={this.props.workspace} updateGateTemplate={this.props.updateGateTemplate} showGate={this.showGate.bind(this)} graphWidth={600} graphHeight={460} />
                 </div>
             </div>
         )

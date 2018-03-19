@@ -25,7 +25,9 @@ const gateTemplates = (state = initialState, action = {}) => {
             creator: action.payload.gateTemplate.creator,
             xGroup: action.payload.gateTemplate.xGroup,
             yGroup: action.payload.gateTemplate.yGroup,
-            typeSpecificData: action.payload.gateTemplate.typeSpecificData
+            typeSpecificData: action.payload.gateTemplate.typeSpecificData,
+            loading: false,
+            loadingMessage: ''
         }
 
         newState.push(newGateTemplate)

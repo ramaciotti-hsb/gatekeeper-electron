@@ -30,8 +30,8 @@ const mapStateToProps = (state, ownProps) => {
         const gates = []
         for (let gate of state.gates) {
             if (gate.parentSampleId === ownProps.sampleId
-                && gate.selectedXParameterIndex === sample.selectedXParameterIndex
-                && gate.selectedYParameterIndex === sample.selectedYParameterIndex) {
+                && gate.selectedXParameterIndex === workspace.selectedXParameterIndex
+                && gate.selectedYParameterIndex === workspace.selectedYParameterIndex) {
                 gates.push(gate)
             }
         }
@@ -47,7 +47,7 @@ const mapStateToProps = (state, ownProps) => {
             newSample.parentTitle = parent.title
         }
 
-        return { api: state.api, workspaceId: workspace.id, sample: newSample, gates, gateTemplates, gateTemplateGroups }
+        return { api: state.api, workspace: workspace, sample: newSample, gates, gateTemplates, gateTemplateGroups }
     } else {
         return { api: state.api, sample: { subSamples: [] }, gates: [], gateTemplates: [] }
     }

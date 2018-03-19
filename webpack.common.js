@@ -10,10 +10,13 @@ let nodeModules = fs.readdirSync('./node_modules')
     }, {})
 
 module.exports = {
-    entry: './js/application.js',
+    entry: {
+        app: './js/application.js',
+        fork: './js/electron/subprocess-wrapper.js'
+    },
     output: {
         path: path.resolve(__dirname, './webpack-build'),
-        filename: 'app.bundle.js'
+        filename: '[name].bundle.js'
     },
     module: {
         rules: [
@@ -24,7 +27,8 @@ module.exports = {
     target: 'electron',
     node: {
         /* http://webpack.github.io/docs/configuration.html#node */
-        __dirname: true
+        __dirname: false,
+        __filename: false
     },
     externals: nodeModules
 }

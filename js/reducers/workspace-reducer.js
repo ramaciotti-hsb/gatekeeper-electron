@@ -4,6 +4,7 @@
 
 import uuidv4 from 'uuid/v4'
 import _ from 'lodash'
+import constants from '../lib/constants'
 
 // Make sure there is at least one workspace
 const initialState = [
@@ -13,7 +14,12 @@ const initialState = [
         description: 'Empty Workspace',
         sampleIds: [],
         gateTemplateIds: [],
-        gateTemplateGroupIds: []
+        gateTemplateGroupIds: [],
+        selectedMachineType: constants.MACHINE_FLORESCENT,
+        selectedXParameterIndex: 0,
+        selectedYParameterIndex: 1,
+        selectedXScale: constants.SCALE_LINEAR,
+        selectedYScale: constants.SCALE_LINEAR,
     }
 ]
 
@@ -178,6 +184,16 @@ const workspaces = (state = initialState, action = {}) => {
             }
         } else {
             console.log('REMOVE_SAMPLE failed: no workspace with id', action.payload.workspaceId, 'was found')
+        }
+    // --------------------------------------------------
+    // Update an arbitrary parameters on a workspace
+    // --------------------------------------------------
+    } else if (action.type === 'UPDATE_WORKSPACE') {
+        const workspaceIndex = _.findIndex(state, s => s.id === action.payload.workspaceId)
+
+        if (workspaceIndex > -1) {
+            const newWorkspace = _.merge(_.clone(state[workspaceIndex]), action.payload.parameters)
+            newState = state.slice(0, workspaceIndex).concat([newWorkspace]).concat(state.slice(workspaceIndex + 1))
         }
     }
 

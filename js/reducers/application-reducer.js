@@ -24,7 +24,7 @@ let initialState = {
 }
 
 const applicationReducer = (state = initialState, action) => {
-    // console.log(state)
+    console.log('application reducer start')
     let newState = {
         samples: state.samples ? state.samples.slice(0) : [],
         workspaces: state.workspaces ? state.workspaces.slice(0) : [],
@@ -329,6 +329,8 @@ const applicationReducer = (state = initialState, action) => {
         newState.gateTemplates = gateTemplateReducer(newState.gateTemplates, action)
         newState.gateTemplateGroups = gateTemplateGroupReducer(newState.gateTemplateGroups, action)
     }
+
+    console.log('application reducer end')
 
     return newState
 }

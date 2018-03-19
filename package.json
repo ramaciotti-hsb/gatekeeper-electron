@@ -1,5 +1,5 @@
 {
-  "name": "gatekeeper",
+  "name": "Gatekeeper",
   "version": "0.0.1",
   "author": "Nic Barker",
   "description": "An atom based graphical interface for running command line utilities.",
@@ -11,7 +11,7 @@
     "build": "electron-builder"
   },
   "build": {
-    "appId": "command.line.runner",
+    "appId": "gatekeeper",
     "asar": false,
     "mac": {
       "category": "utilities"
@@ -27,11 +27,15 @@
     "babel-polyfill": "^6.26.0",
     "babel-preset-env": "^1.6.1",
     "babel-register": "^6.26.0",
+    "body-parser": "^1.18.2",
     "chroma-js": "^1.3.6",
+    "copy-webpack-plugin": "^4.5.1",
     "d3": "^4.12.0",
     "distance-to-polygon": "^2.0.2",
+    "electron-debug": "^1.5.0",
     "electron-is-dev": "^0.3.0",
-    "electron-sudo": "^4.0.12",
+    "exit-hook": "^1.1.1",
+    "express": "^4.16.3",
     "fcs": "^0.0.7",
     "graham-scan": "^0.0.0",
     "hsl-to-rgb-for-reals": "^1.1.0",
@@ -50,10 +54,12 @@
     "react-onclickoutside": "^6.7.0",
     "react-redux": "^5.0.6",
     "redux": "^3.7.2",
+    "request": "^2.85.0",
     "save-pixels": "^2.3.4",
     "shell-path": "^2.1.0",
     "tree-kill": "^1.2.0",
     "ulp": "^1.0.1",
+    "subprocess-wrapper": "file:./webpack-build/subprocess-wrapper.js",
     "user-home": "^2.0.0",
     "uuid": "^3.1.0"
   },

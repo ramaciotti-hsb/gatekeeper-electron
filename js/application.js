@@ -10,14 +10,11 @@ import { createStore, applyMiddleware } from 'redux'
 import Application from './containers/application-container.jsx'
 import applicationReducer from './reducers/application-reducer'
 import '../scss/container.scss'
-import { connectors } from './data-access/electron/data-access.js'
 import { setStore, api } from './electron/electron-backend.js'
 
 const store = createStore(applicationReducer)
 
 window.store = store
-
-connectors.store = store
 
 setStore(store)
 

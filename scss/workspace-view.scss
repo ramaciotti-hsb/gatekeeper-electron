@@ -16,6 +16,27 @@
         overflow-y: auto;
         flex-shrink: 0;
 
+        .sidebar-gate-template-group {
+            flex-direction: column;
+            cursor: default;
+            flex-shrink: 0;
+
+            & > .title {
+                font-size: 12px;
+                font-weight: 600;
+                color: #999;
+                padding: 10px 0 5px 0;
+            }
+
+            .show-plot {
+                margin-left: 10px;
+                text-decoration: underline;
+                cursor: pointer;
+                @include foregroundHover($highlight-colour);
+                @include foregroundClick($highlight-colour);
+            }
+        }
+
         .sidebar-gate-template {
             flex-shrink: 0;
             align-items: center;

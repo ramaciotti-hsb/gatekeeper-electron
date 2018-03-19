@@ -26,3 +26,10 @@ export const updateSample = (sampleId, parameters) => {
         payload: { sampleId, parameters }
     }
 }
+
+export const setSampleParametersLoading = (sampleId, key, value) => {
+    return {
+        type: 'SET_SAMPLE_PARAMETERS_LOADING',
+        payload: { sampleId, key, value }
+    }
+}

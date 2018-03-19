@@ -23,7 +23,7 @@ export default class WorkspaceView extends Component {
         if (childGroups.length === 0) { return }
         return childGroups.map((childGateTemplateGroup) => {
             const childGateTemplates = _.filter(this.props.workspace.gateTemplates, gt => childGateTemplateGroup.childGateTemplateIds.includes(gt.id))
-            return childGateTemplates.map((childGateTemplate) => {
+            const childrenRendered = childGateTemplates.map((childGateTemplate) => {
                 return (
                     <div className={'sidebar-gate-template' + (childGateTemplate.id === this.props.workspace.selectedGateTemplateId ? ' selected' : '') + (childGateTemplate.highlighted ? ' highlighted' : '')}
                     onMouseEnter={this.props.updateGateTemplate.bind(null, childGateTemplate.id, { highlighted: true })}
@@ -32,12 +32,30 @@ export default class WorkspaceView extends Component {
                         <div className='body' onClick={this.props.api.selectGateTemplate.bind(null, childGateTemplate.id, this.props.workspace.id)}>
                             <div className='title'>{childGateTemplate.title}</div>
                             <div className='number'>{childGateTemplate.populationCount}</div>
-                            <div className='remove-gate-template' onClick={this.removeGateTemplate.bind(this, childGateTemplate.id, this.props.workspace.id)}><i className='lnr lnr-cross'></i></div>
+                            <div className='remove-gate-template' onClick={this.removeGateTemplate.bind(this, childGateTemplate.id, this.props.workspace.id)}>
+                                <div className={`loader-outer${childGateTemplate.loading ? ' active' : ''}`}><div className='loader'></div></div>
+                                <i className='lnr lnr-cross'></i>
+                            </div>
                         </div>
                         <div className='child-gate-templates'>{this.renderSubGateTemplates(childGateTemplate)}</div>
                     </div>
                 )
             })
+
+            return (
+                <div className='sidebar-gate-template-group' key={childGateTemplateGroup.id}>
+                    <div className='title'>
+                        {this.props.workspace.selectedSample.FCSParameters[childGateTemplateGroup.selectedXParameterIndex].label} · {this.props.workspace.selectedSample.FCSParameters[childGateTemplateGroup.selectedYParameterIndex].label}
+                        <div className='show-plot' onClick={this.props.api.updateWorkspace.bind(null, this.props.workspace.id, {
+                            selectedXParameterIndex: childGateTemplateGroup.selectedXParameterIndex,
+                            selectedYParameterIndex: childGateTemplateGroup.selectedYParameterIndex,
+                            selectedXScale: childGateTemplateGroup.selectedXScale,
+                            selectedYScale: childGateTemplateGroup.selectedYScale
+                        }) }>Show Plot</div>
+                    </div>
+                    {childrenRendered}
+                </div>
+            )
         })
     }
 

@@ -20,15 +20,15 @@ export default class SampleGates extends Component {
 
     renderGatePreview () {
         // Offset the entire graph and add histograms if we're looking at cytof data
-        let xOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
-        let yOffset = this.props.sample.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+        let xOffset = this.props.workspace.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
+        let yOffset = this.props.workspace.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
         
         for (let gate of this.props.gates) {
             const scales = getScales({
-                selectedXScale: this.props.sample.selectedXScale,
-                selectedYScale: this.props.sample.selectedYScale,
-                xRange: [ this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedXParameterIndex].statistics.max ],
-                yRange: [ this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.sample.selectedYParameterIndex].statistics.max ],
+                selectedXScale: gate.selectedXScale,
+                selectedYScale: gate.selectedYScale,
+                xRange: [ this.props.sample.FCSParameters[gate.selectedXParameterIndex].statistics.min, this.props.sample.FCSParameters[gate.selectedXParameterIndex].statistics.max ],
+                yRange: [ this.props.sample.FCSParameters[gate.selectedYParameterIndex].statistics.min, this.props.sample.FCSParameters[gate.selectedYParameterIndex].statistics.max ],
                 width: this.props.graphWidth - xOffset,
                 height: this.props.graphHeight - yOffset
             })
@@ -94,7 +94,7 @@ export default class SampleGates extends Component {
 
             // Render the pixels from the cache image that fall inside the preview square
             const image = new Image()
-            image.src = this.props.sample.plotImages[getPlotImageKey(this.props.sample)]
+            image.src = this.props.sample.plotImages[getPlotImageKey(gate)]
             image.onload = () => {
                 // First paint a white background
                 context.rect(0, 0, GATE_WIDTH, GATE_HEIGHT)
@@ -150,8 +150,48 @@ export default class SampleGates extends Component {
         this.renderGatePreview()
     }
 
-    componentDidUpdate () {
-        this.renderGatePreview()
+    componentDidUpdate (prevProps) {
+        const sampleProps = [
+            'id'
+        ]
+
+        for (let prop of sampleProps) {
+            if (prevProps.sample[prop] !== this.props.sample[prop]) {
+                this.renderGatePreview()
+                return
+            }
+        }
+
+        const workspaceProps = [
+            'id',
+            'selectedXParameterIndex',
+            'selectedYParameterIndex',
+            'selectedXScale',
+            'selectedYScale',
+            'selectedMachineType'
+        ]
+
+        for (let prop of workspaceProps) {
+            if (prevProps.workspace[prop] !== this.props.workspace[prop]) {
+                this.renderGatePreview()
+                return
+            }
+        }
+
+        // Update the graph if visible gates have changed
+        const prevPropGates = _.filter(prevProps.gates, g => g.selectedXParameterIndex === prevProps.workspace.selectedXParameterIndex && g.selectedYParameterIndex === prevProps.workspace.selectedYParameterIndex)
+        const propGates = _.filter(this.props.gates, g => g.selectedXParameterIndex === this.props.workspace.selectedXParameterIndex && g.selectedYParameterIndex === this.props.workspace.selectedYParameterIndex)
+
+        if (prevPropGates.length !== propGates.length) {
+            this.renderGatePreview()
+            return
+        }
+
+        // Update the graph if images are now available
+        if (!prevProps.sample.plotImages[getPlotImageKey(prevProps.workspace)] && this.props.sample.plotImages[getPlotImageKey(this.props.workspace)]) {
+            this.renderGatePreview()
+            return
+        }
     }
 
     render () {
@@ -177,8 +217,8 @@ export default class SampleGates extends Component {
                 const subSample = _.find(this.props.subSamples, s => s.id === gate.childSampleId)
                 return (
                     <div className='gate' key={gate.id}
-                        onMouseEnter={this.props.updateGateTemplate.bind(null, gate.id, { highlighted: true })}
-                        onMouseLeave={this.props.updateGateTemplate.bind(null, gate.id, { highlighted: false })}
+                        onMouseEnter={this.props.updateGateTemplate.bind(null, subSample.gateTemplateId, { highlighted: true })}
+                        onMouseLeave={this.props.updateGateTemplate.bind(null, subSample.gateTemplateId, { highlighted: false })}
                         >
                         <div className='subsample-name'>{subSample.title}</div>
                         <canvas ref={'canvas-' + gate.id} width={200} height={140} />

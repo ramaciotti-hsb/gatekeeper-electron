@@ -23,16 +23,10 @@ const samples = (state = [], action = {}) => {
             filePath: action.payload.filePath,
             FCSParameters: action.payload.FCSParameters || [],
             statistics: action.payload.statistics || {},
-            selectedMachineType: action.payload.selectedMachineType,
-            selectedXParameterIndex: action.payload.selectedXParameterIndex,
-            selectedYParameterIndex: action.payload.selectedYParameterIndex,
-            selectedXScale: action.payload.selectedXScale,
-            selectedYScale: action.payload.selectedYScale,
             populationCount: action.payload.populationCount,
             includeEventIds: action.payload.includeEventIds || [],
             gateTemplateId: action.payload.gateTemplateId,
-            loading: action.payload.loading,
-            loadingMessage: action.payload.loadingMessage,
+            parametersLoading: action.payload.parametersLoading,
             subSampleIds: [],
             plotImages: action.payload.plotImages || {}
         }
@@ -100,6 +94,17 @@ const samples = (state = [], action = {}) => {
 
         if (sampleIndex > -1) {
             const newSample = _.merge(_.clone(state[sampleIndex]), action.payload.parameters)
+            newState = state.slice(0, sampleIndex).concat([newSample]).concat(state.slice(sampleIndex + 1))
+        }
+    // --------------------------------------------------
+    // Mark a combination of parameters as loading
+    // --------------------------------------------------
+    } else if (action.type === 'SET_SAMPLE_PARAMETERS_LOADING') {
+        const sampleIndex = _.findIndex(state, s => s.id === action.payload.sampleId)
+
+        if (sampleIndex > -1) {
+            const newSample = _.clone(state[sampleIndex])
+            newSample.parametersLoading[action.payload.key] = action.payload.value
             newState = state.slice(0, sampleIndex).concat([newSample]).concat(state.slice(sampleIndex + 1))
         }
     }
