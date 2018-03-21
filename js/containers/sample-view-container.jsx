@@ -31,9 +31,11 @@ const mapStateToProps = (state, ownProps) => {
 
         // Find any gates on this plot
         const gates = []
+        const gateTemplates = []
         for (let gate of state.gates) {
             if (gate.parentSampleId === ownProps.sampleId) {
                 gates.push(gate)
+                gateTemplates.push(_.find(state.gateTemplates, gt => gt.id === gate.gateTemplateId))
             }
         }
 
@@ -49,7 +51,7 @@ const mapStateToProps = (state, ownProps) => {
 
         newSample.selectedMachineType = newSample.selectedMachineType || constants.MACHINE_FLORESCENT
 
-        return { api: state.api, workspace: workspace, sample: newSample, gates, gateTemplate }
+        return { api: state.api, workspace: workspace, sample: newSample, gates, gateTemplates, gateTemplate }
     } else {
         return { api: state.api, sample: { subSamples: [] }, gates: [] }
     }

@@ -10,6 +10,7 @@ import constants from '../../lib/constants'
 import pointInsidePolygon from 'point-in-polygon'
 import { heatMapHSLStringForValue, getScales, getPlotImageKey } from '../../lib/utilities.js'
 import '../../../scss/sample-view/sample-gates.scss'
+import BivariatePlot from '../../containers/bivariate-plot-container.jsx'
 
 const GATE_WIDTH = 200
 const GATE_HEIGHT = 140
@@ -147,51 +148,58 @@ export default class SampleGates extends Component {
     }
 
     componentDidMount () {
-        this.renderGatePreview()
+        // this.renderGatePreview()
     }
 
     componentDidUpdate (prevProps) {
-        const sampleProps = [
-            'id'
-        ]
+        // const sampleProps = [
+        //     'id'
+        // ]
 
-        for (let prop of sampleProps) {
-            if (prevProps.sample[prop] !== this.props.sample[prop]) {
-                this.renderGatePreview()
-                return
-            }
-        }
+        // for (let prop of sampleProps) {
+        //     if (prevProps.sample[prop] !== this.props.sample[prop]) {
+        //         this.renderGatePreview()
+        //         return
+        //     }
+        // }
 
-        const workspaceProps = [
-            'id',
-            'selectedXParameterIndex',
-            'selectedYParameterIndex',
-            'selectedXScale',
-            'selectedYScale',
-            'selectedMachineType'
-        ]
+        // const workspaceProps = [
+        //     'id',
+        //     'selectedXParameterIndex',
+        //     'selectedYParameterIndex',
+        //     'selectedXScale',
+        //     'selectedYScale',
+        //     'selectedMachineType'
+        // ]
 
-        for (let prop of workspaceProps) {
-            if (prevProps.workspace[prop] !== this.props.workspace[prop]) {
-                this.renderGatePreview()
-                return
-            }
-        }
+        // for (let prop of workspaceProps) {
+        //     if (prevProps.workspace[prop] !== this.props.workspace[prop]) {
+        //         this.renderGatePreview()
+        //         return
+        //     }
+        // }
 
-        // Update the graph if visible gates have changed
-        const prevPropGates = _.filter(prevProps.gates, g => g.selectedXParameterIndex === prevProps.workspace.selectedXParameterIndex && g.selectedYParameterIndex === prevProps.workspace.selectedYParameterIndex)
-        const propGates = _.filter(this.props.gates, g => g.selectedXParameterIndex === this.props.workspace.selectedXParameterIndex && g.selectedYParameterIndex === this.props.workspace.selectedYParameterIndex)
+        // // Update the graph if visible gates have changed
+        // const prevPropGates = _.filter(prevProps.gates, g => g.selectedXParameterIndex === prevProps.workspace.selectedXParameterIndex && g.selectedYParameterIndex === prevProps.workspace.selectedYParameterIndex)
+        // const propGates = _.filter(this.props.gates, g => g.selectedXParameterIndex === this.props.workspace.selectedXParameterIndex && g.selectedYParameterIndex === this.props.workspace.selectedYParameterIndex)
 
-        if (prevPropGates.length !== propGates.length) {
-            this.renderGatePreview()
-            return
-        }
+        // if (prevPropGates.length !== propGates.length) {
+        //     this.renderGatePreview()
+        //     return
+        // }
 
-        // Update the graph if images are now available
-        if (!prevProps.sample.plotImages[getPlotImageKey(prevProps.workspace)] && this.props.sample.plotImages[getPlotImageKey(this.props.workspace)]) {
-            this.renderGatePreview()
-            return
-        }
+        // // Update the graph if images are now available
+        // if (!prevProps.sample.plotImages[getPlotImageKey(prevProps.workspace)] && this.props.sample.plotImages[getPlotImageKey(this.props.workspace)]) {
+        //     this.renderGatePreview()
+        //     return
+        // }
+
+        // for (let gate of this.props.gates) {
+        //     if (!prevProps.sample.plotImages[getPlotImageKey(gate)] && this.props.sample.plotImages[getPlotImageKey(gate)]) {
+        //         this.renderGatePreview()
+        //         return
+        //     }
+        // }
     }
 
     render () {
@@ -200,9 +208,17 @@ export default class SampleGates extends Component {
 
         for (let gate of this.props.gates) {
             const key = `${gate.selectedXParameterIndex}_${gate.selectedYParameterIndex}`
+            // if (!gateGroups[key]) {
+            //     gateGroups[key] = {
+            //         label: this.props.sample.FCSParameters[gate.selectedXParameterIndex].label + ' · ' + this.props.sample.FCSParameters[gate.selectedYParameterIndex].label,
+            //         gates: []
+            //     }
+            // }
             if (!gateGroups[key]) {
                 gateGroups[key] = {
                     label: this.props.sample.FCSParameters[gate.selectedXParameterIndex].label + ' · ' + this.props.sample.FCSParameters[gate.selectedYParameterIndex].label,
+                    selectedXParameterIndex: gate.selectedXParameterIndex,
+                    selectedYParameterIndex: gate.selectedYParameterIndex,
                     gates: []
                 }
             }
@@ -210,21 +226,23 @@ export default class SampleGates extends Component {
             gateGroups[key].gates.push(gate)
         }
 
+        console.log(this.props.gateTemplates)
         const gateGroupsRendered = _.keys(gateGroups).map((key) => {
             const gateGroup = gateGroups[key]
 
-            const gates = gateGroup.gates.map((gate) => {
-                const subSample = _.find(this.props.subSamples, s => s.id === gate.childSampleId)
-                return (
-                    <div className='gate' key={gate.id}
-                        onMouseEnter={this.props.updateGateTemplate.bind(null, subSample.gateTemplateId, { highlighted: true })}
-                        onMouseLeave={this.props.updateGateTemplate.bind(null, subSample.gateTemplateId, { highlighted: false })}
-                        >
-                        <div className='subsample-name'>{subSample.title}</div>
-                        <canvas ref={'canvas-' + gate.id} width={200} height={140} />
-                    </div>
-                )
-            })
+            // const gates = gateGroup.gates.map((gate) => {
+            //     const subSample = _.find(this.props.subSamples, s => s.id === gate.childSampleId)
+            //     const gateTemplate = _.find(this.props.gateTemplates, gt => gt.id === gate.gateTemplateId)
+            //     return (
+            //         <div className='gate' key={gate.id}
+            //             onMouseEnter={this.props.updateGateTemplate.bind(null, subSample.gateTemplateId, { highlighted: true })}
+            //             onMouseLeave={this.props.updateGateTemplate.bind(null, subSample.gateTemplateId, { highlighted: false })}
+            //             >
+            //             <div className='subsample-name'>{gateTemplate.title}</div>
+            //             <canvas ref={'canvas-' + gate.id} width={200} height={140} />
+            //         </div>
+            //     )
+            // })
 
             return (
                 <div className='gate-group' key={key}>
@@ -232,8 +250,9 @@ export default class SampleGates extends Component {
                         <div className='selected-parameters'>{gateGroup.label}</div>
                         <div className='show-gate' onClick={this.props.showGate.bind(null, gateGroup.gates[0].id)}><div>Show Plot</div></div>
                     </div>
-                    <div className='gates-inner'>
-                        {gates}
+                    <div className='graph'>
+                        {/*gates*/}
+                        <BivariatePlot sampleId={this.props.sample.id} selectedXParameterIndex={gateGroup.selectedXParameterIndex} selectedYParameterIndex={gateGroup.selectedYParameterIndex} />
                     </div>
                 </div>
             )
