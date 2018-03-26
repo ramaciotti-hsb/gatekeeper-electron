@@ -1,0 +1,120 @@
+@import './mixins';
+
+$row-height: 30px;
+
+.dropdown {
+    position: relative;
+
+    &.active .menu {
+        display: flex;
+    }
+
+    .menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        flex-direction: column;
+        z-index: 1;
+    } // .menu
+
+    &.right .menu {
+        right: auto;
+        left: 0;
+    }
+
+    &.light { // Light dropdown theme
+
+        .inner {
+
+            & > .menu {
+                background: #fff;
+                z-index: 12;
+                cursor: auto;
+                margin-top: 7px;
+                border: 1px solid #eee;
+
+                &:after {
+                    margin-top: 10px;
+                    bottom: 100%;
+                    right: 11px;
+                    border: solid transparent;
+                    content: " ";
+                    height: 0;
+                    width: 0;
+                    position: absolute;
+                    pointer-events: none;
+                    border-color: rgba(238, 238, 238, 0);
+                    border-bottom-color: #eee;
+                    border-width: 10px;
+                    margin-left: -10px;
+                }
+
+                .menu-header {
+                    display: flex;
+                    height: $row-height;
+                    align-items: center;
+                    background: #eee;
+                    padding: 0 15px;
+                    color: #333;
+                    font-weight: 400;
+
+                    i {
+                        font-size: 17px;
+                        display: inline;
+                        vertical-align: middle;
+                        margin-right: 10px;
+                    }
+                } // .menu-header
+
+                .menu-inner {
+                    display: flex;
+                    flex-direction: column;
+                } // .menu-inner
+            } // & > .menu
+        } // .inner
+    } // &.light
+
+    &.dark { // Dark dropdown theme
+        padding: 0;
+        
+        .inner {
+
+            & > .menu {
+                border: none;
+                background: #666;
+                color: #fff;
+                top: 100%;
+                right: 0;
+                margin: 0;
+                z-index: 10;
+                // @include roundCornerAll(0);
+
+                .menu-header {
+                    padding: 10px;
+                    font: 600 12px "Open Sans";
+                    border-bottom: 2px solid #888;
+                }
+
+                .menu-inner {
+
+                    .item {
+                        display: block;
+                        font: 200 12px "Open Sans";
+                        text-align: left;
+                        color: #fff;
+                        margin: 0;
+                        padding: 10px;
+                        display: flex;
+                        align-items: center;
+                        cursor: pointer;
+                        // @include noTransition();
+                        // @include roundCornerAll(0);
+                        @include backgroundHover(#666);
+                        @include backgroundClick(#666);
+                    } // .item
+                } // .menu-inner
+            } // & > .menu
+        } // .inner
+    } // &.light
+} // .dropdown

@@ -64,6 +64,11 @@ $red-colour: #C02942;
     }
 }
 
+*:focus {
+  outline-color: transparent;
+  outline-style: none;
+}
+
 
 .loader-outer {
     position: absolute;

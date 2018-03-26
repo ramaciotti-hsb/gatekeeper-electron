@@ -38,7 +38,6 @@ const getFCSFileFromPath = async (filePath) => {
 
 export default async function getPopulationForSample (sample, options) {
     process.stdout.write(JSON.stringify({ data: 'Reading FCS File: ' + sample.filePath }))
-    process.stdout.write(JSON.stringify(options))
     let FCSFile
     try  {
         FCSFile = await getFCSFileFromPath(sample.filePath)        
@@ -47,7 +46,7 @@ export default async function getPopulationForSample (sample, options) {
         return
     }
 
-    const selectedMachineType = FCSFile.text['$CYT'].match(/CYTOF/) ? constants.MACHINE_CYTOF : MACHINE_FLORESCENT
+    const selectedMachineType = FCSFile.text['$CYT'].match(/CYTOF/) ? constants.MACHINE_CYTOF : constants.MACHINE_FLORESCENT
 
     let xOffset = selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
     let yOffset = selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
@@ -81,6 +80,7 @@ export default async function getPopulationForSample (sample, options) {
     }
 
     const subPopulation = []
+    const aboveZeroPopulation = []
     const xChannelZeroes = []
     const yChannelZeroes = []
 
@@ -99,11 +99,13 @@ export default async function getPopulationForSample (sample, options) {
                 } else if (FCSFile.dataAsNumbers[i][options.selectedYParameterIndex] === 0) {
                     yChannelZeroes.push(FCSFile.dataAsNumbers[i][options.selectedXParameterIndex])
                 } else {
-                    subPopulation.push([ FCSFile.dataAsNumbers[i][options.selectedXParameterIndex], FCSFile.dataAsNumbers[i][options.selectedYParameterIndex] ])
+                    aboveZeroPopulation.push([ FCSFile.dataAsNumbers[i][options.selectedXParameterIndex], FCSFile.dataAsNumbers[i][options.selectedYParameterIndex], i ])
                 }
+                subPopulation.push([ FCSFile.dataAsNumbers[i][options.selectedXParameterIndex], FCSFile.dataAsNumbers[i][options.selectedYParameterIndex], i ])
             }
-        } else if (sample.includeEventIds.length === 0 || sample.includeEventIds.includes[i]) {
-            subPopulation.push([ FCSFile.dataAsNumbers[i][options.selectedXParameterIndex], FCSFile.dataAsNumbers[i][options.selectedYParameterIndex] ])
+        } else if (sample.includeEventIds.length === 0 || sample.includeEventIds[i]) {
+            subPopulation.push([ FCSFile.dataAsNumbers[i][options.selectedXParameterIndex], FCSFile.dataAsNumbers[i][options.selectedYParameterIndex], i ])
+            aboveZeroPopulation.push([ FCSFile.dataAsNumbers[i][options.selectedXParameterIndex], FCSFile.dataAsNumbers[i][options.selectedYParameterIndex], i ])
         }
 
         for (let j = 0; j < FCSFile.dataAsNumbers[i].length; j++) {
@@ -235,11 +237,33 @@ export default async function getPopulationForSample (sample, options) {
 
     const densityMap = calculateDensity(subPopulation, scales, Math.floor((constants.PLOT_WIDTH + constants.PLOT_HEIGHT) * 0.006))
 
+    let densityY
+    let densityX
+    let maxDensityY
+    let maxDensityX
+
+    if (selectedMachineType === constants.MACHINE_CYTOF) {
+        densityY = kernelDensityEstimator(kernelEpanechnikov(constants.PLOT_WIDTH * 0.05), _.range(0, constants.PLOT_WIDTH - xOffset))(yChannelZeroes.map(value => scales.xScale(value)))
+        densityX = kernelDensityEstimator(kernelEpanechnikov(constants.PLOT_HEIGHT * 0.05), _.range(0, constants.PLOT_HEIGHT - yOffset))(xChannelZeroes.map(value => scales.yScale(value)))
+
+        maxDensityY = densityY.reduce((acc, curr) => Math.max(acc, curr[1]), 0)
+        maxDensityX = densityX.reduce((acc, curr) => Math.max(acc, curr[1]), 0)
+    }
+
     return {
         subPopulation,
+        aboveZeroPopulation,
         xChannelZeroes,
         yChannelZeroes,
         densityMap,
+        zeroDensityX: {
+            densityMap: densityX,
+            maxDensity: maxDensityX
+        },
+        zeroDensityY: {
+            densityMap: densityY,
+            maxDensity: maxDensityY
+        },
         // newDensityMap: {
         //     densityX,
         //     densityY,

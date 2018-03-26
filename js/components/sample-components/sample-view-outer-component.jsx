@@ -36,6 +36,7 @@ export default class SampleView extends Component {
     }
 
     calculateHomology () {
+        console.log(this.state)
         this.props.api.calculateHomology(this.props.sample.id, {
             selectedXParameterIndex: this.state.selectedXParameterIndex,
             selectedYParameterIndex: this.state.selectedYParameterIndex,

@@ -24,7 +24,6 @@ let initialState = {
 }
 
 const applicationReducer = (state = initialState, action) => {
-    console.log('application reducer start')
     let newState = {
         samples: state.samples ? state.samples.slice(0) : [],
         workspaces: state.workspaces ? state.workspaces.slice(0) : [],
@@ -49,6 +48,7 @@ const applicationReducer = (state = initialState, action) => {
         newState.gateTemplateGroups = action.payload.gateTemplateGroups ? action.payload.gateTemplateGroups.slice(0) : []
         newState.selectedWorkspaceId = action.payload.selectedWorkspaceId
         newState.sessionLoading = false
+        console.log('test2')
     }
     // --------------------------------------------------
     // Selects which "API" object to use. This changes from
@@ -189,7 +189,7 @@ const applicationReducer = (state = initialState, action) => {
 
                         newState.workspaces = newState.workspaces.slice(0, workspaceIndex).concat([ newWorkspace ]).concat(newState.workspaces.slice(workspaceIndex + 1))
                     } else {
-                        console.log('REMOVE_SAMPLE failed: no gateTemplate with id', removeAction.payload.gateTemplateId, 'was found in gateTemplateIds of workspace with id', removeAction.payload.workspaceId)       
+                        console.log('REMOVE_GATE_TEMPLATE failed: no gateTemplate with id', removeAction.payload.gateTemplateId, 'was found in gateTemplateIds of workspace with id', removeAction.payload.workspaceId)       
                     }
                 }
 
@@ -249,7 +249,7 @@ const applicationReducer = (state = initialState, action) => {
         // Delete any samples that no longer point to a valid gateTemplate (i.e. their parent or child has been deleted)
         let orphanSamples = _.filter(newState.samples, s => !_.find(newState.gateTemplates, gt => s.gateTemplateId === gt.id))
         for (let sample of orphanSamples) {
-            newState.samples = sampleReducer(newState.samples, { type: 'REMOVE_SAMPLE', payload: { sampleId: sample.id } })
+            newState = applicationReducer(newState, { type: 'REMOVE_SAMPLE', payload: { sampleId: sample.id } })
         }
         // Delete any empty gate template groups
         let emptyGroups = _.filter(newState.gateTemplateGroups, g => g.childGateTemplateIds.length === 0)
@@ -329,8 +329,6 @@ const applicationReducer = (state = initialState, action) => {
         newState.gateTemplates = gateTemplateReducer(newState.gateTemplates, action)
         newState.gateTemplateGroups = gateTemplateGroupReducer(newState.gateTemplateGroups, action)
     }
-
-    console.log('application reducer end')
 
     return newState
 }

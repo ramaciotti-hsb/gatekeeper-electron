@@ -3,7 +3,7 @@ import { Component } from 'react'
 import _ from 'lodash'
 import Dropdown from '../lib/dropdown-inline.jsx'
 import constants from '../lib/constants'
-import SampleView from '../containers/sample-view-container.jsx'
+import MultipleSampleView from '../containers/multiple-sample-view-container.jsx'
 
 export default class SampleSelector extends Component {
     
@@ -21,9 +21,9 @@ export default class SampleSelector extends Component {
         let inner
 
         if (this.props.samples.length > 0) {
-            let sampleView
+            let multipleSampleView
             if (this.props.selectedSample) {
-                sampleView = <SampleView sampleId={this.props.selectedSample.id} />
+                multipleSampleView = <MultipleSampleView sampleId={this.props.selectedSample.id} />
             }
 
             const samples = _.filter(this.props.samples, s => !_.find(this.props.samples, parent => parent.subSampleIds.includes(s.id))).map((sample) => {
@@ -38,7 +38,7 @@ export default class SampleSelector extends Component {
                     <div className='header'>
                         <div className='sample-selector-dropdown'><Dropdown items={samples} textLabel={this.props.selectedSample ? this.props.selectedSample.title : 'Select Sample'} ref='sampleDropdown' /></div>
                     </div>
-                    {sampleView}
+                    {multipleSampleView}
                 </div>
             )
         } else {

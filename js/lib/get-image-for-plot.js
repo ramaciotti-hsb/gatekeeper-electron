@@ -83,13 +83,13 @@ export default async (sample, subPopulation, options) => {
         height: constants.PLOT_HEIGHT - yOffset
     })
 
-    for (let i = 0; i < subPopulation.subPopulation.length; i++) {
-        const point = [ Math.round(scales.xScale(subPopulation.subPopulation[i][0])), Math.round(scales.yScale(subPopulation.subPopulation[i][1])) ]
+    for (let i = 0; i < subPopulation.aboveZeroPopulation.length; i++) {
+        const point = [ Math.round(scales.xScale(subPopulation.aboveZeroPopulation[i][0])), Math.round(scales.yScale(subPopulation.aboveZeroPopulation[i][1])) ]
         // if (point[0] >= 0 && point[0] < subPopulation.newDensityMap.densityX.length && point[1] >= 0 && point[1] < subPopulation.newDensityMap.densityY.length) {
         if (subPopulation.densityMap.densityMap[point[1]] && subPopulation.densityMap.densityMap[point[1]][point[0]]) {
             // console.log(point)
             const color = heatMapRGBForValue(subPopulation.densityMap.densityMap[point[1]][point[0]] / subPopulation.densityMap.maxDensity)
-            // const density = (subPopulation.newDensityMap.densityX[point[0]][1] * subPopulation.newDensityMap.densityY[point[1]][1]) / subPopulation.newDensityMap.newMaxDensity
+            // const density = (subPopulation.newDensityMap.subPopulation.zeroDensityX.densityMap[point[0]][1] * subPopulation.newDensityMap.subPopulation.zeroDensityY.densityMap[point[1]][1]) / subPopulation.newDensityMap.newMaxDensity
             // console.log(density)
             // const color = heatMapRGBForValue(density)
             for (let y = point[1] - pointRadius * 2; y < point[1] + pointRadius * 2; y++) {
@@ -112,12 +112,6 @@ export default async (sample, subPopulation, options) => {
     // If we're looking at cytof data, render histograms at the left and bottom of the graph
     if (options.selectedMachineType === constants.MACHINE_CYTOF) {
         PNGFile = new pngjs.PNG({ width: constants.PLOT_WIDTH, height: constants.PLOT_HEIGHT })
-        // Perform kernel density estimation to generate histograms for zero points
-        const densityY = kernelDensityEstimator(kernelEpanechnikov(constants.PLOT_WIDTH * 0.012), _.range(0, constants.PLOT_WIDTH - xOffset))(subPopulation.yChannelZeroes.map(value => scales.xScale(value)))
-        const densityX = kernelDensityEstimator(kernelEpanechnikov(constants.PLOT_HEIGHT * 0.012), _.range(0, constants.PLOT_HEIGHT - yOffset))(subPopulation.xChannelZeroes.map(value => scales.yScale(value)))
-
-        const maxDensityY = densityY.reduce((acc, curr) => Math.max(acc, curr[1]), 0)
-        const maxDensityX = densityX.reduce((acc, curr) => Math.max(acc, curr[1]), 0)
 
         // Build a new image with the graph and histograms
         for (let i = 0; i < constants.PLOT_WIDTH * constants.PLOT_HEIGHT * 4; i += 4) {
@@ -130,14 +124,14 @@ export default async (sample, subPopulation, options) => {
             }
             // If we're in the first `xOffset` pixels of a row, render the histogram for the X == 0 points
             else if (i % (constants.PLOT_WIDTH * 4) < xOffset * 4) {
-                const xColour = heatMapRGBForValue(densityX[Math.floor(i / (constants.PLOT_WIDTH * 4))][1] / maxDensityX)
+                const xColour = heatMapRGBForValue(subPopulation.zeroDensityX.densityMap[Math.floor(i / (constants.PLOT_WIDTH * 4))][1] / subPopulation.zeroDensityX.maxDensity)
                 PNGFile.data[i] = xColour[0]
                 PNGFile.data[i + 1] = xColour[1]
                 PNGFile.data[i + 2] = xColour[2]
                 PNGFile.data[i + 3] = 255 // Alpha channel
             // If we're in the last `yOffset` rows, render the histogram
             } else if (Math.floor(i / (constants.PLOT_WIDTH * 4)) > constants.PLOT_HEIGHT - yOffset) {
-                const yColour = heatMapRGBForValue(densityY[(i % (constants.PLOT_WIDTH * 4) / 4) - xOffset][1] / maxDensityY)
+                const yColour = heatMapRGBForValue(subPopulation.zeroDensityY.densityMap[(i % (constants.PLOT_WIDTH * 4) / 4) - xOffset][1] / subPopulation.zeroDensityY.maxDensity)
                 PNGFile.data[i] = yColour[0]
                 PNGFile.data[i + 1] = yColour[1]
                 PNGFile.data[i + 2] = yColour[2]

@@ -5,7 +5,6 @@
 // of internal items.
 // -------------------------------------------------------------
 
-// Use browserify to require modules
 import React                from 'react'
 import { Component }        from 'react'
 import ReactDOM             from 'react-dom'

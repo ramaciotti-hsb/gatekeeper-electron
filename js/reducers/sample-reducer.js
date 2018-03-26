@@ -26,7 +26,7 @@ const samples = (state = [], action = {}) => {
             populationCount: action.payload.populationCount,
             includeEventIds: action.payload.includeEventIds || [],
             gateTemplateId: action.payload.gateTemplateId,
-            parametersLoading: action.payload.parametersLoading,
+            parametersLoading: action.payload.parametersLoading || [],
             subSampleIds: [],
             plotImages: action.payload.plotImages || {}
         }

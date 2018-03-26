@@ -6,7 +6,16 @@
 
 .gates {
     flex-wrap: wrap;
-    padding: 0 10px;
+    flex-grow: 1;
+
+    .ReactVirtualized__Masonry {
+        display: block;
+        padding: 10px;
+
+        & > div {
+            padding: 10px 0;
+        }
+    }
 
     .gate-group {
         flex-direction: column;
@@ -16,15 +25,65 @@
 
         .upper {
             flex-direction: row;
-            align-items: center;
-            padding: 10px;
+            align-items: stretch;
+            background: #ddd;
+            font-weight: 600;
             border-bottom: 1px solid #eee;
 
             .selected-parameters {
+                padding: 10px;                
                 font-size: 14px;
                 color: #555;
                 flex-shrink: 0;
                 margin-right: 10px;
+                flex-grow: 1;
+            }
+
+            .dropdown {
+                align-items: stretch;
+
+                &.active {
+                    .inner .icon {
+                        color: #fff;
+                        background: #666;
+
+                        &:hover {
+                            background: #666;
+                        }
+
+                        &:active {
+                            background: #666;
+                        }
+                    }
+                }
+
+                .inner {
+                    align-items: stretch;
+
+                    .icon {
+                        padding: 0 10px;
+                        cursor: pointer;                        
+                        align-items: center;
+                        @include backgroundHover(#ddd);
+                        @include backgroundClick(#ddd);
+                    }
+
+                    .menu {
+                        width: 200px;
+                        align-items: stretch;
+
+                        .menu-inner {
+                            flex-direction: column;
+                            align-items: stretch;
+                            
+                            .item {
+                                cursor: pointer;
+                                @include backgroundHover(#666);
+                                @include backgroundClick(#666);
+                            }
+                        }
+                    }
+                }
             }
 
             .show-gate {
