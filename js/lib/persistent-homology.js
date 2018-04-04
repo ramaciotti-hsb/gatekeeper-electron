@@ -456,7 +456,7 @@ export default class PersistentHomology {
             console.log("Error in PersistantHomology.findPeaks: too many peaks were found (", this.truePeaks.length + ")")
         } else {
             for (let peak of this.homologyPeaks) {
-                if ((peak.truePeak || peak.height > 20) && !_.find(this.truePeaks, p => p.id === peak.id)) {
+                if ((peak.truePeak || peak.height > 10) && !_.find(this.truePeaks, p => p.id === peak.id)) {
                     const truePeak = _.cloneDeep(peak)
                     truePeak.homologyParameters = {
                         bonusIterations: peak.maxIterations
@@ -570,7 +570,7 @@ export default class PersistentHomology {
                     const iSize = this.homologyPeaks[i].polygon.length < 3 ? 0 : area(this.homologyPeaks[i].polygon.map((p) => { return { x: p[0], y: p[1] } }))
                     const jSize = this.homologyPeaks[j].polygon.length < 3 ? 0 : area(this.homologyPeaks[j].polygon.map((p) => { return { x: p[0], y: p[1] } }))
 
-                    if (jSize < 5000) {
+                    if (jSize < 1000) {
                         const newPolygon = this.homologyPeaks[i].polygon.concat(this.homologyPeaks[j].polygon.slice(0))
                         this.homologyPeaks.splice(i, 1, {
                             polygon: newPolygon,
@@ -595,7 +595,7 @@ export default class PersistentHomology {
                         this.homologyPeaks[i].polygon = grahamScan.getHull().map(p => [p.x, p.y])
                         this.homologyPeaks[i].pointsToAdd = []
                         intersected = true
-                    } else if (iSize > 5000) {
+                    } else if (iSize > 1000) {
                         this.homologyPeaks[i].truePeak = true
                         if (gateTemplates) {
                             const centerPoint = getPolygonCenter(this.homologyPeaks[i].polygon)
