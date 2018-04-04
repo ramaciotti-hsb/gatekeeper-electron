@@ -13,7 +13,7 @@ const mapStateToProps = (state, ownProps) => {
     if (ownProps.sampleId) {
         // Find the selected sample
         const sample = _.find(state.samples, w => w.id === ownProps.sampleId) || {}
-        const newSample = _.clone(sample)
+        const newSample = _.cloneDeep(sample)
         newSample.subSamples = []
         // If the workspace contains samples, find them and add them as complete objects
         if (newSample.subSampleIds) {

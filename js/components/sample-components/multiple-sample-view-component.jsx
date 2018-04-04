@@ -277,6 +277,8 @@ export default class MultipleSampleView extends Component {
             shouldReset = true
         } else if (this.props.workspace.invertedAxisPlots !== prevProps.workspace.invertedAxisPlots) {
             shouldReset = true
+        } else if (this.props.sample.FCSParameters.length !== prevProps.sample.FCSParameters.length) {
+            shouldReset = true
         }
 
         if (shouldReset) {

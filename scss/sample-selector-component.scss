@@ -19,14 +19,26 @@
         & > .header {
             padding: 10px;
             font-size: 14px;
-            border-bottom: 1px solid #ddd;            
-
-            .sample-selector-dropdown {
-                flex-grow: 1;
-            }
+            border-bottom: 1px solid #ddd;
 
             .dropdown-inline {
                 width: 300px;
+                margin-right: 15px;
+            }
+
+            .button {
+                padding: 8px 15px;
+                align-items: center;
+                cursor: pointer;
+                @include backgroundHover(#eee);
+                @include backgroundClick(#eee);
+                @include foregroundHover($red-colour);
+                @include foregroundClick($red-colour);
+
+                i {
+                    margin-right: 10px;
+                    font-size: 22px;
+                }
             }
         }
 

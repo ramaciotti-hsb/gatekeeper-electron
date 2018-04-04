@@ -37,6 +37,7 @@ export default class SampleSelector extends Component {
                 <div className='sample-selector-inner'>
                     <div className='header'>
                         <div className='sample-selector-dropdown'><Dropdown items={samples} textLabel={this.props.selectedSample ? this.props.selectedSample.title : 'Select Sample'} ref='sampleDropdown' /></div>
+                        <div className='button'><i className='lnr lnr-cross-circle' onClick={this.props.api.removeSample.bind(null, this.props.selectedSample.id)}></i>Delete Sample</div>
                     </div>
                     {multipleSampleView}
                 </div>
