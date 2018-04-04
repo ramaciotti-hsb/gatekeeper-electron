@@ -78,3 +78,11 @@ export const selectSample = (sampleId, workspaceId) => {
         payload: { sampleId, workspaceId }
     }
 }
+
+// Toggles parameter inversion (i.e. flip x and y axis) on a plot for display
+export const invertPlotAxis = (workspaceId, selectedXParameterIndex, selectedYParameterIndex) => {
+    return {
+        type: 'INVERT_PLOT_AXIS',
+        payload: { workspaceId, selectedXParameterIndex, selectedYParameterIndex }
+    }
+}

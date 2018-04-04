@@ -37,6 +37,23 @@
                 flex-shrink: 0;
                 margin-right: 10px;
                 flex-grow: 1;
+                align-items: center;
+
+                .icon {
+                    @include foregroundHover(#666, 10%);
+                    @include foregroundClick(#666, 20%);
+                    
+                    &.active {
+                        @include foregroundHover(darken($highlight-colour, 10), 10%);
+                        @include foregroundClick(darken($highlight-colour, 10), 20%);
+                    }
+
+                    i {
+                        font-size: 18px;
+                        margin-left: 10px;
+                        cursor: pointer;
+                    }
+                }
             }
 
             .dropdown {

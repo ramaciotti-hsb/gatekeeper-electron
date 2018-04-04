@@ -88,8 +88,6 @@ export default class BivariatePlot extends Component {
     }
 
     createGraphLayout () {
-        if (!this.props.sample.plotImages[getPlotImageKey(this.props)]) { return }
-
         d3.select(this.refs.graph).selectAll(':scope > *').remove();
 
         // Need to offset the whole graph if we're including cytof 0 histograms
@@ -104,6 +102,13 @@ export default class BivariatePlot extends Component {
             width: this.state.graphWidth - xOffset,
             height: this.state.graphHeight - yOffset
         })
+
+        // let xScale
+        // let yScale
+        // // If we should invert axis for this plot
+        // if (this.props.workspace.invertedAxisPlots[this.props.selectedXParameterIndex + '_' + this.props.selectedYParameterIndex]) {
+        //     const 
+        // }
 
         const xAxis = d3.axisBottom().scale(scales.xScale).tickFormat(d3.format(".2s"))
         const yAxis = d3.axisLeft().scale(scales.yScale).tickFormat(d3.format(".2s"))
@@ -245,12 +250,22 @@ export default class BivariatePlot extends Component {
           .attr('width', this.state.graphWidth)
           .attr('height', this.state.graphHeight);
 
+
+        if (!this.props.sample.plotImages[getPlotImageKey(this.props)]) { return }
+        
         var context = canvas.node().getContext('2d')
         const image = new Image()
         image.src = this.props.sample.plotImages[getPlotImageKey(this.props)]
 
         const redrawGraph = () => {
-            context.drawImage(image, 0, 0, this.state.graphWidth, this.state.graphHeight)
+            // if (this.props.workspace.invertedAxisPlots[this.props.selectedXParameterIndex + '_' + this.props.selectedYParameterIndex]) {
+            //     context.translate(this.state.graphWidth / 2, this.state.graphHeight / 2)
+            //     context.rotate(Math.PI / 2)
+            //     context.scale(-1, 1);
+            //     context.drawImage(image, -this.state.graphWidth / 2, -this.state.graphHeight / 2, this.state.graphWidth, this.state.graphHeight)
+            // } else {
+                context.drawImage(image, 0, 0, this.state.graphWidth, this.state.graphHeight)
+            // }
 
             // Determine if there are any 2d gates in the subsamples that match these parameters
             let gatesExist = false
@@ -394,6 +409,13 @@ export default class BivariatePlot extends Component {
             return
         }
 
+        for (let i = 0; i < prevPropGates.length; i++) {
+            if (prevPropGates[i].polygon.length !== this.props.gates[i].polygon.length) {
+                this.createGraphLayout()
+                return
+            }
+        }
+
         // Update the graph if images are now available
         if (prevProps.sample.plotImages[getPlotImageKey(prevProps)] !== this.props.sample.plotImages[getPlotImageKey(this.props)]) {
             this.createGraphLayout()
@@ -401,6 +423,12 @@ export default class BivariatePlot extends Component {
         }
 
         if (prevProps.sampleId !== this.props.sampleId) {
+            this.createGraphLayout()
+            return
+        }
+
+        // If the plot has been inverted
+        if (prevProps.workspace.invertedAxisPlots[this.props.selectedXParameterIndex + '_' + this.props.selectedYParameterIndex] !== this.props.workspace.invertedAxisPlots[this.props.selectedXParameterIndex + '_' + this.props.selectedYParameterIndex]) {
             this.createGraphLayout()
             return
         }
@@ -470,8 +498,17 @@ export default class BivariatePlot extends Component {
             )
         })
 
-        const isLoading = this.props.sample.parametersLoading[this.props.selectedXParameterIndex + '_' + this.props.selectedYParameterIndex] && this.props.sample.parametersLoading[this.props.selectedXParameterIndex + '_' + this.props.selectedYParameterIndex].loading
-        const loadingMessage = this.props.sample.parametersLoading[this.props.selectedXParameterIndex + '_' + this.props.selectedYParameterIndex] && this.props.sample.parametersLoading[this.props.selectedXParameterIndex + '_' + this.props.selectedYParameterIndex].loadingMessage
+        // Show a loading indicator if the parameters are marked as loading or if there is no image for the requested parameter combination
+        let isLoading
+        let loadingMessage
+        if (this.props.sample.parametersLoading[this.props.selectedXParameterIndex + '_' + this.props.selectedYParameterIndex]
+            && this.props.sample.parametersLoading[this.props.selectedXParameterIndex + '_' + this.props.selectedYParameterIndex].loading) {
+            isLoading = true
+            loadingMessage = this.props.sample.parametersLoading[this.props.selectedXParameterIndex + '_' + this.props.selectedYParameterIndex] && this.props.sample.parametersLoading[this.props.selectedXParameterIndex + '_' + this.props.selectedYParameterIndex].loadingMessage
+        } else if (!this.props.sample.plotImages[getPlotImageKey(this.props)]) {
+            isLoading = true
+            loadingMessage = 'Generating image for plot...'
+        }
 
         return (
             <div className='svg-outer' onClick={this.showGateTooltip.bind(this, null)}>
@@ -484,7 +521,7 @@ export default class BivariatePlot extends Component {
                 </svg>
                 {tooltip}
                 <canvas className="canvas" ref="canvas"/>
-                {<div className='step' onClick={this.performHomologyIteration.bind(this, 15, 4)}>Step</div>}
+                {/*<div className='step' onClick={this.performHomologyIteration.bind(this, 15, 4)}>Step</div>*/}
             </div>
         )
     }

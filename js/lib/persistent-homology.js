@@ -38,9 +38,9 @@ export default class PersistentHomology {
 
     constructor (options) {
         this.options = _.merge({
-            edgeDistance: constants.PLOT_WIDTH * 0.03,
+            edgeDistance: constants.PLOT_WIDTH * 0.05,
             minPeakHeight: constants.PLOT_WIDTH * 0.04,
-            maxIterations: 0,//constants.PLOT_WIDTH * 0.02,
+            maxIterations: 10,//constants.PLOT_WIDTH * 0.02,
             densityMap: null
         }, options)
 
@@ -50,6 +50,38 @@ export default class PersistentHomology {
 
         this.homologyPeaks = []
         this.truePeaks = []
+    }
+
+    findIncludedEvents () {
+        // Offset the entire graph and add histograms if we're looking at cytof data
+        let xOffset = this.options.options.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
+        let yOffset = this.options.options.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+        
+        const scales = getScales({
+            selectedXScale: this.options.options.selectedXScale,
+            selectedYScale: this.options.options.selectedYScale,
+            xRange: [ this.options.sample.FCSParameters[this.options.options.selectedXParameterIndex].statistics.min, this.options.sample.FCSParameters[this.options.options.selectedXParameterIndex].statistics.max ],
+            yRange: [ this.options.sample.FCSParameters[this.options.options.selectedYParameterIndex].statistics.min, this.options.sample.FCSParameters[this.options.options.selectedYParameterIndex].statistics.max ],
+            width: constants.PLOT_WIDTH - xOffset,
+            height: constants.PLOT_HEIGHT - yOffset
+        })
+
+        for (let peak of this.truePeaks) {
+            peak.includeEventIds = []
+            const invertedPolygon = _.map(peak.polygon, p => [ scales.xScale.invert(p[0]), scales.yScale.invert(p[1]) ])
+            for (let point of this.options.population.subPopulation) {
+                if (pointInsidePolygon(point, invertedPolygon)) {
+                    peak.includeEventIds.push(point[2])
+                } else {
+                    if (peak.xCutoffs && point[0] === 0 && point[1] >= scales.yScale.invert(peak.xCutoffs[0]) && point[1] <= scales.yScale.invert(peak.xCutoffs[1])) {
+                        peak.includeEventIds.push(point[2])
+                    }
+                    if (peak.yCutoffs && point[1] === 0 && point[0] >= scales.xScale.invert(peak.yCutoffs[0]) && point[0] <= scales.xScale.invert(peak.yCutoffs[1])) {
+                        peak.includeEventIds.push(point[2])
+                    }
+                }
+            }
+        }
     }
 
     expandToIncludeZeroes () {
@@ -361,7 +393,7 @@ export default class PersistentHomology {
                     orderMatches = false
                 }
             }
-            console.log(groups)
+            // console.log(groups)
             // If we match along one of the axis, it's likely that the peaks have just shifted order slightly. Re order them so they match the other axis
             if (!orderMatches) {
                 console.log(this.truePeaks)
@@ -380,14 +412,14 @@ export default class PersistentHomology {
 
             let currentHeight = 100
 
-            while (currentHeight > 0) {
+            while (currentHeight > 3) {
                 this.performHomologyIteration(currentHeight, this.options.gateTemplates)
                 currentHeight = currentHeight - 1
                 if (stepCallback) { stepCallback('Applying existing templates to sample: ' + (100 - currentHeight) + '% complete.') }
             }
 
             if (this.truePeaks.length > 5) {
-                console.log("Error in PersistantHomology.findPeaks: too many peaks were found (", this.truePeaks.length + ")")
+                console.log("Error in PersistantHomology.findPeaks: too many peaks were found (", this.truePeaks.length, ")")
             } else {
                 // Include any large peaks that didn't reach their max iterations
                 for (let peak of this.homologyPeaks) {
@@ -404,21 +436,7 @@ export default class PersistentHomology {
                     this.expandToIncludeZeroes()
                 }
 
-                for (let peak of this.truePeaks) {
-                    peak.includeEventIds = []
-                    for (let point of this.options.population.subPopulation) {
-                        if (pointInsidePolygon(point, peak.polygon)) {
-                            peak.includeEventIds.push(point[2])
-                        } else {
-                            if (peak.xCutoffs && point[0] === 0 && point[1] >= gate.xCutoffs[0] && point[1] <= gate.xCutoffs[1]) {
-                                peak.includeEventIds.push(point[2])
-                            }
-                            if (peak.yCutoffs && point[1] === 0 && point[0] >= gate.yCutoffs[0] && point[0] <= gate.yCutoffs[1]) {
-                                peak.includeEventIds.push(point[2])
-                            }
-                        }
-                    }
-                }
+                this.findIncludedEvents()
 
                 return this.truePeaks
             }
@@ -427,9 +445,8 @@ export default class PersistentHomology {
 
     findPeaks (stepCallback, dontIncludeZeroes) {
         let currentHeight = 100
-        console.log(this.options.options)
 
-        while (currentHeight > 5) {
+        while (currentHeight > 3) {
             this.performHomologyIteration(currentHeight)
             currentHeight = currentHeight - 1
             if (stepCallback) { stepCallback('Gating using Persistent Homology: ' + (100 - currentHeight) + '% complete.') }
@@ -438,9 +455,8 @@ export default class PersistentHomology {
         if (this.truePeaks.length > 5) {
             console.log("Error in PersistantHomology.findPeaks: too many peaks were found (", this.truePeaks.length + ")")
         } else {
-            console.log(this.homologyPeaks)
             for (let peak of this.homologyPeaks) {
-                if (peak.truePeak && !_.find(this.truePeaks, p => p.id === peak.id)) {
+                if ((peak.truePeak || peak.height > 20) && !_.find(this.truePeaks, p => p.id === peak.id)) {
                     const truePeak = _.cloneDeep(peak)
                     truePeak.homologyParameters = {
                         bonusIterations: peak.maxIterations
@@ -453,21 +469,7 @@ export default class PersistentHomology {
                 this.expandToIncludeZeroes()
             }
 
-            for (let peak of this.truePeaks) {
-                peak.includeEventIds = []
-                for (let point of this.options.population.subPopulation) {
-                    if (pointInsidePolygon(point, peak.polygon)) {
-                        peak.includeEventIds.push(point[2])
-                    } else {
-                        if (peak.xCutoffs && point[0] === 0 && point[1] >= gate.xCutoffs[0] && point[1] <= gate.xCutoffs[1]) {
-                            peak.includeEventIds.push(point[2])
-                        }
-                        if (peak.yCutoffs && point[1] === 0 && point[0] >= gate.yCutoffs[0] && point[0] <= gate.yCutoffs[1]) {
-                            peak.includeEventIds.push(point[2])
-                        }
-                    }
-                }
-            }
+            this.findIncludedEvents()
 
             const groups = this.getAxisGroups(this.truePeaks)
             // console.log(groups)
@@ -568,7 +570,7 @@ export default class PersistentHomology {
                     const iSize = this.homologyPeaks[i].polygon.length < 3 ? 0 : area(this.homologyPeaks[i].polygon.map((p) => { return { x: p[0], y: p[1] } }))
                     const jSize = this.homologyPeaks[j].polygon.length < 3 ? 0 : area(this.homologyPeaks[j].polygon.map((p) => { return { x: p[0], y: p[1] } }))
 
-                    if (jSize < 1000) {
+                    if (jSize < 5000) {
                         const newPolygon = this.homologyPeaks[i].polygon.concat(this.homologyPeaks[j].polygon.slice(0))
                         this.homologyPeaks.splice(i, 1, {
                             polygon: newPolygon,
@@ -593,7 +595,7 @@ export default class PersistentHomology {
                         this.homologyPeaks[i].polygon = grahamScan.getHull().map(p => [p.x, p.y])
                         this.homologyPeaks[i].pointsToAdd = []
                         intersected = true
-                    } else if (iSize > 1000) {
+                    } else if (iSize > 5000) {
                         this.homologyPeaks[i].truePeak = true
                         if (gateTemplates) {
                             const centerPoint = getPolygonCenter(this.homologyPeaks[i].polygon)
@@ -615,7 +617,7 @@ export default class PersistentHomology {
                 const peak = this.homologyPeaks[i]
                 // If a peak has reached it's bonus iterations count, clone it into true peaks
                 // console.log(peak.maxIterations)
-                if (peak.bonusIterations > peak.maxIterations) {
+                if (peak.bonusIterations >= peak.maxIterations) {
                     const truePeak = _.cloneDeep(peak)
                     truePeak.homologyParameters = {
                         bonusIterations: peak.maxIterations

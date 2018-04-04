@@ -87,7 +87,7 @@ export default async function getPopulationForSample (sample, options) {
     process.stdout.write(JSON.stringify({ data: 'Removing zeroes and calculating statistics' }))
     for (let i = 0; i < FCSFile.dataAsNumbers.length; i++) {
         if (selectedMachineType === constants.MACHINE_CYTOF) {
-            if (sample.includeEventIds.length === 0 || sample.includeEventIds[i]) {
+            if (sample.includeEventIds.length === 0 || sample.includeEventIds.includes(i)) {
                 // Every point that has a zero in the selected X channel
                 if (FCSFile.dataAsNumbers[i][options.selectedXParameterIndex] === 0 && FCSFile.dataAsNumbers[i][options.selectedYParameterIndex] === 0) {
                     // doubleChannelZeroes.push(scales.yScale(sample.FCSParameters[options.selectedYParameterIndex].statistics.max))
@@ -103,7 +103,7 @@ export default async function getPopulationForSample (sample, options) {
                 }
                 subPopulation.push([ FCSFile.dataAsNumbers[i][options.selectedXParameterIndex], FCSFile.dataAsNumbers[i][options.selectedYParameterIndex], i ])
             }
-        } else if (sample.includeEventIds.length === 0 || sample.includeEventIds[i]) {
+        } else if (sample.includeEventIds.length === 0 || sample.includeEventIds.includes(i)) {
             subPopulation.push([ FCSFile.dataAsNumbers[i][options.selectedXParameterIndex], FCSFile.dataAsNumbers[i][options.selectedYParameterIndex], i ])
             aboveZeroPopulation.push([ FCSFile.dataAsNumbers[i][options.selectedXParameterIndex], FCSFile.dataAsNumbers[i][options.selectedYParameterIndex], i ])
         }
@@ -235,7 +235,7 @@ export default async function getPopulationForSample (sample, options) {
 
     process.stdout.write(JSON.stringify({ data: 'Calculating density' }))
 
-    const densityMap = calculateDensity(subPopulation, scales, Math.floor((constants.PLOT_WIDTH + constants.PLOT_HEIGHT) * 0.006))
+    const densityMap = calculateDensity(subPopulation, scales, Math.floor((constants.PLOT_WIDTH + constants.PLOT_HEIGHT) * 0.009))
 
     let densityY
     let densityX

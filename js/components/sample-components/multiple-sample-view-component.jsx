@@ -27,7 +27,7 @@ export default class MultipleSampleView extends Component {
         this._columnCount = 0;
 
         this._cache = new CellMeasurerCache({
-          defaultHeight: constants.PLOT_HEIGHT + 150,
+          defaultHeight: constants.PLOT_HEIGHT + 100,
           defaultWidth: constants.PLOT_WIDTH + 100,
           fixedWidth: true,
           fixedHeight: true
@@ -41,22 +41,17 @@ export default class MultipleSampleView extends Component {
           gutterSize: 15,
           overscanByPixels: 500,
           filterPlotString: '',
-          combinations: []
+          combinations: [],
+          flippedCombinations: []
         };
-
-        for (let x = 2; x < props.sample.FCSParameters.length; x++) {
-            for (let y = x + 1; y < props.sample.FCSParameters.length; y++) {
-                if (props.sample.FCSParameters[x].label.match('_') && props.sample.FCSParameters[y].label.match('_')) {
-                    this.state.combinations.push([x, y])                    
-                }
-            }
-        }
 
         this._cellRenderer = this._cellRenderer.bind(this);
         this._onResize = this._onResize.bind(this);
         this._renderAutoSizer = this._renderAutoSizer.bind(this);
         this._renderMasonry = this._renderMasonry.bind(this);
         this._setMasonryRef = this._setMasonryRef.bind(this);
+
+        this.state.combinations = this.filterPlots()
     }
 
     calculateHomology (selectedXParameterIndex, selectedYParameterIndex) {
@@ -67,7 +62,6 @@ export default class MultipleSampleView extends Component {
             selectedYScale: this.props.workspace.selectedYScale,
             selectedMachineType: this.props.workspace.selectedMachineType
         })
-        console.log(this.refs)
         // this.refs['homologyDropdown-' + selectedXParameterIndex + '-' + selectedYParameterIndex].getInstance().hideDropdown()
     }
 
@@ -90,59 +84,93 @@ export default class MultipleSampleView extends Component {
         return matched
     }
 
-    filterPlots (event) {
+    updateFilterPlotString (event) {
         const filterString = event.target.value
+
+        this.setState({
+            filterPlotString: filterString
+        }, () => {
+            this.setState({
+                combinations: this.filterPlots()
+            })
+        })
+    }
+
+    filterPlots () {
         const combinations = []
         for (let x = 2; x < this.props.sample.FCSParameters.length; x++) {
             for (let y = x + 1; y < this.props.sample.FCSParameters.length; y++) {
-                if (this.props.sample.FCSParameters[x].label.match('_') && this.props.sample.FCSParameters[y].label.match('_') && this.matchLabels(this.props.sample.FCSParameters[x].label, this.props.sample.FCSParameters[y].label, filterString)) {
-                    combinations.push([x, y])
+                if (this.props.sample.FCSParameters[x].label.match('_') && this.props.sample.FCSParameters[y].label.match('_')
+                    && this.matchLabels(this.props.sample.FCSParameters[x].label, this.props.sample.FCSParameters[y].label, this.state.filterPlotString)) {
+
+                    let shouldAdd = true
+                    if (this.props.workspace.hideUngatedPlots) {
+                        if (!_.find(this.props.gates, g => g.selectedXParameterIndex === x && g.selectedYParameterIndex === y)) {
+                            shouldAdd = false 
+                        }
+                    }
+
+                    if (shouldAdd) {
+                        const x2 = Math.min(x, y)
+                        const y2 = Math.max(x, y)
+                        if (this.props.workspace.invertedAxisPlots[x2 + '_' + y2]) {
+                            combinations.push([y, x])
+                        } else {
+                            combinations.push([x, y])
+                        }
+                    }
                 }
             }
         }
 
-        this.setState({
-            filterPlotString: filterString,
-            combinations
-        })
+        // If the user has filtered down to less than 4 combinations, try and generate these images of interest first
+        if (combinations.length < 4) {
+            for (let c of combinations) {
+                this.props.api.getImageForPlot(this.props.sample.id, { selectedXParameterIndex: c[0], selectedYParameterIndex: c[1], selectedXScale: this.props.workspace.selectedXScale, selectedYScale: this.props.workspace.selectedYScale, selectedMachineType: this.props.workspace.selectedMachineType })
+            }
+        }
+
+        return combinations
     }
 
     _cellRenderer({ index, key, parent, style }) {
         const { list } = this.context;
         const { columnWidth } = this.state;
 
-        if (!this.props.sample.FCSParameters || this.props.sample.FCSParameters.length === 0) {
+        if (!this.props.sample.FCSParameters || this.props.sample.FCSParameters.length === 0 || index >= this.state.combinations.length) {
             return null
         }
 
-        try {
-            return (
-                <CellMeasurer cache={this._cache} index={index} key={key} parent={parent}>
-                    <div className='gate-group' key={key} style={style}>
-                        <div className='upper'>
-                            <div className='selected-parameters'>{this.props.sample.FCSParameters[this.state.combinations[index][0]].label + ' · ' + this.props.sample.FCSParameters[this.state.combinations[index][1]].label}</div>
-                            <Dropdown outerClasses='dark' ref={'homologyDropdown-' + this.state.combinations[index][0] + '-' + this.state.combinations[index][1]}>
-                                <div className='inner'>
-                                    <div className='icon'><i className='lnr lnr-cog'></i></div>
-                                    <div className='menu'>
-                                        <div className='menu-header'>Auto Gating</div>
-                                        <div className='menu-inner'>
-                                            <div className='item' onClick={this.calculateHomology.bind(this, this.state.combinations[index][0], this.state.combinations[index][1])}><div>Persistent Homology</div></div>
-                                            <div className='item' onClick={this.calculateHomology.bind(this, this.state.combinations[index][0], this.state.combinations[index][1])}><div>Persistent Homology (Recursive)</div></div>
-                                        </div>
+        const x = Math.min(this.state.combinations[index][0], this.state.combinations[index][1])
+        const y = Math.max(this.state.combinations[index][0], this.state.combinations[index][1])
+
+        return (
+            <CellMeasurer cache={this._cache} index={index} key={key} parent={parent}>
+                <div className='gate-group' key={key} style={style}>
+                    <div className='upper'>
+                        <div className='selected-parameters'>
+                            {this.props.sample.FCSParameters[this.state.combinations[index][0]].label + ' · ' + this.props.sample.FCSParameters[this.state.combinations[index][1]].label}
+                            <div className={'icon' + (this.props.workspace.invertedAxisPlots[x + '_' + y] ? ' active' : '')} onClick={this.props.api.invertPlotAxis.bind(null, this.props.workspace.id, this.state.combinations[index][0], this.state.combinations[index][1])}><i className='lnr lnr-sync'></i></div>
+                        </div>
+                        <Dropdown outerClasses='dark' ref={'homologyDropdown-' + this.state.combinations[index][0] + '-' + this.state.combinations[index][1]}>
+                            <div className='inner'>
+                                <div className='icon'><i className='lnr lnr-cog'></i></div>
+                                <div className='menu'>
+                                    <div className='menu-header'>Auto Gating</div>
+                                    <div className='menu-inner'>
+                                        <div className='item' onClick={this.calculateHomology.bind(this, this.state.combinations[index][0], this.state.combinations[index][1])}><div>Persistent Homology</div></div>
+                                        <div className='item' onClick={this.calculateHomology.bind(this, this.state.combinations[index][0], this.state.combinations[index][1])}><div>Persistent Homology (Recursive)</div></div>
                                     </div>
                                 </div>
-                            </Dropdown>
-                        </div>
-                        <div className='graph'>
-                            <BivariatePlot sampleId={this.props.sample.id} selectedXParameterIndex={this.state.combinations[index][0]} selectedYParameterIndex={this.state.combinations[index][1]} selectedXScale={this.props.workspace.selectedXScale} selectedYScale={this.props.workspace.selectedYScale} selectedMachineType={this.props.workspace.selectedMachineType}  />
-                        </div>
+                            </div>
+                        </Dropdown>
                     </div>
-                </CellMeasurer>
-            )
-        } catch (error) {
-            console.log("error couldn't find ", index, 'in', this.state.combinations)
-        }
+                    <div className='graph'>
+                        <BivariatePlot sampleId={this.props.sample.id} selectedXParameterIndex={this.state.combinations[index][0]} selectedYParameterIndex={this.state.combinations[index][1]} selectedXScale={this.props.workspace.selectedXScale} selectedYScale={this.props.workspace.selectedYScale} selectedMachineType={this.props.workspace.selectedMachineType}  />
+                    </div>
+                </div>
+            </CellMeasurer>
+        )
     }
 
     _onResize({ width }) {
@@ -242,22 +270,23 @@ export default class MultipleSampleView extends Component {
     }
 
     componentDidUpdate (prevProps) {
+        let shouldReset = false
         if (this.props.sample.id !== prevProps.sample.id) {
+            shouldReset = true
+        } else if (this.props.workspace.hideUngatedPlots !== prevProps.workspace.hideUngatedPlots) {
+            shouldReset = true
+        } else if (this.props.workspace.invertedAxisPlots !== prevProps.workspace.invertedAxisPlots) {
+            shouldReset = true
+        }
+
+        if (shouldReset) {
             this._cache.clearAll();
             this._resetCellPositioner();
             this._masonry.clearCellPositions();
+            this.setState({
+                combinations: this.filterPlots()
+            })
         }
-        // const combinations = []
-        // for (let x = 2; x < this.props.sample.FCSParameters.length; x++) {
-        //     for (let y = x + 1; y < this.props.sample.FCSParameters.length; y++) {
-        //         if (this.props.sample.FCSParameters[x].label.match('_') && this.props.sample.FCSParameters[y].label.match('_') && this.matchLabels(this.props.sample.FCSParameters[x].label, this.props.sample.FCSParameters[y].label, this.state.filterPlotString)) {
-        //             combinations.push([x, y])
-        //         }
-        //     }
-        // }
-
-        // this.setState({ combinations })
-        // this._cache.clearAll();
     }
 
     showGate (gateId) {
@@ -363,11 +392,12 @@ export default class MultipleSampleView extends Component {
                         {upperTitle}
                         <div className='lower'>
                             <div className='title'>{this.props.gateTemplate.title}</div>
+                            <div className='counts'><abbr className='highlight'>{this.props.sample.populationCount}</abbr> events {/*(<abbr className='highlight'>50%</abbr> of parent)*/}</div>
                         </div>
                     </div>
                     <div className='filters'>
-                        <input type='text' placeholder='Filter Plots...' value={this.state.filterPlotString} onChange={this.filterPlots.bind(this)} />
-                        <div className={'hide-ungated' + (this.props.workspace.hideUngatedPopulations ? ' active' : '')}><i className={'lnr ' + (this.props.workspace.hideUngatedPopulations ? 'lnr-checkmark-circle' : 'lnr-circle-minus')} />Hide Ungated Plots</div>
+                        <input type='text' placeholder='Filter Plots...' value={this.state.filterPlotString} onChange={this.updateFilterPlotString.bind(this)} />
+                        <div className={'hide-ungated' + (this.props.workspace.hideUngatedPlots ? ' active' : '')} onClick={this.props.api.updateWorkspace.bind(null, this.props.workspace.id, { hideUngatedPlots: !this.props.workspace.hideUngatedPlots })}><i className={'lnr ' + (this.props.workspace.hideUngatedPlots ? 'lnr-checkmark-circle' : 'lnr-circle-minus')} />Hide Ungated Plots</div>
                     </div>
                     <div className='gates'>
                         {this._renderAutoSizer({height})}

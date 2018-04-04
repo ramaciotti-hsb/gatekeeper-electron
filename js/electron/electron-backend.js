@@ -24,7 +24,7 @@ import { updateSample, removeSample, setSamplePlotImage, setSampleParametersLoad
 import { updateGateTemplate, removeGateTemplate } from '../actions/gate-template-actions'
 import isDev from 'electron-is-dev'
 import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace,
-    createSampleAndAddToWorkspace, createSubSampleAndAddToWorkspace, selectSample,
+    createSampleAndAddToWorkspace, createSubSampleAndAddToWorkspace, selectSample, invertPlotAxis,
     createGateTemplateAndAddToWorkspace, selectGateTemplate,
     createGateTemplateGroupAndAddToWorkspace } from '../actions/workspace-actions'
 
@@ -154,8 +154,8 @@ const getAllPlotImages = async (sample, scales) => {
     for (let x = 2; x < sample.FCSParameters.length; x++) {
         for (let y = x + 1; y < sample.FCSParameters.length; y++) {
             const options = {
-                selectedXParameterIndex: x,
-                selectedYParameterIndex: y,
+                selectedXParameterIndex: workspace.invertedAxisPlots[x + '_' + y] ? y : x,
+                selectedYParameterIndex: workspace.invertedAxisPlots[x + '_' + y] ? x : y,
                 selectedXScale: scales.selectedXScale,
                 selectedYScale: scales.selectedYScale,
                 selectedMachineType: workspace.selectedMachineType
@@ -261,9 +261,12 @@ export const api = {
         }
 
         setTimeout(() => {
-            // for (let sample of currentState.samples) {
-            //     getAllPlotImages(sample)
-            // }
+            if (currentState.selectedWorkspaceId) {
+                const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
+                for (let sample of currentState.samples) {
+                    getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
+                }
+            }
         }, 5000)  
     },
 
@@ -281,7 +284,9 @@ export const api = {
             selectedYScale: parameters.selectedYScale || constants.SCALE_LOG,
             sampleIds: [],
             gateTemplateIds: [],
-            gateTemplateGroupIds: []
+            gateTemplateGroupIds: [],
+            hideUngatedPlots: false,
+            invertedAxisPlots: {}
         }
 
         const createAction = createWorkspace(newWorkspace)
@@ -333,13 +338,12 @@ export const api = {
     // Update a gate template with arbitrary parameters
     updateGateTemplateAndRecalculate: async function (gateTemplateId, parameters) {
         const updateAction = updateGateTemplate(gateTemplateId, parameters)
+        currentState = applicationReducer(currentState, updateAction)
+        store.dispatch(updateAction)
 
         // Update any child templates that depend on these
         const templateGroup = _.find(currentState.gateTemplateGroups, g => g.childGateTemplateIds.includes(gateTemplateId))
         await api.recalculateGateTemplateGroup(templateGroup.id)
-
-        currentState = applicationReducer(currentState, updateAction)
-        store.dispatch(updateAction)
 
         saveSessionToDisk()
     },
@@ -376,8 +380,14 @@ export const api = {
         const templateGroup = _.find(currentState.gateTemplateGroups, g => g.id === gateTemplateGroupId)
         if (templateGroup.creator === constants.GATE_CREATOR_PERSISTENT_HOMOLOGY) {
             const parentSamples = _.filter(currentState.samples, s => templateGroup.parentGateTemplateId === s.gateTemplateId)
+            const samplesToRecalculate = []
             for (let parentSample of parentSamples) {
-                await api.calculateHomology(parentSample.id, {
+                let loadingAction = setSampleParametersLoading(parentSample.id, templateGroup.selectedXParameterIndex + '_' + templateGroup.selectedYParameterIndex, { loading: true, loadingMessage: 'Creating gates using Persistent Homology...' })
+                currentState = applicationReducer(currentState, loadingAction)
+                store.dispatch(loadingAction)
+                
+                samplesToRecalculate.push({
+                    sampleId: parentSample.id,
                     selectedXParameterIndex: templateGroup.selectedXParameterIndex,
                     selectedYParameterIndex: templateGroup.selectedYParameterIndex,
                     selectedXScale: templateGroup.selectedXScale,
@@ -385,6 +395,11 @@ export const api = {
                     selectedMachineType: templateGroup.selectedMachineType
                 })
             }
+
+            for (let options of samplesToRecalculate) {
+                await api.calculateHomology(options.sampleId, options)
+            }
+
             for (let sample of _.filter(currentState.samples, s => templateGroup.childGateTemplateIds.includes(s.gateTemplateId))) {
                 // If homology was succesful, the sample will now have child samples
                 for (let subSampleId of sample.subSampleIds) {
@@ -400,27 +415,6 @@ export const api = {
         const templateGroups = _.filter(currentState.gateTemplateGroups, g => g.parentGateTemplateId === sample.gateTemplateId)
         for (let templateGroup of templateGroups) {
             if (templateGroup.creator === constants.GATE_CREATOR_PERSISTENT_HOMOLOGY) {
-                const population = await api.getPopulationDataForSample(sampleId, {
-                    selectedXParameterIndex: templateGroup.selectedXParameterIndex,
-                    selectedYParameterIndex: templateGroup.selectedYParameterIndex,
-                    selectedXScale: templateGroup.selectedXScale,
-                    selectedYScale: templateGroup.selectedYScale,
-                    selectedMachineType: templateGroup.selectedMachineType
-                })
-
-                // Generate the cached images
-                const imageForPlot = await getImageForPlot(sample, population, {
-                    selectedXParameterIndex: templateGroup.selectedXParameterIndex,
-                    selectedYParameterIndex: templateGroup.selectedYParameterIndex,
-                    selectedXScale: templateGroup.selectedXScale,
-                    selectedYScale: templateGroup.selectedYScale,
-                    selectedMachineType: templateGroup.selectedMachineType
-                })
-
-                const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(templateGroup), imageForPlot)
-                currentState = applicationReducer(currentState, imageAction)
-                store.dispatch(imageAction)
-
                 await api.calculateHomology(sampleId, {
                     selectedXParameterIndex: templateGroup.selectedXParameterIndex,
                     selectedYParameterIndex: templateGroup.selectedYParameterIndex,
@@ -508,10 +502,10 @@ export const api = {
         const updatedSample = _.find(currentState.samples, s => s.id === sampleId)
         getAllPlotImages(updatedSample, workspaceParameters)
 
-        // Recursively apply the existing gating hierarchy
-        await api.applyGateTemplatesToSample(updatedSample.id)
-
         saveSessionToDisk()
+
+        // Recursively apply the existing gating hierarchy
+        api.applyGateTemplatesToSample(updatedSample.id)
     },
 
     createSubSampleAndAddToWorkspace: async function (workspaceId, parentSampleId, sampleParameters, gateParameters) {
@@ -604,39 +598,39 @@ export const api = {
         currentState = applicationReducer(currentState, updateWorkspaceAction)
         store.dispatch(updateWorkspaceAction)
 
-        // Find the associated workspace
-        const workspace = _.find(currentState.workspaces, w => w.id === workspaceId)
-
-        for (let sampleId of _.filter(workspace.sampleIds, s => s.gateTemplateId === workspace.selectedGateTemplateId)) {
-            let loadingAction = setSampleParametersLoading(sampleId, workspace.selectedXParameterIndex + '_' + workspace.selectedYParameterIndex, { loading: true, loadingMessage: 'Reading FCS file and generating densities...'})
-            currentState = applicationReducer(currentState, loadingAction)
-            store.dispatch(loadingAction)
-
-            const sample = _.find(currentState.samples, s => s.id === sampleId)
-
-            const population = await api.getPopulationDataForSample(sampleId, workspace)
-
-            loadingAction = setSampleParametersLoading(sampleId, workspace.selectedXParameterIndex + '_' + workspace.selectedYParameterIndex, { loading: true, loadingMessage: 'Generating image for plot...'})
-            currentState = applicationReducer(currentState, loadingAction)
-            store.dispatch(loadingAction)
-            // Generate the cached images
-            const imageForPlot = await getImageForPlot(sample, population, {
-                selectedXParameterIndex: workspace.selectedXParameterIndex,
-                selectedYParameterIndex: workspace.selectedYParameterIndex,
-                selectedXScale: workspace.selectedXScale,
-                selectedYScale: workspace.selectedYScale,
-                selectedMachineType: workspace.selectedMachineType,
-                workerIndex: 0
-            })
-            const imageAction = await setSamplePlotImage(sample.id, getPlotImageKey(workspace), imageForPlot)
-            currentState = applicationReducer(currentState, imageAction)
-            store.dispatch(imageAction)
-
-            loadingAction = setSampleParametersLoading(sampleId, workspace.selectedXParameterIndex + '_' + workspace.selectedYParameterIndex, { loading: false, loadingMessage: null})
-            currentState = applicationReducer(currentState, loadingAction)
-            store.dispatch(loadingAction)
-        }
         saveSessionToDisk()
+    },
+
+    getImageForPlot: async function (sampleId, options) {
+        const sample = _.find(currentState.samples, s => s.id === sampleId)
+        const imageForPlot = await getImageForPlot(sample, options)
+        const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
+        currentState = applicationReducer(currentState, imageAction)
+        store.dispatch(imageAction)
+
+        await saveSessionToDisk()
+    },
+
+    // Toggle inversion of parameters for display of a particular plot
+    invertPlotAxis: async function (workspaceId, selectedXParameterIndex, selectedYParameterIndex) {
+        const updateWorkspaceAction = invertPlotAxis(workspaceId, selectedXParameterIndex, selectedYParameterIndex)
+        currentState = applicationReducer(currentState, updateWorkspaceAction)
+        store.dispatch(updateWorkspaceAction)
+
+        saveSessionToDisk()
+
+        if (currentState.selectedWorkspaceId) {
+            const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
+            const options = { selectedXParameterIndex: selectedYParameterIndex, selectedYParameterIndex: selectedXParameterIndex, selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale, selectedMachineType: workspace.selectedMachineType }
+            for (let sample of currentState.samples) {
+                const imageForPlot = await getImageForPlot(sample, options)
+                const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
+                currentState = applicationReducer(currentState, imageAction)
+                store.dispatch(imageAction)
+
+                await saveSessionToDisk()
+            }
+        }
     },
 
     // Performs persistent homology calculation to automatically create gates on a sample

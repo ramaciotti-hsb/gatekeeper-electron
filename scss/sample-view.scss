@@ -47,10 +47,11 @@
             }
 
             .lower {
-                flex-direction: row;
-                align-items: center;
+                flex-direction: column;
+                align-items: flex-start;
              
                 .title {
+                    margin-top: 5px;
                     flex-grow: 1;
 
                     & > input {
@@ -64,6 +65,14 @@
 
                 .dropdown-inline {
                     font-size: 14px;
+                }
+
+                .counts {
+                    margin-top: 5px;
+                    font-weight: 600;
+                    font-size: 14px;
+                    color: #777;
+                    display: block;
                 }
             }
 
@@ -101,7 +110,7 @@
                 @include foregroundHover(#999, 10%);
                 @include foregroundClick(#999, 20%);
                 
-                &:active {
+                &:active, &.active {
                     @include foregroundHover($highlight-colour);
                     @include foregroundClick($highlight-colour);
                 }

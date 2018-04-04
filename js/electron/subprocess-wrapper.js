@@ -149,10 +149,11 @@ if (cluster.isMaster) {
                             })
                         }
                     }).then((population) => {
-                        const homology = new new PersistentHomology({
+                        const homology = new PersistentHomology({
                             sample: body.payload.sample,
                             population,
-                            options: body.payload.options
+                            options: body.payload.options,
+                            gateTemplates: body.payload.gateTemplates
                         })
                         let percentageComplete = 0
                         const data = homology.findPeaksWithTemplate((message) => {
@@ -160,6 +161,10 @@ if (cluster.isMaster) {
                             // res.send({ jobId: jobId, type: 'loading-update', data: message })
                         })
                         res.end(JSON.stringify(data))
+                    }).catch((error) => {
+                        console.log(error)
+                        process.stderr.write(JSON.stringify({ jobId, data: JSON.stringify(error) }))
+                        res.end(JSON.stringify({ jobId, data: JSON.stringify(error) }))
                     })
                 }
             }  

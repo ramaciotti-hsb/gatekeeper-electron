@@ -64,6 +64,10 @@ $red-colour: #C02942;
     }
 }
 
+.highlight {
+    color: darken($highlight-colour, 50%);
+}
+
 *:focus {
   outline-color: transparent;
   outline-style: none;
@@ -80,7 +84,7 @@ $red-colour: #C02942;
     align-items: center;
     justify-content: center;
     background: inherit;
-    z-index: 1;
+    z-index: 3;
     background: #eee;
     opacity: 0.8;
 

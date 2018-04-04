@@ -20,6 +20,8 @@ const initialState = [
         selectedYParameterIndex: 1,
         selectedXScale: constants.SCALE_LINEAR,
         selectedYScale: constants.SCALE_LINEAR,
+        hideUngatedPlots: false,
+        invertedAxisPlots: {}
     }
 ]
 
@@ -194,6 +196,25 @@ const workspaces = (state = initialState, action = {}) => {
         if (workspaceIndex > -1) {
             const newWorkspace = _.merge(_.clone(state[workspaceIndex]), action.payload.parameters)
             newState = state.slice(0, workspaceIndex).concat([newWorkspace]).concat(state.slice(workspaceIndex + 1))
+        }
+    // --------------------------------------------------
+    // Toggle parameter inversion for display (i.e flip x and y axis)
+    // --------------------------------------------------
+    } else if (action.type === 'INVERT_PLOT_AXIS') {
+        const workspaceIndex = _.findIndex(state, s => s.id === action.payload.workspaceId)
+
+        if (workspaceIndex > -1) {
+            const newWorkspace = _.clone(state[workspaceIndex])
+            newWorkspace.invertedAxisPlots = _.clone(state[workspaceIndex].invertedAxisPlots)
+            const x = Math.min(action.payload.selectedXParameterIndex, action.payload.selectedYParameterIndex)
+            const y = Math.max(action.payload.selectedXParameterIndex, action.payload.selectedYParameterIndex)
+
+            if (!newWorkspace.invertedAxisPlots[`${x}_${y}`]) {
+                newWorkspace.invertedAxisPlots[`${x}_${y}`] = true
+            } else {
+                newWorkspace.invertedAxisPlots[`${x}_${y}`] = false
+            }
+            newState = newState.slice(0, workspaceIndex).concat([ newWorkspace ]).concat(newState.slice(workspaceIndex + 1))
         }
     }
 

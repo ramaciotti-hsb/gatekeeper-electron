@@ -29,7 +29,7 @@ const mapStateToProps = (state, ownProps) => {
 
         newSample.sampleId = newSample.id
 
-        // Find any gates on this plot
+        // Find any gates on this sample
         const gates = []
         const gateTemplates = []
         for (let gate of state.gates) {

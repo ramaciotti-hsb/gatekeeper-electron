@@ -72,7 +72,7 @@ export default class WorkspaceView extends Component {
                             <div className='number'>{gateTemplate.populationCount}</div>
                             <div className='remove-gate-template' onClick={this.removeGateTemplate.bind(this, gateTemplate.id, this.props.workspace.id)}><i className='lnr lnr-cross'></i></div>
                         </div>
-                        <div className='child-gate-templates'>{this.renderSubGateTemplates(gateTemplate)}</div>
+                        <div className='child-gate-templates'>{this.props.workspace.selectedSample && this.props.workspace.selectedSample.FCSParameters.length > 0 && this.renderSubGateTemplates(gateTemplate)}</div>
                     </div>
                 ))
             }
