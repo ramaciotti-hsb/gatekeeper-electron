@@ -98,10 +98,10 @@ export default class MultipleSampleView extends Component {
 
     filterPlots () {
         const combinations = []
-        for (let x = 2; x < this.props.sample.FCSParameters.length; x++) {
-            for (let y = x + 1; y < this.props.sample.FCSParameters.length; y++) {
-                if (this.props.sample.FCSParameters[x].label.match('_') && this.props.sample.FCSParameters[y].label.match('_')
-                    && this.matchLabels(this.props.sample.FCSParameters[x].label, this.props.sample.FCSParameters[y].label, this.state.filterPlotString)) {
+        for (let x = 2; x < this.props.FCSFile.FCSParameters.length; x++) {
+            for (let y = x + 1; y < this.props.FCSFile.FCSParameters.length; y++) {
+                if (this.props.FCSFile.FCSParameters[x].label.match('_') && this.props.FCSFile.FCSParameters[y].label.match('_')
+                    && this.matchLabels(this.props.FCSFile.FCSParameters[x].label, this.props.FCSFile.FCSParameters[y].label, this.state.filterPlotString)) {
 
                     let shouldAdd = true
                     if (this.props.workspace.hideUngatedPlots) {
@@ -137,7 +137,7 @@ export default class MultipleSampleView extends Component {
         const { list } = this.context;
         const { columnWidth } = this.state;
 
-        if (!this.props.sample.FCSParameters || this.props.sample.FCSParameters.length === 0 || index >= this.state.combinations.length) {
+        if (!this.props.FCSFile.FCSParameters || this.props.FCSFile.FCSParameters.length === 0 || index >= this.state.combinations.length) {
             return null
         }
 
@@ -149,7 +149,7 @@ export default class MultipleSampleView extends Component {
                 <div className='gate-group' key={key} style={style}>
                     <div className='upper'>
                         <div className='selected-parameters'>
-                            {this.props.sample.FCSParameters[this.state.combinations[index][0]].label + ' · ' + this.props.sample.FCSParameters[this.state.combinations[index][1]].label}
+                            {this.props.FCSFile.FCSParameters[this.state.combinations[index][0]].label + ' · ' + this.props.FCSFile.FCSParameters[this.state.combinations[index][1]].label}
                             <div className={'icon' + (this.props.workspace.invertedAxisPlots[x + '_' + y] ? ' active' : '')} onClick={this.props.api.invertPlotAxis.bind(null, this.props.workspace.id, this.state.combinations[index][0], this.state.combinations[index][1])}><i className='lnr lnr-sync'></i></div>
                         </div>
                         <Dropdown outerClasses='dark' ref={'homologyDropdown-' + this.state.combinations[index][0] + '-' + this.state.combinations[index][1]}>
@@ -166,7 +166,7 @@ export default class MultipleSampleView extends Component {
                         </Dropdown>
                     </div>
                     <div className='graph'>
-                        <BivariatePlot sampleId={this.props.sample.id} selectedXParameterIndex={this.state.combinations[index][0]} selectedYParameterIndex={this.state.combinations[index][1]} selectedXScale={this.props.workspace.selectedXScale} selectedYScale={this.props.workspace.selectedYScale} selectedMachineType={this.props.workspace.selectedMachineType}  />
+                        <BivariatePlot sampleId={this.props.sample.id} FCSFileId={this.props.FCSFile.id} selectedXParameterIndex={this.state.combinations[index][0]} selectedYParameterIndex={this.state.combinations[index][1]} selectedXScale={this.props.workspace.selectedXScale} selectedYScale={this.props.workspace.selectedYScale} />
                     </div>
                 </div>
             </CellMeasurer>
@@ -270,14 +270,20 @@ export default class MultipleSampleView extends Component {
     }
 
     componentDidUpdate (prevProps) {
+        if (!this.props.sample) {
+            return
+        }
+
         let shouldReset = false
-        if (this.props.sample.id !== prevProps.sample.id) {
+        if (!prevProps.sample) {
+            shouldReset = true
+        } else if (this.props.sample.id !== prevProps.sample.id) {
             shouldReset = true
         } else if (this.props.workspace.hideUngatedPlots !== prevProps.workspace.hideUngatedPlots) {
             shouldReset = true
         } else if (this.props.workspace.invertedAxisPlots !== prevProps.workspace.invertedAxisPlots) {
             shouldReset = true
-        } else if (this.props.sample.FCSParameters.length !== prevProps.sample.FCSParameters.length) {
+        } else if (this.props.FCSFile.FCSParameters.length !== prevProps.FCSFile.FCSParameters.length) {
             shouldReset = true
         }
 
@@ -305,6 +311,10 @@ export default class MultipleSampleView extends Component {
     }
 
     render () {
+        if (!this.props.sample) {
+            return null
+        }
+
         const {
             columnWidth,
             height,
@@ -325,13 +335,13 @@ export default class MultipleSampleView extends Component {
             const key = `${gate.selectedXParameterIndex}_${gate.selectedYParameterIndex}`
             // if (!gateGroups[key]) {
             //     gateGroups[key] = {
-            //         label: this.props.sample.FCSParameters[gate.selectedXParameterIndex].label + ' · ' + this.props.sample.FCSParameters[gate.selectedYParameterIndex].label,
+            //         label: this.props.FCSFile.FCSParameters[gate.selectedXParameterIndex].label + ' · ' + this.props.FCSFile.FCSParameters[gate.selectedYParameterIndex].label,
             //         gates: []
             //     }
             // }
             if (!gateGroups[key]) {
                 gateGroups[key] = {
-                    label: this.props.sample.FCSParameters[gate.selectedXParameterIndex].label + ' · ' + this.props.sample.FCSParameters[gate.selectedYParameterIndex].label,
+                    label: this.props.FCSFile.FCSParameters[gate.selectedXParameterIndex].label + ' · ' + this.props.FCSFile.FCSParameters[gate.selectedYParameterIndex].label,
                     selectedXParameterIndex: gate.selectedXParameterIndex,
                     selectedYParameterIndex: gate.selectedYParameterIndex,
                     gates: []

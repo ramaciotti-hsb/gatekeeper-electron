@@ -12,10 +12,10 @@ const initialState = [
         id: uuidv4(),
         title: 'New Workspace',
         description: 'Empty Workspace',
+        FCSFileIds: [],
         sampleIds: [],
         gateTemplateIds: [],
         gateTemplateGroupIds: [],
-        selectedMachineType: constants.MACHINE_FLORESCENT,
         selectedXParameterIndex: 0,
         selectedYParameterIndex: 1,
         selectedXScale: constants.SCALE_LINEAR,
@@ -42,6 +42,23 @@ const workspaces = (state = initialState, action = {}) => {
             newState = newState.slice(0, workspaceIndex).concat(newState.slice(workspaceIndex + 1))
         } else {
             console.log('REMOVE_WORKSPACE failed: no workspace with id', action.payload.id, 'was found')
+        }
+    // --------------------------------------------------
+    // Add an existing FCS file to a workspace
+    // --------------------------------------------------
+    } else if (action.type === 'ADD_FCS_FILE_TO_WORKSPACE') {
+        const workspaceIndex = _.findIndex(state, w => w.id === action.payload.workspaceId)
+
+        if (workspaceIndex > -1) {
+            const newWorkspace = _.clone(state[workspaceIndex])
+            newWorkspace.FCSFileIds = state[workspaceIndex].FCSFileIds.slice(0)
+            if (!newWorkspace.FCSFileIds.includes(action.payload.FCSFileId)) {
+                newWorkspace.FCSFileIds.push(action.payload.FCSFileId)
+
+                newState = newState.slice(0, workspaceIndex).concat([ newWorkspace ]).concat(newState.slice(workspaceIndex + 1))
+            }
+        } else {
+            console.log('ADD_FCS_FILE_TO_WORKSPACE failed: no workspace with id', action.payload.workspaceId, 'was found')
         }
     // --------------------------------------------------
     // Add an existing gate template to a workspace
@@ -113,22 +130,23 @@ const workspaces = (state = initialState, action = {}) => {
             console.log('ADD_SAMPLE_TO_WORKSPACE failed: no workspace with id', action.payload.workspaceId, 'was found')
         }
     // --------------------------------------------------
-    // Select a sample that is already within a workspace
+    // Select an FCS File that is already within a workspace
     // --------------------------------------------------
-    } else if (action.type === 'SELECT_SAMPLE') {
+    } else if (action.type === 'SELECT_FCS_FILE') {
+        console.log(action.type, action.payload)
         const workspaceIndex = _.findIndex(state, w => w.id === action.payload.workspaceId)
 
         if (workspaceIndex > -1) {
             const newWorkspace = _.clone(state[workspaceIndex])
-            newWorkspace.sampleIds = state[workspaceIndex].sampleIds.slice(0)
-            if (newWorkspace.sampleIds.includes(action.payload.sampleId)) {
-                newWorkspace.selectedSampleId = action.payload.sampleId
+            newWorkspace.FCSFileIds = state[workspaceIndex].FCSFileIds.slice(0)
+            if (newWorkspace.FCSFileIds.includes(action.payload.FCSFileId)) {
+                newWorkspace.selectedFCSFileId = action.payload.FCSFileId
                 newState[workspaceIndex] = newWorkspace
             } else {
-                console.log('SELECT_SAMPLE failed: no sample with id', action.payload.sampleId, 'was found in sampleIds of workspace with id', action.payload.workspaceId)       
+                console.log('SELECT_FCS_FILE failed: no FCS File with id', action.payload.FCSFileId, 'was found in FCSFileIds of workspace with id', action.payload.workspaceId)       
             }
         } else {
-            console.log('SELECT_SAMPLE failed: no workspace with id', action.payload.workspaceId, 'was found')
+            console.log('SELECT_FCS_FILE failed: no workspace with id', action.payload.workspaceId, 'was found')
         }
     // --------------------------------------------------
     // Removes a gate template from it's workspace

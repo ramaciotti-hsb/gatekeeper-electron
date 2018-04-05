@@ -34,10 +34,10 @@ const packPNGFile = (newFile, fileName) => {
 }
 
 
-export default async (sample, subPopulation, options) => {
+export default async (sample, FCSFile, subPopulation, options) => {
     // Offset the entire graph and add histograms if we're looking at cytof data
-    let xOffset = options.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
-    let yOffset = options.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+    let xOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
+    let yOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
 
     const data = []
     let PNGFile
@@ -77,8 +77,8 @@ export default async (sample, subPopulation, options) => {
     const scales = getScales({
         selectedXScale: options.selectedXScale,
         selectedYScale: options.selectedYScale,
-        xRange: [ sample.FCSParameters[options.selectedXParameterIndex].statistics.min, sample.FCSParameters[options.selectedXParameterIndex].statistics.max ],
-        yRange: [ sample.FCSParameters[options.selectedYParameterIndex].statistics.min, sample.FCSParameters[options.selectedYParameterIndex].statistics.max ],
+        xRange: [ FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.min, FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.max ],
+        yRange: [ FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.min, FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.max ],
         width: constants.PLOT_WIDTH - xOffset,
         height: constants.PLOT_HEIGHT - yOffset
     })
@@ -110,7 +110,7 @@ export default async (sample, subPopulation, options) => {
     }
 
     // If we're looking at cytof data, render histograms at the left and bottom of the graph
-    if (options.selectedMachineType === constants.MACHINE_CYTOF) {
+    if (FCSFile.machineType === constants.MACHINE_CYTOF) {
         PNGFile = new pngjs.PNG({ width: constants.PLOT_WIDTH, height: constants.PLOT_HEIGHT })
 
         // Build a new image with the graph and histograms

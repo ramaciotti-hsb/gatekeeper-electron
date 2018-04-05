@@ -36,107 +36,59 @@ const getFCSFileFromPath = async (filePath) => {
     }
 }
 
-export default async function getPopulationForSample (sample, options) {
-    process.stdout.write(JSON.stringify({ data: 'Reading FCS File: ' + sample.filePath }))
-    let FCSFile
+export default async function getPopulationForSample (sample, FCSFile, options) {
+    process.stdout.write(JSON.stringify({ data: 'Reading FCS File: ' + FCSFile.filePath }))
+    let FCSFileData
     try  {
-        FCSFile = await getFCSFileFromPath(sample.filePath)        
+        FCSFileData = await getFCSFileFromPath(FCSFile.filePath)        
     } catch (error) {
         process.stderr.write(JSON.stringify(error))
         return
     }
 
-    const selectedMachineType = FCSFile.text['$CYT'].match(/CYTOF/) ? constants.MACHINE_CYTOF : constants.MACHINE_FLORESCENT
-
-    let xOffset = selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
-    let yOffset = selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+    let xOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
+    let yOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
 
     if (!sample) { console.log('Error in getPopulationForSample(): no sample with id ', sampleId, 'was found'); return }
-
-    // Loop through the parameters and get the min and max values of all the data points
-    const FCSParameters = []
-
-    process.stdout.write(JSON.stringify({ data: 'Getting parameters' }))
-    for (let key of _.keys(FCSFile.text)) {
-        if ((key.match(/^\$P.+N$/) || key.match(/^\$P.+S$/)) &&
-            !FCSParameters[parseInt(key.match(/\d+/)[0]) - 1]) {
-            FCSParameters[parseInt(key.match(/\d+/)[0]) - 1] = {
-                key: FCSFile.text[key],
-                label: FCSFile.text[key],
-                statistics: {
-                    min: Infinity,
-                    positiveMin: Infinity,
-                    max: -Infinity,
-                    mean: 0
-                }
-            }
-        }
-
-        if (key.match(/^\$P.+N$/)) {
-            FCSParameters[parseInt(key.match(/\d+/)[0]) - 1].key = FCSFile.text[key]
-        } else if (key.match(/^\$P.+S$/)) {
-            FCSParameters[parseInt(key.match(/\d+/)[0]) - 1].label = FCSFile.text[key]
-        }
-    }
 
     const subPopulation = []
     const aboveZeroPopulation = []
     const xChannelZeroes = []
     const yChannelZeroes = []
 
-    process.stdout.write(JSON.stringify({ data: 'Removing zeroes and calculating statistics' }))
-    for (let i = 0; i < FCSFile.dataAsNumbers.length; i++) {
-        if (selectedMachineType === constants.MACHINE_CYTOF) {
+    process.stdout.write(JSON.stringify({ data: 'Removing zeroes' }))
+    for (let i = 0; i < FCSFileData.dataAsNumbers.length; i++) {
+        if (FCSFile.machineType === constants.MACHINE_CYTOF) {
             if (sample.includeEventIds.length === 0 || sample.includeEventIds.includes(i)) {
                 // Every point that has a zero in the selected X channel
-                if (FCSFile.dataAsNumbers[i][options.selectedXParameterIndex] === 0 && FCSFile.dataAsNumbers[i][options.selectedYParameterIndex] === 0) {
-                    // doubleChannelZeroes.push(scales.yScale(sample.FCSParameters[options.selectedYParameterIndex].statistics.max))
+                if (FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex] === 0 && FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex] === 0) {
+                    // doubleChannelZeroes.push(scales.yScale(sample.FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.max))
                 }
                 // Every point that has a zero in the selected X channel
-                else if (FCSFile.dataAsNumbers[i][options.selectedXParameterIndex] === 0) {
-                    xChannelZeroes.push(FCSFile.dataAsNumbers[i][options.selectedYParameterIndex])
+                else if (FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex] === 0) {
+                    xChannelZeroes.push(FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex])
                 // Every point that has a zero in the selected Y channel
-                } else if (FCSFile.dataAsNumbers[i][options.selectedYParameterIndex] === 0) {
-                    yChannelZeroes.push(FCSFile.dataAsNumbers[i][options.selectedXParameterIndex])
+                } else if (FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex] === 0) {
+                    yChannelZeroes.push(FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex])
                 } else {
-                    aboveZeroPopulation.push([ FCSFile.dataAsNumbers[i][options.selectedXParameterIndex], FCSFile.dataAsNumbers[i][options.selectedYParameterIndex], i ])
+                    aboveZeroPopulation.push([ FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex], FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], i ])
                 }
-                subPopulation.push([ FCSFile.dataAsNumbers[i][options.selectedXParameterIndex], FCSFile.dataAsNumbers[i][options.selectedYParameterIndex], i ])
+                subPopulation.push([ FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex], FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], i ])
             }
         } else if (sample.includeEventIds.length === 0 || sample.includeEventIds.includes(i)) {
-            subPopulation.push([ FCSFile.dataAsNumbers[i][options.selectedXParameterIndex], FCSFile.dataAsNumbers[i][options.selectedYParameterIndex], i ])
-            aboveZeroPopulation.push([ FCSFile.dataAsNumbers[i][options.selectedXParameterIndex], FCSFile.dataAsNumbers[i][options.selectedYParameterIndex], i ])
-        }
-
-        for (let j = 0; j < FCSFile.dataAsNumbers[i].length; j++) {
-            if (FCSFile.dataAsNumbers[i][j] < FCSParameters[j].statistics.min) {
-                FCSParameters[j].statistics.min = FCSFile.dataAsNumbers[i][j]
-            }
-
-            if (FCSFile.dataAsNumbers[i][j] < FCSParameters[j].statistics.positiveMin && FCSFile.dataAsNumbers[i][j] > 0) {
-                FCSParameters[j].statistics.positiveMin = FCSFile.dataAsNumbers[i][j]
-            }
-
-            if (FCSFile.dataAsNumbers[i][j] > FCSParameters[j].statistics.max) {
-                FCSParameters[j].statistics.max = FCSFile.dataAsNumbers[i][j]
-            }
-
-            // If we're looking at Cytof data, exclude zero values from mean calculation (they aren't useful)
-            if (FCSFile.dataAsNumbers[i][j] > 0) {
-                FCSParameters[j].statistics.mean += FCSFile.dataAsNumbers[i][j] / FCSFile.dataAsNumbers.length                
-            }
+            subPopulation.push([ FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex], FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], i ])
+            aboveZeroPopulation.push([ FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex], FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], i ])
         }
     }
 
     const scales = getScales({
         selectedXScale: options.selectedXScale,
         selectedYScale: options.selectedYScale,
-        xRange: [ FCSParameters[options.selectedXParameterIndex].statistics.min, FCSParameters[options.selectedXParameterIndex].statistics.max ],
-        yRange: [ FCSParameters[options.selectedYParameterIndex].statistics.min, FCSParameters[options.selectedYParameterIndex].statistics.max ],
+        xRange: [ FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.min, FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.max ],
+        yRange: [ FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.min, FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.max ],
         width: constants.PLOT_WIDTH - xOffset,
         height: constants.PLOT_HEIGHT - yOffset
     })
-
 
     // process.stdout.write(JSON.stringify({ data: 'Calculating density' }))
     // // Perform kernel density for each channel then combine for 2d density
@@ -242,7 +194,7 @@ export default async function getPopulationForSample (sample, options) {
     let maxDensityY
     let maxDensityX
 
-    if (selectedMachineType === constants.MACHINE_CYTOF) {
+    if (FCSFile.machineType === constants.MACHINE_CYTOF) {
         densityY = kernelDensityEstimator(kernelEpanechnikov(constants.PLOT_WIDTH * 0.05), _.range(0, constants.PLOT_WIDTH - xOffset))(yChannelZeroes.map(value => scales.xScale(value)))
         densityX = kernelDensityEstimator(kernelEpanechnikov(constants.PLOT_HEIGHT * 0.05), _.range(0, constants.PLOT_HEIGHT - yOffset))(xChannelZeroes.map(value => scales.yScale(value)))
 
@@ -263,14 +215,6 @@ export default async function getPopulationForSample (sample, options) {
         zeroDensityY: {
             densityMap: densityY,
             maxDensity: maxDensityY
-        },
-        // newDensityMap: {
-        //     densityX,
-        //     densityY,
-        //     newMaxDensity
-        // },
-        FCSParameters,
-        selectedMachineType: selectedMachineType,
-        populationCount: subPopulation.length
+        }
     }
 }

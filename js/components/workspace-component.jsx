@@ -8,7 +8,7 @@ import React from 'react'
 import { Component } from 'react'
 import _ from 'lodash'
 import '../../scss/workspace-view.scss'
-import SampleSelector from '../containers/sample-selector-container.jsx'
+import FCSFileSelector from '../containers/fcs-file-selector-container.jsx'
 
 export default class WorkspaceView extends Component {
 
@@ -45,7 +45,7 @@ export default class WorkspaceView extends Component {
             return (
                 <div className='sidebar-gate-template-group' key={childGateTemplateGroup.id}>
                     <div className='title'>
-                        {this.props.workspace.selectedSample.FCSParameters[childGateTemplateGroup.selectedXParameterIndex].label} · {this.props.workspace.selectedSample.FCSParameters[childGateTemplateGroup.selectedYParameterIndex].label}
+                        {childGateTemplateGroup.title}
                         <div className='show-plot' onClick={this.props.api.updateWorkspace.bind(null, this.props.workspace.id, {
                             selectedXParameterIndex: childGateTemplateGroup.selectedXParameterIndex,
                             selectedYParameterIndex: childGateTemplateGroup.selectedYParameterIndex,
@@ -72,13 +72,13 @@ export default class WorkspaceView extends Component {
                             <div className='number'>{gateTemplate.populationCount}</div>
                             <div className='remove-gate-template' onClick={this.removeGateTemplate.bind(this, gateTemplate.id, this.props.workspace.id)}><i className='lnr lnr-cross'></i></div>
                         </div>
-                        <div className='child-gate-templates'>{this.props.workspace.selectedSample && this.props.workspace.selectedSample.FCSParameters.length > 0 && this.renderSubGateTemplates(gateTemplate)}</div>
+                        <div className='child-gate-templates'>{this.renderSubGateTemplates(gateTemplate)}</div>
                     </div>
                 ))
             }
         }
 
-        const panel = <SampleSelector selectedSample={this.props.workspace.selectedSample} workspaceId={this.props.workspace.id} selectedGateTemplate={this.props.selectedGateTemplate} />
+        const panel = <FCSFileSelector selectedFCSFile={this.props.workspace.selectedFCSFile} workspaceId={this.props.workspace.id} selectedGateTemplate={this.props.selectedGateTemplate} />
 
         return (
             <div className='workspace'>

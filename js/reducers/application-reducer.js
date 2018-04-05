@@ -1,7 +1,9 @@
 import { combineReducers } from 'redux'
+import { removeFCSFile } from '../actions/fcs-file-actions'
 import { removeSample } from '../actions/sample-actions'
 import { removeGateTemplate } from '../actions/gate-template-actions'
 import { removeGateTemplateGroup, removeGateTemplateFromGroup } from '../actions/gate-template-group-actions.js'
+import FCSFileReducer from './fcs-file-reducer'
 import sampleReducer from './sample-reducer'
 import workspaceReducer from './workspace-reducer'
 import gateReducer from './gate-reducer'
@@ -13,6 +15,7 @@ import { remote } from 'electron'
 import fs from 'fs'
 
 let initialState = {
+    FCSFiles: FCSFileReducer(),
     samples: sampleReducer(),
     workspaces: workspaceReducer(),
     gates: gateReducer(),
@@ -25,6 +28,7 @@ let initialState = {
 
 const applicationReducer = (state = initialState, action) => {
     let newState = {
+        FCSFiles: state.FCSFiles ? state.FCSFiles.slice(0) : [],
         samples: state.samples ? state.samples.slice(0) : [],
         workspaces: state.workspaces ? state.workspaces.slice(0) : [],
         gates: state.gates ? state.gates.slice(0) : [],
@@ -41,6 +45,7 @@ const applicationReducer = (state = initialState, action) => {
     // filesystem.
     // --------------------------------------------------
     if (action.type === 'SET_SESSION_STATE') {
+        newState.FCSFiles = action.payload.FCSFiles ? action.payload.FCSFiles.slice(0) : []
         newState.samples = action.payload.samples ? action.payload.samples.slice(0) : []
         newState.workspaces = action.payload.workspaces ? action.payload.workspaces.slice(0) : []
         newState.gates = action.payload.gates ? action.payload.gates.slice(0) : []
@@ -48,7 +53,6 @@ const applicationReducer = (state = initialState, action) => {
         newState.gateTemplateGroups = action.payload.gateTemplateGroups ? action.payload.gateTemplateGroups.slice(0) : []
         newState.selectedWorkspaceId = action.payload.selectedWorkspaceId
         newState.sessionLoading = false
-        console.log('test2')
     }
     // --------------------------------------------------
     // Selects which "API" object to use. This changes from
@@ -69,6 +73,20 @@ const applicationReducer = (state = initialState, action) => {
     // --------------------------------------------------
     } else if (action.type === 'SELECT_WORKSPACE') {
         newState.selectedWorkspaceId = action.payload.id
+    // --------------------------------------------------
+    // Create an FCS File and add it to a particular workspace
+    // --------------------------------------------------
+    } else if (action.type === 'CREATE_FCS_FILE_AND_ADD_TO_WORKSPACE') {
+        // Find the workspace the user wants to add to
+        const workspace = _.find(state.workspaces, w => w.id === action.payload.workspaceId)
+        if (workspace) {
+            // Create a new sample with the sample reducer
+            newState.FCSFiles = FCSFileReducer(newState.FCSFiles, { type: 'CREATE_FCS_FILE', payload: action.payload.FCSFile })
+            newState.workspaces = workspaceReducer(newState.workspaces, { type: 'ADD_FCS_FILE_TO_WORKSPACE', payload: { workspaceId: workspace.id, FCSFileId: action.payload.FCSFile.id } })
+            newState.workspaces = workspaceReducer(newState.workspaces, { type: 'SELECT_FCS_FILE', payload: { workspaceId: workspace.id, FCSFileId: action.payload.FCSFile.id } })
+        } else {
+            console.log('CREATE_FCS_FILE_AND_ADD_TO_WORKSPACE failed: workspace with id', action.payload.workspaceId, 'was found')   
+        }
     // --------------------------------------------------
     // Create a gate template and add it to a particular workspace
     // --------------------------------------------------
@@ -105,7 +123,6 @@ const applicationReducer = (state = initialState, action) => {
             // Create a new sample with the sample reducer
             newState.samples = sampleReducer(newState.samples, { type: 'CREATE_SAMPLE', payload: action.payload.sample })
             newState.workspaces = workspaceReducer(newState.workspaces, { type: 'ADD_SAMPLE_TO_WORKSPACE', payload: { workspaceId: workspace.id, sampleId: action.payload.sample.id } })
-            newState.workspaces = workspaceReducer(newState.workspaces, { type: 'SELECT_SAMPLE', payload: { workspaceId: workspace.id, sampleId: action.payload.sample.id } })
         } else {
             console.log('CREATE_SAMPLE_AND_ADD_TO_WORKSPACE failed: workspace with id', action.payload.workspaceId, 'was found')   
         }
@@ -137,6 +154,50 @@ const applicationReducer = (state = initialState, action) => {
         }
 
         newState.workspaces = workspaceReducer(newState.workspaces, action)
+    // --------------------------------------------------
+    // Remove an FCS File, and all the samples that depend on it
+    // --------------------------------------------------    
+    } else if (action.type === 'REMOVE_FCS_FILE') {
+        // newState.FCSFiles = FCSFileReducer(newState.FCSFiles, action)
+        const removeAction = removeFCSFile(action.payload.FCSFileId)
+        // Find the workspace that the gateTemplate is inside and remove it from there
+        const workspaceIndex = _.findIndex(state.workspaces, w => w.FCSFileIds.includes(removeAction.payload.FCSFileId))
+
+        if (workspaceIndex > -1) {
+            const newWorkspace = _.clone(state.workspaces[workspaceIndex])
+            newWorkspace.FCSFileIds = newWorkspace.FCSFileIds.slice(0)
+
+            if (newWorkspace.selectedFCSFileId === removeAction.payload.FCSFileId) {
+                const selectedGateTemplateIndex = _.findIndex(newWorkspace.FCSFileIds, s => s === removeAction.payload.FCSFileId)
+                if (selectedGateTemplateIndex > -1) {
+
+                    // Select another gateTemplate if there is one available to select, otherwise do nothing
+                    if (newWorkspace.FCSFileIds.length > 1) {
+
+                        if (selectedGateTemplateIndex < newWorkspace.FCSFileIds.length - 1) {
+                            newWorkspace.selectedFCSFileId = newWorkspace.FCSFileIds[Math.min(Math.max(selectedGateTemplateIndex + 1, 0), newWorkspace.FCSFileIds.length - 1)]
+                        } else {
+                            newWorkspace.selectedFCSFileId = newWorkspace.FCSFileIds[newWorkspace.FCSFileIds.length - 2]
+                        }
+                    } else {
+                        newWorkspace.selectedFCSFileId = null
+                    }
+
+                    newState.workspaces = newState.workspaces.slice(0, workspaceIndex).concat([ newWorkspace ]).concat(newState.workspaces.slice(workspaceIndex + 1))
+                } else {
+                    console.log('REMOVE_FCS_FILE failed: no gateTemplate with id', removeAction.payload.FCSFileId, 'was found in FCSFileIds of workspace with id', removeAction.payload.workspaceId)       
+                }
+            }
+
+            newState.workspaces = workspaceReducer(newState.workspaces, removeAction)
+        }
+
+        newState.FCSFiles = FCSFileReducer(newState.FCSFiles, removeAction)
+        // Delete any samples that no longer point to a valid FCSFile (i.e. their parent or child has been deleted)
+        let orphanSamples = _.filter(newState.samples, s => !_.find(newState.FCSFiles, fcs => s.FCSFileId === fcs.id))
+        for (let sample of orphanSamples) {
+            newState = applicationReducer(newState, { type: 'REMOVE_SAMPLE', payload: { sampleId: sample.id } })
+        }
     // --------------------------------------------------
     // Remove a gate template, any child gate templates and unselect if selected
     // --------------------------------------------------
@@ -238,7 +299,7 @@ const applicationReducer = (state = initialState, action) => {
                 newState.workspaces = workspaceReducer(newState.workspaces, removeAction)
             }
 
-            newState.gateTemplateGroups = gateTemplateGroupReducer(newState.gateTemplates, removeAction)
+            newState.gateTemplateGroups = gateTemplateGroupReducer(newState.gateTemplateGroups, removeAction)
         }
 
         // Delete any gates that no longer point to a valid gateTemplate (i.e. their parent or child has been deleted)
@@ -252,6 +313,7 @@ const applicationReducer = (state = initialState, action) => {
             newState = applicationReducer(newState, { type: 'REMOVE_SAMPLE', payload: { sampleId: sample.id } })
         }
         // Delete any empty gate template groups
+        console.log(newState.gateTemplateGroups)
         let emptyGroups = _.filter(newState.gateTemplateGroups, g => g.childGateTemplateIds.length === 0)
         for (let gateTemplateGroup of emptyGroups) {
             newState.gateTemplateGroups = gateTemplateGroupReducer(newState.gateTemplateGroups, { type: 'REMOVE_GATE_TEMPLATE_GROUP', payload: { gateTemplateGroupId: gateTemplateGroup.id } })
@@ -264,7 +326,7 @@ const applicationReducer = (state = initialState, action) => {
         const samplesToRemove = []
         const addSubSamples = (sampleId) => {
             const sample = _.find(newState.samples, s => s.id === sampleId)
-            if (sampleId) {
+            if (sampleId && sample) {
                 samplesToRemove.push(sampleId)
 
                 if (sample.subSampleIds) {
@@ -323,6 +385,7 @@ const applicationReducer = (state = initialState, action) => {
     // sampleReducer
     // --------------------------------------------------
     } else {
+        newState.FCSFiles = FCSFileReducer(newState.FCSFiles, action)
         newState.workspaces = workspaceReducer(newState.workspaces, action)
         newState.samples = sampleReducer(newState.samples, action)
         newState.gates = gateReducer(newState.gates, action)

@@ -71,7 +71,7 @@ if (cluster.isMaster) {
                     if (populationCache[key]) {
                         res.end(JSON.stringify(populationCache[key]))
                     } else {
-                        getSubPopulation(body.payload.sample, body.payload.options).then((data) => {
+                        getSubPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((data) => {
                             process.stdout.write(JSON.stringify({ jobId: body.jobId, data: 'Finished job on worker side'}))
                             populationCache[key] = data
                             res.end(JSON.stringify(data))
@@ -87,7 +87,7 @@ if (cluster.isMaster) {
                         if (populationCache[key]) {
                             resolve(populationCache[key])
                         } else {
-                            getSubPopulation(body.payload.sample, body.payload.options).then((data) => {
+                            getSubPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((data) => {
                                 populationCache[key] = data
                                 resolve(data)
                             }).catch((error) => {
@@ -96,7 +96,7 @@ if (cluster.isMaster) {
                             })
                         }
                     }).then((population) => {
-                        getImageForPlot(body.payload.sample, population, body.payload.options).then((data) => {
+                        getImageForPlot(body.payload.sample, body.payload.FCSFile, population, body.payload.options).then((data) => {
                             res.end(JSON.stringify(data))
                         }).catch((error) => {
                             console.log(error)
@@ -109,7 +109,7 @@ if (cluster.isMaster) {
                         if (populationCache[key]) {
                             resolve(populationCache[key])
                         } else {
-                            getSubPopulation(body.payload.sample, body.payload.options).then((data) => {
+                            getSubPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((data) => {
                                 populationCache[key] = data
                                 resolve(data)
                             }).catch((error) => {
@@ -120,6 +120,7 @@ if (cluster.isMaster) {
                     }).then((population) => {
                         const homology = new PersistentHomology({
                             sample: body.payload.sample,
+                            FCSFile: body.payload.FCSFile,
                             population,
                             options: body.payload.options
                         })
@@ -140,7 +141,7 @@ if (cluster.isMaster) {
                         if (populationCache[key]) {
                             resolve(populationCache[key])
                         } else {
-                            getSubPopulation(body.payload.sample, body.payload.options).then((data) => {
+                            getSubPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((data) => {
                                 populationCache[key] = data
                                 resolve(data)
                             }).catch((error) => {
@@ -151,6 +152,7 @@ if (cluster.isMaster) {
                     }).then((population) => {
                         const homology = new PersistentHomology({
                             sample: body.payload.sample,
+                            FCSFile: body.payload.FCSFile,
                             population,
                             options: body.payload.options,
                             gateTemplates: body.payload.gateTemplates

@@ -145,13 +145,12 @@ export default class Application extends Component {
             for (let filePath of filePaths) {
                 if (!filePath) { console.log("Error: undefined FCS file passed to readFCSFileData"); continue }
 
-                const sample = {
-                    type: "sample",
+                const FCSFile = {
                     filePath: filePath,
                     title: filePath.split(path.sep).slice(-1), // Returns just the filename without the path
-                    description: 'Root Sample',
+                    description: 'FCS File',
                 }
-                this.props.api.createSampleAndAddToWorkspace(this.props.selectedWorkspaceId, sample)
+                this.props.api.createFCSFileAndAddToWorkspace(this.props.selectedWorkspaceId, FCSFile)
             }
         }
     }

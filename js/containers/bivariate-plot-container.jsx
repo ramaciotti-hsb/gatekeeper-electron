@@ -9,6 +9,13 @@ import BivariatePlot from '../components/sample-components/bivariate-plot-compon
 import _ from 'lodash'
 
 const mapStateToProps = (state, ownProps) => {
+    // Find the selected FCS file
+    const FCSFile = _.find(state.FCSFiles, w => w.id === ownProps.FCSFileId) || {}
+    const newFCSFile = _.cloneDeep(FCSFile)
+
+    // Find the workspace that this FCS File is inside
+    let workspace = _.find(state.workspaces, w => w.FCSFileIds.includes(ownProps.FCSFileId))
+    
     if (ownProps.sampleId) {
         // Find the selected sample
         const sample = _.find(state.samples, w => w.id === ownProps.sampleId) || {}
@@ -23,8 +30,6 @@ const mapStateToProps = (state, ownProps) => {
             
             newSample.subSampleIds = null
         }
-        // Find the workspace that this sample is inside
-        const workspace = _.find(state.workspaces, w => w.sampleIds.includes(ownProps.sampleId))
 
         // Find any gates on this plot
         const gates = []
@@ -49,9 +54,9 @@ const mapStateToProps = (state, ownProps) => {
             newSample.parentTitle = parent.title
         }
 
-        return { api: state.api, workspace: workspace, sample: newSample, gates, gateTemplates, gateTemplateGroups }
+        return { api: state.api, workspace, sample: newSample, gates, gateTemplates, gateTemplateGroups, FCSFile }
     } else {
-        return { api: state.api, sample: { subSamples: [] }, gates: [], gateTemplates: [] }
+        return { api: state.api, gates: [], gateTemplates: [], workspace, FCSFile }
     }
 }
 

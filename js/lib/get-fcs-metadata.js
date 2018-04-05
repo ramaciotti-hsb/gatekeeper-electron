@@ -46,9 +46,9 @@ export default async function getFCSMetadata (filePath) {
         return
     }
 
-    const selectedMachineType = FCSFile.text['$CYT'].match(/CYTOF/) ? constants.MACHINE_CYTOF : constants.MACHINE_FLORESCENT
+    const machineType = FCSFile.text['$CYT'].match(/CYTOF/) ? constants.MACHINE_CYTOF : constants.MACHINE_FLORESCENT
 
-    const populationCount = FCSFile.text['$TOT']
+    const populationCount = parseInt(FCSFile.text['$TOT'], 10)
 
     // Loop through the parameters and get the min and max values of all the data points
     const FCSParameters = []
@@ -99,6 +99,6 @@ export default async function getFCSMetadata (filePath) {
     return {
         FCSParameters,
         populationCount,
-        selectedMachineType
+        machineType
     }
 }

@@ -1,13 +1,13 @@
 // ----------------------------------------------
-// Styles for sample-selector-component.jsx
+// Styles for fcs-file-selector-component.jsx
 // ----------------------------------------------
 
 @import 'mixins.scss';
 
-.sample-selector-outer {
+.fcs-file-selector-outer {
     flex-grow: 1;
 
-    .sample-selector-inner {
+    .fcs-file-selector-inner {
         flex-grow: 1;
         flex-direction: column;
         
@@ -42,7 +42,7 @@
             }
         }
 
-        .panel.sample {
+        .panel.fcs-file {
             flex-grow: 1;
         }
     }

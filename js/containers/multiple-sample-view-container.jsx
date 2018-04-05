@@ -10,8 +10,14 @@ import MultipleSampleView from '../components/sample-components/multiple-sample-
 import _ from 'lodash'
 
 const mapStateToProps = (state, ownProps) => {
+    // Find the selected FCS file
+    const FCSFile = _.find(state.FCSFiles, w => w.id === ownProps.FCSFileId) || {}
+    const newFCSFile = _.cloneDeep(FCSFile)
+
+    // Find the workspace that this FCS File is inside
+    let workspace = _.find(state.workspaces, w => w.FCSFileIds.includes(ownProps.FCSFileId))
+    
     if (ownProps.sampleId) {
-        // Find the selected sample
         const sample = _.find(state.samples, w => w.id === ownProps.sampleId) || {}
         const newSample = _.cloneDeep(sample)
         newSample.subSamples = []
@@ -24,8 +30,6 @@ const mapStateToProps = (state, ownProps) => {
             
             newSample.subSampleIds = null
         }
-        // Find the workspace that this sample is inside
-        const workspace = _.find(state.workspaces, w => w.sampleIds.includes(ownProps.sampleId))
 
         newSample.sampleId = newSample.id
 
@@ -63,9 +67,9 @@ const mapStateToProps = (state, ownProps) => {
 
         newSample.selectedMachineType = newSample.selectedMachineType || constants.MACHINE_FLORESCENT
 
-        return { api: state.api, workspace: workspace, sample: newSample, gates, gateTemplates, gateTemplate, gateTemplateGroup, parentGateTitle }
+        return { api: state.api, workspace, FCSFile: newFCSFile, sample: newSample, gates, gateTemplates, gateTemplate, gateTemplateGroup, parentGateTitle }
     } else {
-        return { api: state.api, sample: { subSamples: [] }, gates: [] }
+        return { api: state.api, gates: [], FCSFile: newFCSFile, gateTemplate: {}, workspace }
     }
 }
 

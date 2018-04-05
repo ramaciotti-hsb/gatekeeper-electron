@@ -9,7 +9,6 @@ import { remote } from 'electron'
 import fs from 'fs'
 import uuidv4 from 'uuid/v4'
 import _ from 'lodash'
-import FCS from 'fcs'
 import * as d3 from "d3"
 import os from 'os'
 import { getPlotImageKey, heatMapRGBForValue, getScales, getPolygonCenter } from '../lib/utilities'
@@ -19,11 +18,13 @@ import { fork } from 'child_process'
 import GrahamScan from '../lib/graham-scan.js'
 import pointInsidePolygon from 'point-in-polygon'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
+import isDev from 'electron-is-dev'
 import applicationReducer from '../reducers/application-reducer'
 import { updateSample, removeSample, setSamplePlotImage, setSampleParametersLoading } from '../actions/sample-actions'
 import { updateGateTemplate, removeGateTemplate } from '../actions/gate-template-actions'
-import isDev from 'electron-is-dev'
+import { updateFCSFile, removeFCSFile } from '../actions/fcs-file-actions'
 import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace,
+    createFCSFileAndAddToWorkspace,
     createSampleAndAddToWorkspace, createSubSampleAndAddToWorkspace, selectSample, invertPlotAxis,
     createGateTemplateAndAddToWorkspace, selectGateTemplate,
     createGateTemplateGroupAndAddToWorkspace } from '../actions/workspace-actions'
@@ -36,10 +37,8 @@ import request from 'request'
 // import getImageForPlotBackend from '../lib/get-image-for-plot'
 
 // Fork a new node process for doing CPU intensive jobs
-console.log(__dirname)
 let workerFork
 if (isDev) {
-    console.log('test')
     workerFork = fork(__dirname + '/js/electron/subprocess-wrapper.js', [], { silent: true })
 } else {
     workerFork = fork(__dirname + '/webpack-build/fork.bundle.js', [], { silent: true })
@@ -96,20 +95,7 @@ let currentState = {}
 
 let reduxStore = {}
 
-const FCSFileCache = {}
-
 const populationDataCache = {}
-
-const getFCSFileFromPath = async (filePath) => {
-    if (FCSFileCache[filePath]) {
-        return FCSFileCache[filePath]
-    }
-    // Read in the data from the FCS file, and emit another action when finished
-    const buffer = await readFileBuffer(filePath)
-    const FCSFile = new FCS({ dataFormat: 'asNumber', eventsToRead: -1 }, buffer)
-    FCSFileCache[filePath] = FCSFile
-    return FCSFile
-}
 
 const getFCSMetadata = async (filePath) => {
     const jobId = uuidv4()
@@ -127,21 +113,19 @@ const getFCSMetadata = async (filePath) => {
 }
 
 // Generates an image for a 2d scatter plot
-const getImageForPlot = async (sample, options) => {
+const getImageForPlot = async (sample, FCSFile, options) => {
     if (sample.plotImages[getPlotImageKey(options)]) { return sample.plotImages[getPlotImageKey(options)] }
 
     const jobId = uuidv4()
 
-    console.log('making image request')
     const imagePath = await new Promise((resolve, reject) => {
-        request.post({ url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-image-for-plot', payload: { sample, options } } }, function (error, response, body) {
+        request.post({ url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-image-for-plot', payload: { sample, FCSFile, options } } }, function (error, response, body) {
             if (error) {
                 reject(error)
             }
             resolve(body)
         });
     })
-    console.log('finished image request')
 
     return imagePath
     // return await getImageForPlotBackend(sample, subPopulation, options)
@@ -149,18 +133,19 @@ const getImageForPlot = async (sample, options) => {
 
 const getAllPlotImages = async (sample, scales) => {
     const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sample.id))
+    const FCSFile = _.find(currentState.FCSFiles, fcs => sample.FCSFileId === fcs.id)
     let combinations = []
 
-    for (let x = 2; x < sample.FCSParameters.length; x++) {
-        for (let y = x + 1; y < sample.FCSParameters.length; y++) {
+    for (let x = 2; x < FCSFile.FCSParameters.length; x++) {
+        for (let y = x + 1; y < FCSFile.FCSParameters.length; y++) {
             const options = {
                 selectedXParameterIndex: workspace.invertedAxisPlots[x + '_' + y] ? y : x,
                 selectedYParameterIndex: workspace.invertedAxisPlots[x + '_' + y] ? x : y,
                 selectedXScale: scales.selectedXScale,
                 selectedYScale: scales.selectedYScale,
-                selectedMachineType: workspace.selectedMachineType
+                selectedMachineType: FCSFile.machineType
             }
-            if (!sample.plotImages[getPlotImageKey(options)] && sample.FCSParameters[x].label.match('_') && sample.FCSParameters[y].label.match('_')) {
+            if (!sample.plotImages[getPlotImageKey(options)] && FCSFile.FCSParameters[x].label.match('_') && FCSFile.FCSParameters[y].label.match('_')) {
                 combinations.push(options)
             }
         }
@@ -172,7 +157,7 @@ const getAllPlotImages = async (sample, scales) => {
             console.log('doing combination', options)
 
             // Generate the cached images
-            const imageForPlot = await getImageForPlot(sample, options)
+            const imageForPlot = await getImageForPlot(sample, FCSFile, options)
             const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
             currentState = applicationReducer(currentState, imageAction)
             store.dispatch(imageAction)
@@ -265,6 +250,7 @@ export const api = {
                 const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
                 for (let sample of currentState.samples) {
                     getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
+                    api.applyGateTemplatesToSample(sample.id)
                 }
             }
         }, 5000)  
@@ -277,11 +263,11 @@ export const api = {
             id: workspaceId,
             title: parameters.title,
             description: parameters.description,
-            selectedMachineType: parameters.selectedMachineType || constants.MACHINE_FLORESCENT,
             selectedXParameterIndex: parameters.selectedXParameterIndex || 49,
             selectedYParameterIndex: parameters.selectedYParameterIndex || 26,
             selectedXScale: parameters.selectedXScale || constants.SCALE_LOG,
             selectedYScale: parameters.selectedYScale || constants.SCALE_LOG,
+            FCSFileIds: [],
             sampleIds: [],
             gateTemplateIds: [],
             gateTemplateGroupIds: [],
@@ -350,19 +336,8 @@ export const api = {
 
     selectGateTemplate: async function (gateTemplateId, workspaceId) {
         const selectAction = selectGateTemplate(gateTemplateId, workspaceId)
-
         currentState = applicationReducer(currentState, selectAction)
         store.dispatch(selectAction)
-
-        // Find the associated workspace
-        const workspace = _.find(currentState.workspaces, w => w.id === workspaceId)
-        // Get the currently selected sample
-        const selectedSample = _.find(currentState.samples, s => s.id === workspace.selectedSampleId)
-        // Select the related sample
-        const relatedSample = _.find(currentState.samples, s => s.gateTemplateId === gateTemplateId && s.filePath === selectedSample.filePath)
-        if (relatedSample) {
-            await api.selectSample(relatedSample.id, workspaceId)
-        }
 
         saveSessionToDisk()
     },
@@ -415,13 +390,16 @@ export const api = {
         const templateGroups = _.filter(currentState.gateTemplateGroups, g => g.parentGateTemplateId === sample.gateTemplateId)
         for (let templateGroup of templateGroups) {
             if (templateGroup.creator === constants.GATE_CREATOR_PERSISTENT_HOMOLOGY) {
-                await api.calculateHomology(sampleId, {
-                    selectedXParameterIndex: templateGroup.selectedXParameterIndex,
-                    selectedYParameterIndex: templateGroup.selectedYParameterIndex,
-                    selectedXScale: templateGroup.selectedXScale,
-                    selectedYScale: templateGroup.selectedYScale,
-                    selectedMachineType: templateGroup.selectedMachineType
-                })
+                // If there hasn't been any gate templates generated for this sample, try generating them, otherwise leave them as they are
+                if (!_.find(currentState.gates, g => g.parentSampleId === sampleId && templateGroup.childGateTemplateIds.includes(g.gateTemplateId))) {
+                    await api.calculateHomology(sampleId, {
+                        selectedXParameterIndex: templateGroup.selectedXParameterIndex,
+                        selectedYParameterIndex: templateGroup.selectedYParameterIndex,
+                        selectedXScale: templateGroup.selectedXScale,
+                        selectedYScale: templateGroup.selectedYScale,
+                        selectedMachineType: templateGroup.selectedMachineType
+                    })
+                }
             }
         }
 
@@ -458,38 +436,42 @@ export const api = {
         saveSessionToDisk()
     },
 
-    createSampleAndAddToWorkspace: async function (workspaceId, sampleParameters) {
-        const sampleId = uuidv4()
+    createFCSFileAndAddToWorkspace: async function (workspaceId, FCSFileParameters) {
+        const FCSFileId = uuidv4()
 
         // Find the associated workspace
         let workspace = _.find(currentState.workspaces, w => w.id === workspaceId)
 
-        let sample = {
-            id: sampleId,
-            type: sampleParameters.type,
-            filePath: sampleParameters.filePath,
-            title: sampleParameters.title,
-            description: sampleParameters.description,
-            gateTemplateId: workspace.gateTemplateIds[0],
-            parametersLoading: [],
-            // Below are defaults
-            plotImages: {}
+        let FCSFile = {
+            id: FCSFileId,
+            filePath: FCSFileParameters.filePath,
+            title: FCSFileParameters.title,
+            description: FCSFileParameters.description,
         }
 
-        const createAction = createSampleAndAddToWorkspace(workspaceId, sample)
+        const createFCSFileAction = createFCSFileAndAddToWorkspace(workspaceId, FCSFile)
+        currentState = applicationReducer(currentState, createFCSFileAction)
+        store.dispatch(createFCSFileAction)
 
-        currentState = applicationReducer(currentState, createAction)
-        store.dispatch(createAction)
+        const FCSMetaData = await getFCSMetadata(FCSFile.filePath)
 
-        const FCSMetaData = await getFCSMetadata(sample.filePath)
-
-        const updateAction = updateSample(sampleId, { populationCount: FCSMetaData.populationCount, FCSParameters: FCSMetaData.FCSParameters })
-
+        const updateAction = updateFCSFile(FCSFileId, FCSMetaData)
         currentState = applicationReducer(currentState, updateAction)
         store.dispatch(updateAction)
 
+        const sampleId = uuidv4()
+        const createSampleAction = createSampleAndAddToWorkspace(workspaceId, {
+            id: sampleId,
+            title: 'Root Sample',
+            FCSFileId,
+            description: 'Top level root sample for this FCS File',
+            gateTemplateId: workspace.gateTemplateIds[0],
+            populationCount: FCSMetaData.populationCount
+        })
+        currentState = applicationReducer(currentState, createSampleAction)
+        store.dispatch(createSampleAction)
+
         const workspaceParameters = {
-            selectedMachineType: FCSMetaData.selectedMachineType,
             selectedGateTemplateId: workspace.gateTemplateIds[0],
             selectedXScale: FCSMetaData.selectedMachineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP,
             selectedYScale: FCSMetaData.selectedMachineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP
@@ -499,13 +481,22 @@ export const api = {
         currentState = applicationReducer(currentState, updateWorkspaceAction)
         store.dispatch(updateWorkspaceAction)
 
-        const updatedSample = _.find(currentState.samples, s => s.id === sampleId)
-        getAllPlotImages(updatedSample, workspaceParameters)
+        const sample = _.find(currentState.samples, s => s.id === sampleId)
+        getAllPlotImages(sample, workspaceParameters)
 
         saveSessionToDisk()
 
         // Recursively apply the existing gating hierarchy
-        api.applyGateTemplatesToSample(updatedSample.id)
+        // api.applyGateTemplatesToFCSFile(FCSFileId)
+    },
+
+    removeFCSFile: async function (fcsFileId) {
+        const removeAction = removeFCSFile(fcsFileId)
+
+        currentState = applicationReducer(currentState, removeAction)
+        store.dispatch(removeAction)
+
+        saveSessionToDisk()
     },
 
     createSubSampleAndAddToWorkspace: async function (workspaceId, parentSampleId, sampleParameters, gateParameters) {
@@ -519,14 +510,10 @@ export const api = {
 
         let sample = {
             id: sampleId,
-            type: sampleParameters.type,
             title: parentSample.title,
+            FCSFileId: parentSample.FCSFileId,
             description: sampleParameters.description,
-            filePath: parentSample.filePath,
             gateTemplateId: sampleParameters.gateTemplateId,
-            FCSParameters: _.clone(parentSample.FCSParameters),
-            statistics: _.clone(parentSample.statistics),
-            selectedMachineType: parentSample.selectedMachineType,
             parametersLoading: [],
             // Below are defaults
             subSampleIds: [],
@@ -545,9 +532,6 @@ export const api = {
             xCutoffs: gateParameters.xCutoffs,
             yCutoffs: gateParameters.yCutoffs
         }
-
-        // Store the events that were captured within the subsample but don't add them to the redux state
-        const FCSFile = await getFCSFileFromPath(sample.filePath)
 
         // If there was no title specified, auto generate one
         let title = 'Subsample'
@@ -603,7 +587,8 @@ export const api = {
 
     getImageForPlot: async function (sampleId, options) {
         const sample = _.find(currentState.samples, s => s.id === sampleId)
-        const imageForPlot = await getImageForPlot(sample, options)
+        const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
+        const imageForPlot = await getImageForPlot(sample, FCSFile, options)
         const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
         currentState = applicationReducer(currentState, imageAction)
         store.dispatch(imageAction)
@@ -623,7 +608,8 @@ export const api = {
             const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
             const options = { selectedXParameterIndex: selectedYParameterIndex, selectedYParameterIndex: selectedXParameterIndex, selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale, selectedMachineType: workspace.selectedMachineType }
             for (let sample of currentState.samples) {
-                const imageForPlot = await getImageForPlot(sample, options)
+                const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
+                const imageForPlot = await getImageForPlot(sample, FCSFile, options)
                 const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
                 currentState = applicationReducer(currentState, imageAction)
                 store.dispatch(imageAction)
@@ -645,6 +631,7 @@ export const api = {
     //    }
     calculateHomology: async function (sampleId, options) {
         const sample = _.find(currentState.samples, s => s.id === sampleId)
+        const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
         const gateTemplate = _.find(currentState.gateTemplates, gt => gt.id === sample.gateTemplateId)
         const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sampleId))
 
@@ -654,7 +641,7 @@ export const api = {
                 && group.selectedYParameterIndex === options.selectedYParameterIndex
                 && group.selectedXScale === options.selectedXScale
                 && group.selectedYScale === options.selectedYScale
-                && group.selectedMachineType === options.selectedMachineType
+                && group.selectedMachineType === FCSFile.machineType
         })
 
         if (!sample) { console.log('Error in calculateHomology(): no sample with id ', sampleId, 'was found'); return }
@@ -668,7 +655,7 @@ export const api = {
         currentState = applicationReducer(currentState, loadingAction)
         store.dispatch(loadingAction)
 
-        let homologyOptions = { sample, options }
+        let homologyOptions = { sample, FCSFile, options }
 
         // If there are already gating templates defined for this parameter combination
         if (gateTemplateGroup) {
@@ -707,8 +694,8 @@ export const api = {
         const scales = getScales({
             selectedXScale: options.selectedXScale,
             selectedYScale: options.selectedYScale,
-            xRange: [ sample.FCSParameters[options.selectedXParameterIndex].statistics.min, sample.FCSParameters[options.selectedXParameterIndex].statistics.max ],
-            yRange: [ sample.FCSParameters[options.selectedYParameterIndex].statistics.min, sample.FCSParameters[options.selectedYParameterIndex].statistics.max ],
+            xRange: [ FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.min, FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.max ],
+            yRange: [ FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.min, FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.max ],
             width: constants.PLOT_WIDTH - xOffset,
             height: constants.PLOT_HEIGHT - yOffset
         })
@@ -764,7 +751,7 @@ export const api = {
             const newGateTemplates = gates.map((gate, index) => {
                 const gateTemplate = {
                     id: uuidv4(),
-                    title: sample.FCSParameters[options.selectedXParameterIndex].label + (truePeaks[index].xGroup === 0 ? ' (LOW) ' : ' (HIGH) ') + sample.FCSParameters[options.selectedYParameterIndex].label + (truePeaks[index].yGroup === 1 ? ' (LOW)' : ' (HIGH)'),
+                    title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + (truePeaks[index].xGroup === 0 ? ' (LOW) ' : ' (HIGH) ') + FCSFile.FCSParameters[options.selectedYParameterIndex].label + (truePeaks[index].yGroup === 1 ? ' (LOW)' : ' (HIGH)'),
                     creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
                     xGroup: truePeaks[index].xGroup,
                     yGroup: truePeaks[index].yGroup,
@@ -803,7 +790,7 @@ export const api = {
                 sampleId,
                 {
                     filePath: sample.filePath,
-                    FCSParameters: sample.FCSParameters,
+                    FCSParameters: FCSFile.FCSParameters,
                     plotImages: {},
                     subSampleIds: [],
                     gateTemplateId: gate.gateTemplateId,
@@ -830,12 +817,12 @@ export const api = {
 
         let comparisons = []
 
-        for (let x = 3; x < sample.FCSParameters.length; x++) {
-            if (!sample.FCSParameters[x].label.match('_')) {
+        for (let x = 3; x < FCSFile.FCSParameters.length; x++) {
+            if (!FCSFile.FCSParameters[x].label.match('_')) {
                 continue
             }
-            for (let y = x + 1; y < sample.FCSParameters.length; y++) {
-                if (!sample.FCSParameters[y].label.match('_')) {
+            for (let y = x + 1; y < FCSFile.FCSParameters.length; y++) {
+                if (!FCSFile.FCSParameters[y].label.match('_')) {
                     continue
                 }
                 comparisons.push([x, y])

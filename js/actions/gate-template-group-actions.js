@@ -36,3 +36,11 @@ export const removeGateTemplateFromGroup = (gateTemplateId, gateTemplateGroupId)
         payload: { gateTemplateId, gateTemplateGroupId }
     }
 }
+
+// Remove a gate template from a gate template group
+export const setGateTemplateGroupSampleLoading = (gateTemplateGroupId, sampleId, loadingParameters) => {
+    return {
+        type: 'SET_GATE_TEMPLATE_GROUP_SAMPLE_LOADING',
+        payload: { gateTemplateGroupId, sampleId, loadingParameters }
+    }
+}

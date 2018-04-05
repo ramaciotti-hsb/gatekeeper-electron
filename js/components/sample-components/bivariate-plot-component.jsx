@@ -36,7 +36,7 @@ export default class BivariatePlot extends Component {
             selectedYParameterIndex: !_.isUndefined(this.props.selectedYParameterIndex) ? this.props.selectedYParameterIndex : this.props.workspace.selectedYParameterIndex,
             selectedXScale: this.props.selectedXScale || this.props.workspace.selectedXScale,
             selectedYScale: this.props.selectedYScale || this.props.workspace.selectedYScale,
-            selectedMachineType: this.props.selectedMachineType || this.props.workspace.selectedMachineType
+            selectedMachineType: this.props.FCSFile.machineType || this.props.workspace.selectedMachineType
         }
     }
 
@@ -52,14 +52,14 @@ export default class BivariatePlot extends Component {
 
     initHomologyIteration () {
         // Offset the entire graph and add histograms if we're looking at cytof data
-        let xOffset = this.props.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
-        let yOffset = this.props.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+        let xOffset = this.props.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
+        let yOffset = this.props.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
         const population = this.props.api.getPopulationDataForSample(this.props.sample.id, this.props).then((population) => {
             const scales = getScales({
                 selectedXScale: this.props.selectedXScale,
                 selectedYScale: this.props.selectedYScale,
-                xRange: [ this.props.sample.FCSParameters[this.props.selectedXParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.selectedXParameterIndex].statistics.max ],
-                yRange: [ this.props.sample.FCSParameters[this.props.selectedYParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.selectedYParameterIndex].statistics.max ],
+                xRange: [ this.props.FCSFile.FCSParameters[this.props.selectedXParameterIndex].statistics.min, this.props.FCSFile.FCSParameters[this.props.selectedXParameterIndex].statistics.max ],
+                yRange: [ this.props.FCSFile.FCSParameters[this.props.selectedYParameterIndex].statistics.min, this.props.FCSFile.FCSParameters[this.props.selectedYParameterIndex].statistics.max ],
                 width: constants.PLOT_WIDTH - xOffset,
                 height: constants.PLOT_HEIGHT - yOffset
             })
@@ -91,14 +91,14 @@ export default class BivariatePlot extends Component {
         d3.select(this.refs.graph).selectAll(':scope > *').remove();
 
         // Need to offset the whole graph if we're including cytof 0 histograms
-        const xOffset = this.props.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH * (this.state.graphWidth / constants.PLOT_WIDTH) : 0
-        const yOffset = this.props.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT * (this.state.graphHeight / constants.PLOT_HEIGHT) : 0
+        const xOffset = this.props.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH * (this.state.graphWidth / constants.PLOT_WIDTH) : 0
+        const yOffset = this.props.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT * (this.state.graphHeight / constants.PLOT_HEIGHT) : 0
 
         const scales = getScales({
             selectedXScale: this.props.selectedXScale,
             selectedYScale: this.props.selectedYScale,
-            xRange: [ this.props.sample.FCSParameters[this.props.selectedXParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.selectedXParameterIndex].statistics.max ],
-            yRange: [ this.props.sample.FCSParameters[this.props.selectedYParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.selectedYParameterIndex].statistics.max ],
+            xRange: [ this.props.FCSFile.FCSParameters[this.props.selectedXParameterIndex].statistics.min, this.props.FCSFile.FCSParameters[this.props.selectedXParameterIndex].statistics.max ],
+            yRange: [ this.props.FCSFile.FCSParameters[this.props.selectedYParameterIndex].statistics.min, this.props.FCSFile.FCSParameters[this.props.selectedYParameterIndex].statistics.max ],
             width: this.state.graphWidth - xOffset,
             height: this.state.graphHeight - yOffset
         })
@@ -218,7 +218,7 @@ export default class BivariatePlot extends Component {
                 this.props.sample.id,
                 {
                     filePath: this.props.sample.filePath,
-                    FCSParameters: this.props.sample.FCSParameters,
+                    FCSParameters: this.props.FCSFile.FCSParameters,
                     plotImages: {},
                     subSampleIds: [],
                     selectedXParameterIndex: this.props.selectedXParameterIndex,
@@ -435,8 +435,8 @@ export default class BivariatePlot extends Component {
     }
 
     render () {
-        // FCS File not ready yet
-        if (this.props.sample.FCSParameters.length === 0) {
+        // FCS File not ready yet or no sample selected
+        if (this.props.FCSFile.FCSParameters.length === 0 || !this.props.sample) {
             return (
                 <div className='svg-outer'><svg className='axis'></svg><canvas className="canvas"/></div>
             )
@@ -447,13 +447,13 @@ export default class BivariatePlot extends Component {
         gateCreators[constants.GATE_CREATOR_MANUAL] = 'Created Manually'
 
         // Need to offset the whole graph if we're including cytof 0 histograms
-        const xOffset = this.props.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
-        const yOffset = this.props.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+        const xOffset = this.props.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
+        const yOffset = this.props.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
         const scales = getScales({
             selectedXScale: this.props.selectedXScale,
             selectedYScale: this.props.selectedYScale,
-            xRange: [ this.props.sample.FCSParameters[this.props.selectedXParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.selectedXParameterIndex].statistics.max ],
-            yRange: [ this.props.sample.FCSParameters[this.props.selectedYParameterIndex].statistics.min, this.props.sample.FCSParameters[this.props.selectedYParameterIndex].statistics.max ],
+            xRange: [ this.props.FCSFile.FCSParameters[this.props.selectedXParameterIndex].statistics.min, this.props.FCSFile.FCSParameters[this.props.selectedXParameterIndex].statistics.max ],
+            yRange: [ this.props.FCSFile.FCSParameters[this.props.selectedYParameterIndex].statistics.min, this.props.FCSFile.FCSParameters[this.props.selectedYParameterIndex].statistics.max ],
             width: this.state.graphWidth - xOffset,
             height:  this.state.graphHeight - yOffset
         })

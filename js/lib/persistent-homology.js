@@ -54,14 +54,14 @@ export default class PersistentHomology {
 
     findIncludedEvents () {
         // Offset the entire graph and add histograms if we're looking at cytof data
-        let xOffset = this.options.options.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
-        let yOffset = this.options.options.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+        let xOffset = this.options.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
+        let yOffset = this.options.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
         
         const scales = getScales({
             selectedXScale: this.options.options.selectedXScale,
             selectedYScale: this.options.options.selectedYScale,
-            xRange: [ this.options.sample.FCSParameters[this.options.options.selectedXParameterIndex].statistics.min, this.options.sample.FCSParameters[this.options.options.selectedXParameterIndex].statistics.max ],
-            yRange: [ this.options.sample.FCSParameters[this.options.options.selectedYParameterIndex].statistics.min, this.options.sample.FCSParameters[this.options.options.selectedYParameterIndex].statistics.max ],
+            xRange: [ this.options.FCSFile.FCSParameters[this.options.options.selectedXParameterIndex].statistics.min, this.options.FCSFile.FCSParameters[this.options.options.selectedXParameterIndex].statistics.max ],
+            yRange: [ this.options.FCSFile.FCSParameters[this.options.options.selectedYParameterIndex].statistics.min, this.options.FCSFile.FCSParameters[this.options.options.selectedYParameterIndex].statistics.max ],
             width: constants.PLOT_WIDTH - xOffset,
             height: constants.PLOT_HEIGHT - yOffset
         })
@@ -92,8 +92,8 @@ export default class PersistentHomology {
         const scales = getScales({
             selectedXScale: this.options.options.selectedXScale,
             selectedYScale: this.options.options.selectedYScale,
-            xRange: [ this.options.sample.FCSParameters[this.options.options.selectedXParameterIndex].statistics.min, this.options.sample.FCSParameters[this.options.options.selectedXParameterIndex].statistics.max ],
-            yRange: [ this.options.sample.FCSParameters[this.options.options.selectedYParameterIndex].statistics.min, this.options.sample.FCSParameters[this.options.options.selectedYParameterIndex].statistics.max ],
+            xRange: [ this.options.FCSFile.FCSParameters[this.options.options.selectedXParameterIndex].statistics.min, this.options.FCSFile.FCSParameters[this.options.options.selectedXParameterIndex].statistics.max ],
+            yRange: [ this.options.FCSFile.FCSParameters[this.options.options.selectedYParameterIndex].statistics.min, this.options.FCSFile.FCSParameters[this.options.options.selectedYParameterIndex].statistics.max ],
             width: constants.PLOT_WIDTH - constants.CYTOF_HISTOGRAM_WIDTH,
             height: constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT
         })
@@ -432,7 +432,7 @@ export default class PersistentHomology {
                     }
                 }
 
-                if (this.options.options.selectedMachineType === constants.MACHINE_CYTOF) {
+                if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF) {
                     this.expandToIncludeZeroes()
                 }
 
@@ -465,7 +465,7 @@ export default class PersistentHomology {
                 }
             }
 
-            if (this.options.options.selectedMachineType === constants.MACHINE_CYTOF && !dontIncludeZeroes) {
+            if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF && !dontIncludeZeroes) {
                 this.expandToIncludeZeroes()
             }
 

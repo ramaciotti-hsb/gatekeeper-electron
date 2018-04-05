@@ -14,24 +14,24 @@ const mapStateToProps = (state, ownProps) => {
         // Find the selected workspace
         const workspace = _.find(state.workspaces, w => w.id === ownProps.workspaceId) || {}
         const newWorkspace = _.clone(workspace)
-        newWorkspace.samples = []
-        // If the workspace contains samples, find them and add them as complete objects
-        if (newWorkspace.sampleIds) {
-            for (let sampleId of newWorkspace.sampleIds) {
-                const sample = _.find(state.samples, s => s.id === sampleId)
+        newWorkspace.FCSFiles = []
+        // If the workspace contains FCSFiles, find them and add them as complete objects
+        if (newWorkspace.FCSFileIds) {
+            for (let sampleId of newWorkspace.FCSFileIds) {
+                const sample = _.find(state.FCSFiles, s => s.id === sampleId)
                 const gate = _.find(state.gates, g => g.childSampleId === sampleId)
                 if (gate) {
                     sample.gate = gate
                 }
-                if (sample) { newWorkspace.samples.push(sample) }
+                if (sample) { newWorkspace.FCSFiles.push(sample) }
             }
-            newWorkspace.sampleIds = null
+            newWorkspace.FCSFileIds = null
         }
 
-        if (newWorkspace.selectedSampleId) {
-            for (let sample of newWorkspace.samples) {
-                if (sample.id === newWorkspace.selectedSampleId) {
-                    newWorkspace.selectedSample = sample
+        if (newWorkspace.selectedFCSFileId) {
+            for (let FCSFile of newWorkspace.FCSFiles) {
+                if (FCSFile.id === newWorkspace.selectedFCSFileId) {
+                    newWorkspace.selectedFCSFile = FCSFile
                 }
             }
         }
@@ -39,9 +39,9 @@ const mapStateToProps = (state, ownProps) => {
         newWorkspace.gateTemplates = []
         // If the workspace contains gate templates, find them and add them as complete objects
         if (newWorkspace.gateTemplateIds) {
-            for (let sampleId of newWorkspace.gateTemplateIds) {
-                const sample = _.find(state.gateTemplates, s => s.id === sampleId)
-                if (sample) { newWorkspace.gateTemplates.push(sample) }
+            for (let gateTemplateId of newWorkspace.gateTemplateIds) {
+                const gateTemplate = _.find(state.gateTemplates, s => s.id === gateTemplateId)
+                if (gateTemplate) { newWorkspace.gateTemplates.push(gateTemplate) }
             }
             newWorkspace.gateTemplateIds = null
         }
@@ -57,9 +57,9 @@ const mapStateToProps = (state, ownProps) => {
         newWorkspace.gateTemplateGroups = []
         // If the workspace contains gate template groups, find them and add them as complete objects
         if (newWorkspace.gateTemplateGroupIds) {
-            for (let sampleId of newWorkspace.gateTemplateGroupIds) {
-                const sample = _.find(state.gateTemplateGroups, s => s.id === sampleId)
-                if (sample) { newWorkspace.gateTemplateGroups.push(sample) }
+            for (let gateTemplateGroupId of newWorkspace.gateTemplateGroupIds) {
+                const gateTemplateGroup = _.find(state.gateTemplateGroups, s => s.id === gateTemplateGroupId)
+                if (gateTemplateGroup) { newWorkspace.gateTemplateGroups.push(gateTemplateGroup) }
             }
             newWorkspace.gateTemplateGroupIds = null
         }
@@ -68,7 +68,7 @@ const mapStateToProps = (state, ownProps) => {
         const highlightedGate = _.find(state.gates, g => g.highlighted && workspace.sampleIds.includes(g.childSampleId)) || {}
         return { api: state.api, workspace: newWorkspace, highlightedGate }
     } else {
-        return { api: state.api, workspace: { samples: [] }, highlightGate: {} }
+        return { api: state.api, workspace: { FCSFiles: [] }, highlightGate: {} }
     }
 }
 

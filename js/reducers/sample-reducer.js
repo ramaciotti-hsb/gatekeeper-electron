@@ -18,11 +18,8 @@ const samples = (state = [], action = {}) => {
         const newSample = {
             id: action.payload.id,
             title: action.payload.title,
+            FCSFileId: action.payload.FCSFileId,
             description: action.payload.description,
-            type: action.payload.type,
-            filePath: action.payload.filePath,
-            FCSParameters: action.payload.FCSParameters || [],
-            statistics: action.payload.statistics || {},
             populationCount: action.payload.populationCount,
             includeEventIds: action.payload.includeEventIds || [],
             gateTemplateId: action.payload.gateTemplateId,
