@@ -82,7 +82,7 @@ export default async function getFCSMetadata (filePath) {
             }
 
             if (FCSFile.dataAsNumbers[i][j] < FCSParameters[j].statistics.positiveMin && FCSFile.dataAsNumbers[i][j] > 0) {
-                FCSParameters[j].statistics.positiveMin = FCSFile.dataAsNumbers[i][j]
+                FCSParameters[j].statistics.positiveMin = Math.max(FCSFile.dataAsNumbers[i][j], 0.01)
             }
 
             if (FCSFile.dataAsNumbers[i][j] > FCSParameters[j].statistics.max) {

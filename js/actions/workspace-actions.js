@@ -79,6 +79,14 @@ export const removeWorkspace = (id) => {
     }
 }
 
+// Selects an FCS file within a workspace
+export const selectFCSFile = (FCSFileId, workspaceId) => {
+    return {
+        type: 'SELECT_FCS_FILE',
+        payload: { FCSFileId, workspaceId }
+    }
+}
+
 // Selects a sample within a workspace
 export const selectSample = (sampleId, workspaceId) => {
     return {

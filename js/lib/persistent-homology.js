@@ -60,8 +60,8 @@ export default class PersistentHomology {
         const scales = getScales({
             selectedXScale: this.options.options.selectedXScale,
             selectedYScale: this.options.options.selectedYScale,
-            xRange: [ this.options.FCSFile.FCSParameters[this.options.options.selectedXParameterIndex].statistics.min, this.options.FCSFile.FCSParameters[this.options.options.selectedXParameterIndex].statistics.max ],
-            yRange: [ this.options.FCSFile.FCSParameters[this.options.options.selectedYParameterIndex].statistics.min, this.options.FCSFile.FCSParameters[this.options.options.selectedYParameterIndex].statistics.max ],
+            xRange: [ this.options.FCSFile.FCSParameters[this.options.options.selectedXParameterIndex].statistics.positiveMin, this.options.FCSFile.FCSParameters[this.options.options.selectedXParameterIndex].statistics.max ],
+            yRange: [ this.options.FCSFile.FCSParameters[this.options.options.selectedYParameterIndex].statistics.positiveMin, this.options.FCSFile.FCSParameters[this.options.options.selectedYParameterIndex].statistics.max ],
             width: constants.PLOT_WIDTH - xOffset,
             height: constants.PLOT_HEIGHT - yOffset
         })
@@ -73,7 +73,8 @@ export default class PersistentHomology {
                 if (pointInsidePolygon(point, invertedPolygon)) {
                     peak.includeEventIds.push(point[2])
                 } else {
-                    if (peak.xCutoffs && point[0] === 0 && point[1] >= scales.yScale.invert(peak.xCutoffs[0]) && point[1] <= scales.yScale.invert(peak.xCutoffs[1])) {
+                    // Comparisons to 0 points along the y axis are inverted because of the way images and indexed starting at the top left corner
+                    if (peak.xCutoffs && point[0] === 0 && point[1] <= scales.yScale.invert(peak.xCutoffs[0]) && point[1] >= scales.yScale.invert(peak.xCutoffs[1])) {
                         peak.includeEventIds.push(point[2])
                     }
                     if (peak.yCutoffs && point[1] === 0 && point[0] >= scales.xScale.invert(peak.yCutoffs[0]) && point[0] <= scales.xScale.invert(peak.yCutoffs[1])) {
@@ -88,15 +89,6 @@ export default class PersistentHomology {
         // If we're looking at cytof data, extend lower gates out towards zero if there is a peak there
         const minPeakWidth = constants.PLOT_WIDTH * 0.05
         const inflectionWidth = 5
-
-        const scales = getScales({
-            selectedXScale: this.options.options.selectedXScale,
-            selectedYScale: this.options.options.selectedYScale,
-            xRange: [ this.options.FCSFile.FCSParameters[this.options.options.selectedXParameterIndex].statistics.min, this.options.FCSFile.FCSParameters[this.options.options.selectedXParameterIndex].statistics.max ],
-            yRange: [ this.options.FCSFile.FCSParameters[this.options.options.selectedYParameterIndex].statistics.min, this.options.FCSFile.FCSParameters[this.options.options.selectedYParameterIndex].statistics.max ],
-            width: constants.PLOT_WIDTH - constants.CYTOF_HISTOGRAM_WIDTH,
-            height: constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT
-        })
 
         let yPeaks = []
         // Find peaks in the 1d data where one of the channels is zero
@@ -466,7 +458,7 @@ export default class PersistentHomology {
             }
 
             if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF && !dontIncludeZeroes) {
-                this.expandToIncludeZeroes()
+                // this.expandToIncludeZeroes()
             }
 
             this.findIncludedEvents()
@@ -477,13 +469,12 @@ export default class PersistentHomology {
                 peak.xGroup = _.findIndex(groups.xGroups, g => g.peaks.includes(peak.id))
                 peak.yGroup = _.findIndex(groups.yGroups, g => g.peaks.includes(peak.id))
             }
-            // console.log(this.truePeaks)
             return this.truePeaks
         }
     }
 
     performHomologyIteration (height, gateTemplates)  {
-        for (let y = 0; y < this.options.population.densityMap.densityMap.length; y++) {
+        for (let y = 0; y < constants.PLOT_HEIGHT; y++) {
             const column = this.options.population.densityMap.densityMap[y]
             if (!column || column.length === 0) { continue }
 
@@ -570,7 +561,21 @@ export default class PersistentHomology {
                     const iSize = this.homologyPeaks[i].polygon.length < 3 ? 0 : area(this.homologyPeaks[i].polygon.map((p) => { return { x: p[0], y: p[1] } }))
                     const jSize = this.homologyPeaks[j].polygon.length < 3 ? 0 : area(this.homologyPeaks[j].polygon.map((p) => { return { x: p[0], y: p[1] } }))
 
-                    if (jSize < 1000) {
+                    let jCondition
+                    if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF) {
+                        jCondition = jSize < 5000// || this.homologyPeaks[j].height > this.options.minPeakHeight
+                    } else {
+                        jCondition = jSize < 1000
+                    }
+
+                    let iCondition
+                    if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF) {
+                        iCondition = iSize > 5000// || this.homologyPeaks[i].height > this.options.minPeakHeight
+                    } else {
+                        iCondition = iSize > 5000
+                    }
+
+                    if (jCondition) {
                         const newPolygon = this.homologyPeaks[i].polygon.concat(this.homologyPeaks[j].polygon.slice(0))
                         this.homologyPeaks.splice(i, 1, {
                             polygon: newPolygon,
@@ -595,7 +600,7 @@ export default class PersistentHomology {
                         this.homologyPeaks[i].polygon = grahamScan.getHull().map(p => [p.x, p.y])
                         this.homologyPeaks[i].pointsToAdd = []
                         intersected = true
-                    } else if (iSize > 1000) {
+                    } else if (iCondition) {
                         this.homologyPeaks[i].truePeak = true
                         if (gateTemplates) {
                             const centerPoint = getPolygonCenter(this.homologyPeaks[i].polygon)

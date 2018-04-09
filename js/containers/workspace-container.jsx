@@ -58,8 +58,14 @@ const mapStateToProps = (state, ownProps) => {
         // If the workspace contains gate template groups, find them and add them as complete objects
         if (newWorkspace.gateTemplateGroupIds) {
             for (let gateTemplateGroupId of newWorkspace.gateTemplateGroupIds) {
-                const gateTemplateGroup = _.find(state.gateTemplateGroups, s => s.id === gateTemplateGroupId)
-                if (gateTemplateGroup) { newWorkspace.gateTemplateGroups.push(gateTemplateGroup) }
+                const gateTemplateGroup = _.clone(_.find(state.gateTemplateGroups, s => s.id === gateTemplateGroupId))
+                if (gateTemplateGroup) {
+                    // If there are no subsamples for this FCS file and gate template group, mark the gate template as loading
+                    if (!_.find(state.samples, s => gateTemplateGroup.childGateTemplateIds.includes(s.gateTemplateId) && s.FCSFileId === newWorkspace.selectedFCSFileId)) {
+                        gateTemplateGroup.loading = true
+                    }
+                    newWorkspace.gateTemplateGroups.push(gateTemplateGroup)
+                }
             }
             newWorkspace.gateTemplateGroupIds = null
         }

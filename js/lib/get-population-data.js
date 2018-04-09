@@ -84,8 +84,8 @@ export default async function getPopulationForSample (sample, FCSFile, options) 
     const scales = getScales({
         selectedXScale: options.selectedXScale,
         selectedYScale: options.selectedYScale,
-        xRange: [ FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.min, FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.max ],
-        yRange: [ FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.min, FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.max ],
+        xRange: [ FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.positiveMin, FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.max ],
+        yRange: [ FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.positiveMin, FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.max ],
         width: constants.PLOT_WIDTH - xOffset,
         height: constants.PLOT_HEIGHT - yOffset
     })
@@ -163,7 +163,7 @@ export default async function getPopulationForSample (sample, FCSFile, options) 
             if (!pointCache[y]) { continue }
             for (let x = 0; x < pointCache[y].length; x++) {
                 if (!pointCache[y][x]) { continue }
-                meanDensity += pointCache[y][x] / ((constants.PLOT_WIDTH - xOffset) * (constants.PLOT_WIDTH - yOffset))
+                meanDensity += pointCache[y][x] / ((constants.PLOT_WIDTH - xOffset) * (constants.PLOT_HEIGHT - yOffset))
             }   
         }
 
@@ -187,7 +187,7 @@ export default async function getPopulationForSample (sample, FCSFile, options) 
 
     process.stdout.write(JSON.stringify({ data: 'Calculating density' }))
 
-    const densityMap = calculateDensity(subPopulation, scales, Math.floor((constants.PLOT_WIDTH + constants.PLOT_HEIGHT) * 0.009))
+    const densityMap = calculateDensity(aboveZeroPopulation, scales, Math.floor((constants.PLOT_WIDTH + constants.PLOT_HEIGHT) * 0.009))
 
     let densityY
     let densityX

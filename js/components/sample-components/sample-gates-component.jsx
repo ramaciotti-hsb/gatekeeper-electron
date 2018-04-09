@@ -21,8 +21,8 @@ export default class SampleGates extends Component {
 
     renderGatePreview () {
         // Offset the entire graph and add histograms if we're looking at cytof data
-        let xOffset = this.props.workspace.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
-        let yOffset = this.props.workspace.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+        let xOffset = this.props.workspace.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
+        let yOffset = this.props.workspace.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
         
         for (let gate of this.props.gates) {
             const scales = getScales({
@@ -169,7 +169,7 @@ export default class SampleGates extends Component {
         //     'selectedYParameterIndex',
         //     'selectedXScale',
         //     'selectedYScale',
-        //     'selectedMachineType'
+        //     'machineType'
         // ]
 
         // for (let prop of workspaceProps) {

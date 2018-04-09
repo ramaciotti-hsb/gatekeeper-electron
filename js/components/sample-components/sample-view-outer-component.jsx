@@ -42,7 +42,7 @@ export default class SampleView extends Component {
             selectedYParameterIndex: this.state.selectedYParameterIndex,
             selectedXScale: this.state.selectedXScale,
             selectedYScale: this.state.selectedYScale,
-            selectedMachineType: this.props.workspace.selectedMachineType
+            machineType: this.props.workspace.machineType
         })
         this.refs['homologyDropdown'].getInstance().hideDropdown()
     }

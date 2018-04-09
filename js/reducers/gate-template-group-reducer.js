@@ -29,7 +29,7 @@ const gateTemplateGroups = (state = initialState, action = {}) => {
             selectedYParameterIndex: action.payload.gateTemplateGroup.selectedYParameterIndex,
             selectedXScale: action.payload.gateTemplateGroup.selectedXScale,
             selectedYScale: action.payload.gateTemplateGroup.selectedYScale,
-            selectedMachineType: action.payload.gateTemplateGroup.selectedMachineType,
+            machineType: action.payload.gateTemplateGroup.machineType,
             typeSpecificData: action.payload.gateTemplateGroup.typeSpecificData
         }
 

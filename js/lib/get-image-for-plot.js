@@ -7,7 +7,6 @@ import _ from 'lodash'
 import pngjs from 'pngjs'
 import mkdirp from 'mkdirp'
 import fs from 'fs'
-import chroma from 'chroma-js'
 import * as d3 from 'd3'
 import { getPlotImageKey, heatMapRGBForValue, getScales, getPolygonCenter, kernelDensityEstimator, kernelEpanechnikov } from './utilities'
 
@@ -74,11 +73,13 @@ export default async (sample, FCSFile, subPopulation, options) => {
 
     let pointRadius = Math.round(((constants.PLOT_WIDTH - xOffset) + (constants.PLOT_HEIGHT - yOffset)) / 1000)
 
+    const xStats = FCSFile.FCSParameters[options.selectedXParameterIndex].statistics
+    const yStats = FCSFile.FCSParameters[options.selectedYParameterIndex].statistics
     const scales = getScales({
         selectedXScale: options.selectedXScale,
         selectedYScale: options.selectedYScale,
-        xRange: [ FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.min, FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.max ],
-        yRange: [ FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.min, FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.max ],
+        xRange: [ options.selectedXScale === constants.SCALE_LOG ? xStats.positiveMin : xStats.min, xStats.max ],
+        yRange: [ options.selectedYScale === constants.SCALE_LOG ? yStats.positiveMin : yStats.min, yStats.max ],
         width: constants.PLOT_WIDTH - xOffset,
         height: constants.PLOT_HEIGHT - yOffset
     })

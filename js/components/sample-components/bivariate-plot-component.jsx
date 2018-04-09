@@ -36,7 +36,7 @@ export default class BivariatePlot extends Component {
             selectedYParameterIndex: !_.isUndefined(this.props.selectedYParameterIndex) ? this.props.selectedYParameterIndex : this.props.workspace.selectedYParameterIndex,
             selectedXScale: this.props.selectedXScale || this.props.workspace.selectedXScale,
             selectedYScale: this.props.selectedYScale || this.props.workspace.selectedYScale,
-            selectedMachineType: this.props.FCSFile.machineType || this.props.workspace.selectedMachineType
+            machineType: this.props.FCSFile.machineType || this.props.workspace.machineType
         }
     }
 
@@ -94,11 +94,13 @@ export default class BivariatePlot extends Component {
         const xOffset = this.props.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH * (this.state.graphWidth / constants.PLOT_WIDTH) : 0
         const yOffset = this.props.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT * (this.state.graphHeight / constants.PLOT_HEIGHT) : 0
 
+        const xStats = this.props.FCSFile.FCSParameters[this.props.selectedXParameterIndex].statistics
+        const yStats = this.props.FCSFile.FCSParameters[this.props.selectedYParameterIndex].statistics
         const scales = getScales({
             selectedXScale: this.props.selectedXScale,
             selectedYScale: this.props.selectedYScale,
-            xRange: [ this.props.FCSFile.FCSParameters[this.props.selectedXParameterIndex].statistics.min, this.props.FCSFile.FCSParameters[this.props.selectedXParameterIndex].statistics.max ],
-            yRange: [ this.props.FCSFile.FCSParameters[this.props.selectedYParameterIndex].statistics.min, this.props.FCSFile.FCSParameters[this.props.selectedYParameterIndex].statistics.max ],
+            xRange: [ this.props.selectedXScale === constants.SCALE_LOG ? xStats.positiveMin : xStats.min, xStats.max ],
+            yRange: [ this.props.selectedYScale === constants.SCALE_LOG ? yStats.positiveMin : yStats.min, yStats.max ],
             width: this.state.graphWidth - xOffset,
             height: this.state.graphHeight - yOffset
         })
@@ -447,13 +449,15 @@ export default class BivariatePlot extends Component {
         gateCreators[constants.GATE_CREATOR_MANUAL] = 'Created Manually'
 
         // Need to offset the whole graph if we're including cytof 0 histograms
-        const xOffset = this.props.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
-        const yOffset = this.props.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+        const xOffset = this.props.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH * (this.state.graphWidth / constants.PLOT_WIDTH) : 0
+        const yOffset = this.props.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT * (this.state.graphHeight / constants.PLOT_HEIGHT) : 0
+        const xStats = this.props.FCSFile.FCSParameters[this.props.selectedXParameterIndex].statistics
+        const yStats = this.props.FCSFile.FCSParameters[this.props.selectedYParameterIndex].statistics
         const scales = getScales({
             selectedXScale: this.props.selectedXScale,
             selectedYScale: this.props.selectedYScale,
-            xRange: [ this.props.FCSFile.FCSParameters[this.props.selectedXParameterIndex].statistics.min, this.props.FCSFile.FCSParameters[this.props.selectedXParameterIndex].statistics.max ],
-            yRange: [ this.props.FCSFile.FCSParameters[this.props.selectedYParameterIndex].statistics.min, this.props.FCSFile.FCSParameters[this.props.selectedYParameterIndex].statistics.max ],
+            xRange: [ this.props.selectedXScale === constants.SCALE_LOG ? xStats.positiveMin : xStats.min, xStats.max ],
+            yRange: [ this.props.selectedYScale === constants.SCALE_LOG ? yStats.positiveMin : yStats.min, yStats.max ],
             width: this.state.graphWidth - xOffset,
             height:  this.state.graphHeight - yOffset
         })

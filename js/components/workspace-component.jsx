@@ -44,6 +44,7 @@ export default class WorkspaceView extends Component {
 
             return (
                 <div className='sidebar-gate-template-group' key={childGateTemplateGroup.id}>
+                    <div className={`loader-outer${childGateTemplateGroup.loading ? ' active' : ''}`}><div className='loader small'></div></div>
                     <div className='title'>
                         {childGateTemplateGroup.title}
                         <div className='show-plot' onClick={this.props.api.updateWorkspace.bind(null, this.props.workspace.id, {

@@ -93,7 +93,7 @@ const getScales = (options) => {
         scales.xScale = d3.scaleLog()
             .range([0, options.width])
             .base(Math.E)
-            .domain([0.01, options.xRange[1]])
+            .domain([options.xRange[0], options.xRange[1]])
     // Biexponential Scale
     } else if (options.selectedXScale === constants.SCALE_BIEXP) {
         scales.xScale = logicleScale().range([0, options.width])
@@ -111,7 +111,7 @@ const getScales = (options) => {
         scales.yScale = d3.scaleLog()
             .range([options.height, 0])
             .base(Math.E)
-            .domain([0.01, options.yRange[1]])
+            .domain([options.yRange[0], options.yRange[1]])
     // Biexponential Scale
     } else if (options.selectedYScale === constants.SCALE_BIEXP) {
         scales.yScale = logicleScale().range([options.height, 0])

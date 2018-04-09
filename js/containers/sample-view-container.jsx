@@ -49,7 +49,7 @@ const mapStateToProps = (state, ownProps) => {
         // Find the gate template that created this sample
         const gateTemplate = _.find(state.gateTemplates, gt => gt.id === sample.gateTemplateId)
 
-        newSample.selectedMachineType = newSample.selectedMachineType || constants.MACHINE_FLORESCENT
+        newSample.machineType = newSample.machineType || constants.MACHINE_FLORESCENT
 
         return { api: state.api, workspace: workspace, sample: newSample, gates, gateTemplates, gateTemplate }
     } else {

@@ -24,7 +24,7 @@ import { updateSample, removeSample, setSamplePlotImage, setSampleParametersLoad
 import { updateGateTemplate, removeGateTemplate } from '../actions/gate-template-actions'
 import { updateFCSFile, removeFCSFile } from '../actions/fcs-file-actions'
 import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace,
-    createFCSFileAndAddToWorkspace,
+    createFCSFileAndAddToWorkspace, selectFCSFile,
     createSampleAndAddToWorkspace, createSubSampleAndAddToWorkspace, selectSample, invertPlotAxis,
     createGateTemplateAndAddToWorkspace, selectGateTemplate,
     createGateTemplateGroupAndAddToWorkspace } from '../actions/workspace-actions'
@@ -143,7 +143,7 @@ const getAllPlotImages = async (sample, scales) => {
                 selectedYParameterIndex: workspace.invertedAxisPlots[x + '_' + y] ? x : y,
                 selectedXScale: scales.selectedXScale,
                 selectedYScale: scales.selectedYScale,
-                selectedMachineType: FCSFile.machineType
+                machineType: FCSFile.machineType
             }
             if (!sample.plotImages[getPlotImageKey(options)] && FCSFile.FCSParameters[x].label.match('_') && FCSFile.FCSParameters[y].label.match('_')) {
                 combinations.push(options)
@@ -249,8 +249,8 @@ export const api = {
             if (currentState.selectedWorkspaceId) {
                 const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
                 for (let sample of currentState.samples) {
-                    getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
-                    api.applyGateTemplatesToSample(sample.id)
+                    // getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
+                    // api.applyGateTemplatesToSample(sample.id)
                 }
             }
         }, 5000)  
@@ -353,34 +353,18 @@ export const api = {
 
     recalculateGateTemplateGroup: async function (gateTemplateGroupId) {
         const templateGroup = _.find(currentState.gateTemplateGroups, g => g.id === gateTemplateGroupId)
-        if (templateGroup.creator === constants.GATE_CREATOR_PERSISTENT_HOMOLOGY) {
-            const parentSamples = _.filter(currentState.samples, s => templateGroup.parentGateTemplateId === s.gateTemplateId)
-            const samplesToRecalculate = []
-            for (let parentSample of parentSamples) {
-                let loadingAction = setSampleParametersLoading(parentSample.id, templateGroup.selectedXParameterIndex + '_' + templateGroup.selectedYParameterIndex, { loading: true, loadingMessage: 'Creating gates using Persistent Homology...' })
-                currentState = applicationReducer(currentState, loadingAction)
-                store.dispatch(loadingAction)
-                
-                samplesToRecalculate.push({
-                    sampleId: parentSample.id,
-                    selectedXParameterIndex: templateGroup.selectedXParameterIndex,
-                    selectedYParameterIndex: templateGroup.selectedYParameterIndex,
-                    selectedXScale: templateGroup.selectedXScale,
-                    selectedYScale: templateGroup.selectedYScale,
-                    selectedMachineType: templateGroup.selectedMachineType
-                })
-            }
+        // Delete all child samples created as a result of this gate template group
+        for (let sample of _.filter(currentState.samples, s => templateGroup.childGateTemplateIds.includes(s.gateTemplateId))) {
+            const removeAction = removeSample(sample.id)
+            currentState = applicationReducer(currentState, removeAction)
+            store.dispatch(removeAction)
+        }
+        
+        // Recalculate gates on all the parent samples
+        const samplesToRecalculate = _.filter(currentState.samples, s => templateGroup.parentGateTemplateId === s.gateTemplateId).map(s => s.id)
 
-            for (let options of samplesToRecalculate) {
-                await api.calculateHomology(options.sampleId, options)
-            }
-
-            for (let sample of _.filter(currentState.samples, s => templateGroup.childGateTemplateIds.includes(s.gateTemplateId))) {
-                // If homology was succesful, the sample will now have child samples
-                for (let subSampleId of sample.subSampleIds) {
-                    await api.applyGateTemplatesToSample(subSampleId)
-                }
-            }
+        for (let sampleId of samplesToRecalculate) {
+             api.applyGateTemplatesToSample(sampleId)
         }
     },
 
@@ -397,7 +381,7 @@ export const api = {
                         selectedYParameterIndex: templateGroup.selectedYParameterIndex,
                         selectedXScale: templateGroup.selectedXScale,
                         selectedYScale: templateGroup.selectedYScale,
-                        selectedMachineType: templateGroup.selectedMachineType
+                        machineType: templateGroup.machineType
                     })
                 }
             }
@@ -424,7 +408,7 @@ export const api = {
             selectedYParameterIndex: gateTemplateGroupParameters.selectedYParameterIndex,
             selectedXScale: gateTemplateGroupParameters.selectedXScale,
             selectedYScale: gateTemplateGroupParameters.selectedYScale,
-            selectedMachineType: gateTemplateGroupParameters.selectedMachineType,
+            machineType: gateTemplateGroupParameters.machineType,
             expectedGates: gateTemplateGroupParameters.expectedGates,
             typeSpecificData: gateTemplateGroupParameters.typeSpecificData,
         }
@@ -473,8 +457,8 @@ export const api = {
 
         const workspaceParameters = {
             selectedGateTemplateId: workspace.gateTemplateIds[0],
-            selectedXScale: FCSMetaData.selectedMachineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP,
-            selectedYScale: FCSMetaData.selectedMachineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP
+            selectedXScale: FCSMetaData.machineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP,
+            selectedYScale: FCSMetaData.machineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP
         }
 
         const updateWorkspaceAction = updateWorkspace(workspaceId, workspaceParameters)
@@ -487,11 +471,11 @@ export const api = {
         saveSessionToDisk()
 
         // Recursively apply the existing gating hierarchy
-        // api.applyGateTemplatesToFCSFile(FCSFileId)
+        api.applyGateTemplatesToSample(sampleId)
     },
 
-    removeFCSFile: async function (fcsFileId) {
-        const removeAction = removeFCSFile(fcsFileId)
+    removeFCSFile: async function (FCSFileId) {
+        const removeAction = removeFCSFile(FCSFileId)
 
         currentState = applicationReducer(currentState, removeAction)
         store.dispatch(removeAction)
@@ -560,6 +544,15 @@ export const api = {
         saveSessionToDisk()
     },
 
+
+    selectFCSFile: async function (FCSFileId, workspaceId) {
+        const selectAction = selectFCSFile(FCSFileId, workspaceId)
+        currentState = applicationReducer(currentState, selectAction)
+        store.dispatch(selectAction)
+
+        saveSessionToDisk()
+    },
+
     selectSample: async function (sampleId, workspaceId) {
         const sample = _.find(currentState.samples, s => s.id === sampleId)
         // Find the associated workspace
@@ -606,7 +599,7 @@ export const api = {
 
         if (currentState.selectedWorkspaceId) {
             const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
-            const options = { selectedXParameterIndex: selectedYParameterIndex, selectedYParameterIndex: selectedXParameterIndex, selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale, selectedMachineType: workspace.selectedMachineType }
+            const options = { selectedXParameterIndex: selectedYParameterIndex, selectedYParameterIndex: selectedXParameterIndex, selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale, machineType: workspace.machineType }
             for (let sample of currentState.samples) {
                 const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
                 const imageForPlot = await getImageForPlot(sample, FCSFile, options)
@@ -627,7 +620,7 @@ export const api = {
     //        selectedYParameterIndex,
     //        selectedXScale,
     //        selectedYScale,
-    //        selectedMachineType
+    //        machineType
     //    }
     calculateHomology: async function (sampleId, options) {
         const sample = _.find(currentState.samples, s => s.id === sampleId)
@@ -641,15 +634,12 @@ export const api = {
                 && group.selectedYParameterIndex === options.selectedYParameterIndex
                 && group.selectedXScale === options.selectedXScale
                 && group.selectedYScale === options.selectedYScale
-                && group.selectedMachineType === FCSFile.machineType
+                && group.machineType === FCSFile.machineType
         })
 
         if (!sample) { console.log('Error in calculateHomology(): no sample with id ', sampleId, 'was found'); return }
         // Dispatch a redux action to mark the gate template as loading
         let loadingMessage = 'Creating gates using Persistent Homology...'
-        
-        const gtLoadingStartedAction = updateGateTemplate(sample.gateTemplateId, { loading: true, loadingMessage })
-        store.dispatch(gtLoadingStartedAction)
 
         let loadingAction = setSampleParametersLoading(sampleId, options.selectedXParameterIndex + '_' + options.selectedYParameterIndex, { loading: true, loadingMessage: loadingMessage})
         currentState = applicationReducer(currentState, loadingAction)
@@ -688,14 +678,16 @@ export const api = {
         clearInterval(intervalToken)
 
         // Offset the entire graph and add histograms if we're looking at cytof data
-        let xOffset = options.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
-        let yOffset = options.selectedMachineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+        let xOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
+        let yOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
 
+        const xStats = FCSFile.FCSParameters[options.selectedXParameterIndex].statistics
+        const yStats = FCSFile.FCSParameters[options.selectedYParameterIndex].statistics
         const scales = getScales({
             selectedXScale: options.selectedXScale,
             selectedYScale: options.selectedYScale,
-            xRange: [ FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.min, FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.max ],
-            yRange: [ FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.min, FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.max ],
+            xRange: [ options.selectedXScale === constants.SCALE_LOG ? xStats.positiveMin : xStats.min, xStats.max ],
+            yRange: [ options.selectedYScale === constants.SCALE_LOG ? yStats.positiveMin : yStats.min, yStats.max ],
             width: constants.PLOT_WIDTH - xOffset,
             height: constants.PLOT_HEIGHT - yOffset
         })
@@ -719,7 +711,9 @@ export const api = {
                 includeEventIds: peak.includeEventIds
             }
 
-            if (options.selectedMachineType === constants.MACHINE_CYTOF) {
+            console.log(gate.gateData)
+
+            if (FCSFile.machineType === constants.MACHINE_CYTOF) {
                 // On the cytof, add any zero cutoffs to gates
                 if (peak.xCutoffs) {
                     gate.xCutoffs = [ scales.yScale.invert(peak.xCutoffs[0]), scales.yScale.invert(peak.xCutoffs[1]) ]
@@ -736,12 +730,13 @@ export const api = {
             // Create a Gate Template Group for this parameter combination
             const newGateTemplateGroup = {
                 id: uuidv4(),
+                title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[options.selectedYParameterIndex].label,
                 creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
                 selectedXParameterIndex: options.selectedXParameterIndex,
                 selectedYParameterIndex: options.selectedYParameterIndex,
                 selectedXScale: options.selectedXScale,
                 selectedYScale: options.selectedYScale,
-                selectedMachineType: options.selectedMachineType,
+                machineType: FCSFile.machineType,
                 parentGateTemplateId: sample.gateTemplateId,
                 childGateTemplateIds: [],
                 expectedGates: [],
@@ -803,9 +798,6 @@ export const api = {
             )
         }
 
-        const gtLoadingFinishedAction = updateGateTemplate(sample.gateTemplateId, { loading: false, loadingMessage: null })
-        store.dispatch(gtLoadingFinishedAction)
-
         const loadingFinishedAction = setSampleParametersLoading(sampleId, options.selectedXParameterIndex + '_' + options.selectedYParameterIndex, { loading: false, loadingMessage: null })
         currentState = applicationReducer(currentState, loadingFinishedAction)
         store.dispatch(loadingFinishedAction)
@@ -838,7 +830,7 @@ export const api = {
                     selectedYParameterIndex: comp[0][1],
                     selectedXScale: constants.SCALE_LOG,
                     selectedYScale: constants.SCALE_LOG,
-                    selectedMachineType: workspace.selectedMachineType
+                    machineType: workspace.machineType
                 }
                 console.log('trying population', workerIndex)
                 const population = await api.getPopulationDataForSample(sampleId, options)

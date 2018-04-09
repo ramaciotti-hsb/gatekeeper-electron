@@ -65,7 +65,7 @@ const mapStateToProps = (state, ownProps) => {
             }
         }
 
-        newSample.selectedMachineType = newSample.selectedMachineType || constants.MACHINE_FLORESCENT
+        newSample.machineType = newSample.machineType || constants.MACHINE_FLORESCENT
 
         return { api: state.api, workspace, FCSFile: newFCSFile, sample: newSample, gates, gateTemplates, gateTemplate, gateTemplateGroup, parentGateTitle }
     } else {

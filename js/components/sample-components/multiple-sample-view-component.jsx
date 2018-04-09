@@ -60,7 +60,7 @@ export default class MultipleSampleView extends Component {
             selectedYParameterIndex: selectedYParameterIndex,
             selectedXScale: this.props.workspace.selectedXScale,
             selectedYScale: this.props.workspace.selectedYScale,
-            selectedMachineType: this.props.workspace.selectedMachineType
+            machineType: this.props.workspace.machineType
         })
         // this.refs['homologyDropdown-' + selectedXParameterIndex + '-' + selectedYParameterIndex].getInstance().hideDropdown()
     }
@@ -126,7 +126,7 @@ export default class MultipleSampleView extends Component {
         // If the user has filtered down to less than 4 combinations, try and generate these images of interest first
         if (combinations.length < 4) {
             for (let c of combinations) {
-                this.props.api.getImageForPlot(this.props.sample.id, { selectedXParameterIndex: c[0], selectedYParameterIndex: c[1], selectedXScale: this.props.workspace.selectedXScale, selectedYScale: this.props.workspace.selectedYScale, selectedMachineType: this.props.workspace.selectedMachineType })
+                this.props.api.getImageForPlot(this.props.sample.id, { selectedXParameterIndex: c[0], selectedYParameterIndex: c[1], selectedXScale: this.props.workspace.selectedXScale, selectedYScale: this.props.workspace.selectedYScale, machineType: this.props.workspace.machineType })
             }
         }
 
