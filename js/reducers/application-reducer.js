@@ -52,7 +52,6 @@ const applicationReducer = (state = initialState, action) => {
         newState.gateTemplates = action.payload.gateTemplates ? action.payload.gateTemplates.slice(0) : []
         newState.gateTemplateGroups = action.payload.gateTemplateGroups ? action.payload.gateTemplateGroups.slice(0) : []
         newState.selectedWorkspaceId = action.payload.selectedWorkspaceId
-        newState.sessionLoading = false
     }
     // --------------------------------------------------
     // Selects which "API" object to use. This changes from
@@ -60,6 +59,13 @@ const applicationReducer = (state = initialState, action) => {
     // --------------------------------------------------
     else if (action.type === 'SET_API') {
         newState.api = action.payload.api
+    }
+    // --------------------------------------------------
+    // Sets the global loading indicator
+    // the web version to electron.
+    // --------------------------------------------------
+    else if (action.type === 'SET_SESSION_LOADING') {
+        newState.sessionLoading = action.payload.sessionLoading
     }
     // --------------------------------------------------
     // Create a new workspace and select it

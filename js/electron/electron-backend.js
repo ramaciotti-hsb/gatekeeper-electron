@@ -45,7 +45,24 @@ if (isDev) {
 }
 
 workerFork.stdout.on('data', (result) => {
-    console.log(result.toString('utf8'))
+    if (reduxStore.getState().sessionLoading) {
+        const action = {
+            type: 'SET_SESSION_LOADING',
+            payload: {
+                sessionLoading: false
+            }
+        }
+        currentState = applicationReducer(currentState, action)
+        reduxStore.dispatch(action)
+
+        if (currentState.selectedWorkspaceId) {
+            const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
+            for (let sample of currentState.samples) {
+                getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
+                api.applyGateTemplatesToSample(sample.id)
+            }
+        }
+    }
 })
 workerFork.stderr.on('data', (result) => {
     console.log(result.toString('utf8'))
@@ -128,7 +145,6 @@ const getImageForPlot = async (sample, FCSFile, options) => {
     })
 
     return imagePath
-    // return await getImageForPlotBackend(sample, subPopulation, options)
 }
 
 const getAllPlotImages = async (sample, scales) => {
@@ -160,7 +176,7 @@ const getAllPlotImages = async (sample, scales) => {
             const imageForPlot = await getImageForPlot(sample, FCSFile, options)
             const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
             currentState = applicationReducer(currentState, imageAction)
-            store.dispatch(imageAction)
+            reduxStore.dispatch(imageAction)
 
             await saveSessionToDisk()
 
@@ -236,7 +252,7 @@ export const api = {
             }
         }
 
-        store.dispatch({ type: 'SET_SESSION_STATE', payload: uiState })
+        reduxStore.dispatch({ type: 'SET_SESSION_STATE', payload: uiState })
 
         // After reading the session, if there's no workspace, create a default one
         if (currentState.workspaces.length === 0) {
@@ -244,16 +260,6 @@ export const api = {
             // Add an empty Gate Template
             await api.createGateTemplateAndAddToWorkspace(workspaceId, { title: 'New Gating Strategy' })
         }
-
-        setTimeout(() => {
-            if (currentState.selectedWorkspaceId) {
-                const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
-                for (let sample of currentState.samples) {
-                    // getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
-                    // api.applyGateTemplatesToSample(sample.id)
-                }
-            }
-        }, 5000)  
     },
 
     createWorkspace: async function (parameters) {
@@ -277,7 +283,7 @@ export const api = {
 
         const createAction = createWorkspace(newWorkspace)
         currentState = applicationReducer(currentState, createAction)
-        store.dispatch(createAction)
+        reduxStore.dispatch(createAction)
 
         saveSessionToDisk()
 
@@ -287,7 +293,7 @@ export const api = {
     selectWorkspace: async function (workspaceId) {
         const selectAction = selectWorkspace(workspaceId)
         currentState = applicationReducer(currentState, selectAction)
-        store.dispatch(selectWorkspace(workspaceId))
+        reduxStore.dispatch(selectWorkspace(workspaceId))
 
         saveSessionToDisk()
     },
@@ -296,7 +302,7 @@ export const api = {
     removeWorkspace: async function (workspaceId) {
         const removeAction = removeWorkspace(workspaceId)
         currentState = applicationReducer(currentState, removeAction)
-        store.dispatch(removeAction)
+        reduxStore.dispatch(removeAction)
 
         saveSessionToDisk()
     },
@@ -316,7 +322,7 @@ export const api = {
 
         const createGateTemplateAction = createGateTemplateAndAddToWorkspace(workspaceId, gateTemplate)
         currentState = applicationReducer(currentState, createGateTemplateAction)
-        store.dispatch(createGateTemplateAction)
+        reduxStore.dispatch(createGateTemplateAction)
 
         saveSessionToDisk()
     },
@@ -325,7 +331,7 @@ export const api = {
     updateGateTemplateAndRecalculate: async function (gateTemplateId, parameters) {
         const updateAction = updateGateTemplate(gateTemplateId, parameters)
         currentState = applicationReducer(currentState, updateAction)
-        store.dispatch(updateAction)
+        reduxStore.dispatch(updateAction)
 
         // Update any child templates that depend on these
         const templateGroup = _.find(currentState.gateTemplateGroups, g => g.childGateTemplateIds.includes(gateTemplateId))
@@ -337,7 +343,7 @@ export const api = {
     selectGateTemplate: async function (gateTemplateId, workspaceId) {
         const selectAction = selectGateTemplate(gateTemplateId, workspaceId)
         currentState = applicationReducer(currentState, selectAction)
-        store.dispatch(selectAction)
+        reduxStore.dispatch(selectAction)
 
         saveSessionToDisk()
     },
@@ -346,7 +352,7 @@ export const api = {
         const removeAction = removeGateTemplate(gateTemplateId)
 
         currentState = applicationReducer(currentState, removeAction)
-        store.dispatch(removeAction)
+        reduxStore.dispatch(removeAction)
 
         saveSessionToDisk()
     },
@@ -357,7 +363,7 @@ export const api = {
         for (let sample of _.filter(currentState.samples, s => templateGroup.childGateTemplateIds.includes(s.gateTemplateId))) {
             const removeAction = removeSample(sample.id)
             currentState = applicationReducer(currentState, removeAction)
-            store.dispatch(removeAction)
+            reduxStore.dispatch(removeAction)
         }
         
         // Recalculate gates on all the parent samples
@@ -415,7 +421,7 @@ export const api = {
 
         const createGateTemplateGroupAction = createGateTemplateGroupAndAddToWorkspace(workspaceId, gateTemplateGroup)
         currentState = applicationReducer(currentState, createGateTemplateGroupAction)
-        store.dispatch(createGateTemplateGroupAction)
+        reduxStore.dispatch(createGateTemplateGroupAction)
 
         saveSessionToDisk()
     },
@@ -435,13 +441,13 @@ export const api = {
 
         const createFCSFileAction = createFCSFileAndAddToWorkspace(workspaceId, FCSFile)
         currentState = applicationReducer(currentState, createFCSFileAction)
-        store.dispatch(createFCSFileAction)
+        reduxStore.dispatch(createFCSFileAction)
 
         const FCSMetaData = await getFCSMetadata(FCSFile.filePath)
 
         const updateAction = updateFCSFile(FCSFileId, FCSMetaData)
         currentState = applicationReducer(currentState, updateAction)
-        store.dispatch(updateAction)
+        reduxStore.dispatch(updateAction)
 
         const sampleId = uuidv4()
         const createSampleAction = createSampleAndAddToWorkspace(workspaceId, {
@@ -453,7 +459,7 @@ export const api = {
             populationCount: FCSMetaData.populationCount
         })
         currentState = applicationReducer(currentState, createSampleAction)
-        store.dispatch(createSampleAction)
+        reduxStore.dispatch(createSampleAction)
 
         const workspaceParameters = {
             selectedGateTemplateId: workspace.gateTemplateIds[0],
@@ -463,7 +469,7 @@ export const api = {
 
         const updateWorkspaceAction = updateWorkspace(workspaceId, workspaceParameters)
         currentState = applicationReducer(currentState, updateWorkspaceAction)
-        store.dispatch(updateWorkspaceAction)
+        reduxStore.dispatch(updateWorkspaceAction)
 
         const sample = _.find(currentState.samples, s => s.id === sampleId)
         getAllPlotImages(sample, workspaceParameters)
@@ -478,7 +484,7 @@ export const api = {
         const removeAction = removeFCSFile(FCSFileId)
 
         currentState = applicationReducer(currentState, removeAction)
-        store.dispatch(removeAction)
+        reduxStore.dispatch(removeAction)
 
         saveSessionToDisk()
     },
@@ -526,7 +532,7 @@ export const api = {
         backendSample.includeEventIds = gateParameters.includeEventIds
 
         currentState = applicationReducer(currentState, createSubSampleAndAddToWorkspace(workspaceId, parentSampleId, backendSample, gate))
-        store.dispatch(createSubSampleAndAddToWorkspace(workspaceId, parentSampleId, sample, gate))
+        reduxStore.dispatch(createSubSampleAndAddToWorkspace(workspaceId, parentSampleId, sample, gate))
 
         const updatedSample = _.find(currentState.samples, s => s.id === sample.id)
 
@@ -539,7 +545,7 @@ export const api = {
         const removeAction = removeSample(sampleId)
 
         currentState = applicationReducer(currentState, removeAction)
-        store.dispatch(removeAction)
+        reduxStore.dispatch(removeAction)
 
         saveSessionToDisk()
     },
@@ -548,7 +554,7 @@ export const api = {
     selectFCSFile: async function (FCSFileId, workspaceId) {
         const selectAction = selectFCSFile(FCSFileId, workspaceId)
         currentState = applicationReducer(currentState, selectAction)
-        store.dispatch(selectAction)
+        reduxStore.dispatch(selectAction)
 
         saveSessionToDisk()
     },
@@ -564,7 +570,7 @@ export const api = {
 
         const selectAction = selectSample(relatedSample.id, workspaceId)
         currentState = applicationReducer(currentState, selectAction)
-        store.dispatch(selectAction)
+        reduxStore.dispatch(selectAction)
 
         saveSessionToDisk()
     },
@@ -573,7 +579,7 @@ export const api = {
     updateWorkspace: async function (workspaceId, parameters) {
         const updateWorkspaceAction = updateWorkspace(workspaceId, parameters)
         currentState = applicationReducer(currentState, updateWorkspaceAction)
-        store.dispatch(updateWorkspaceAction)
+        reduxStore.dispatch(updateWorkspaceAction)
 
         saveSessionToDisk()
     },
@@ -584,7 +590,7 @@ export const api = {
         const imageForPlot = await getImageForPlot(sample, FCSFile, options)
         const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
         currentState = applicationReducer(currentState, imageAction)
-        store.dispatch(imageAction)
+        reduxStore.dispatch(imageAction)
 
         await saveSessionToDisk()
     },
@@ -593,7 +599,7 @@ export const api = {
     invertPlotAxis: async function (workspaceId, selectedXParameterIndex, selectedYParameterIndex) {
         const updateWorkspaceAction = invertPlotAxis(workspaceId, selectedXParameterIndex, selectedYParameterIndex)
         currentState = applicationReducer(currentState, updateWorkspaceAction)
-        store.dispatch(updateWorkspaceAction)
+        reduxStore.dispatch(updateWorkspaceAction)
 
         saveSessionToDisk()
 
@@ -605,7 +611,7 @@ export const api = {
                 const imageForPlot = await getImageForPlot(sample, FCSFile, options)
                 const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
                 currentState = applicationReducer(currentState, imageAction)
-                store.dispatch(imageAction)
+                reduxStore.dispatch(imageAction)
 
                 await saveSessionToDisk()
             }
@@ -643,7 +649,7 @@ export const api = {
 
         let loadingAction = setSampleParametersLoading(sampleId, options.selectedXParameterIndex + '_' + options.selectedYParameterIndex, { loading: true, loadingMessage: loadingMessage})
         currentState = applicationReducer(currentState, loadingAction)
-        store.dispatch(loadingAction)
+        reduxStore.dispatch(loadingAction)
 
         let homologyOptions = { sample, FCSFile, options }
 
@@ -657,7 +663,7 @@ export const api = {
         const intervalToken = setInterval(() => {
             loadingAction = setSampleParametersLoading(sampleId, options.selectedXParameterIndex + '_' + options.selectedYParameterIndex, { loading: true, loadingMessage: loadingMessage})
             currentState = applicationReducer(currentState, loadingAction)
-            store.dispatch(loadingAction)
+            reduxStore.dispatch(loadingAction)
         }, 500)
 
         const jobId = uuidv4()
@@ -757,13 +763,13 @@ export const api = {
 
                 const createGateTemplateAction = createGateTemplateAndAddToWorkspace(workspace.id, gateTemplate)
                 currentState = applicationReducer(currentState, createGateTemplateAction)
-                store.dispatch(createGateTemplateAction)
+                reduxStore.dispatch(createGateTemplateAction)
                 return gateTemplate
             })
 
             const createGateTemplateGroupAction = createGateTemplateGroupAndAddToWorkspace(workspace.id, newGateTemplateGroup)
             currentState = applicationReducer(currentState, createGateTemplateGroupAction)
-            store.dispatch(createGateTemplateGroupAction)
+            reduxStore.dispatch(createGateTemplateGroupAction)
         } else if (gates.length > 0) {
             const gateTemplates = _.filter(currentState.gateTemplates, g => gateTemplateGroup.childGateTemplateIds.includes(g.id))
             truePeaks.map((peak, index) => {
@@ -800,7 +806,7 @@ export const api = {
 
         const loadingFinishedAction = setSampleParametersLoading(sampleId, options.selectedXParameterIndex + '_' + options.selectedYParameterIndex, { loading: false, loadingMessage: null })
         currentState = applicationReducer(currentState, loadingFinishedAction)
-        store.dispatch(loadingFinishedAction)
+        reduxStore.dispatch(loadingFinishedAction)
     },
 
     recursiveHomology: async (sampleId) => {
@@ -839,7 +845,7 @@ export const api = {
                 const imageForPlot = await getImageForPlot(sample, options)
                 const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
                 currentState = applicationReducer(currentState, imageAction)
-                store.dispatch(imageAction)
+                reduxStore.dispatch(imageAction)
 
                 console.log('trying homology', workerIndex)
                 await api.calculateHomology(sample.id, options)

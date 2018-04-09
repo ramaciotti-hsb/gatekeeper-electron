@@ -38,8 +38,6 @@ const http = require('http');
 const numCPUs = require('os').cpus().length - 1;
 
 if (cluster.isMaster) {
-  console.log(`Master ${process.pid} is running`);
-
   // Fork workers.
   for (let i = 0; i < numCPUs; i++) {
     cluster.fork();
@@ -49,6 +47,7 @@ if (cluster.isMaster) {
     console.log(`worker ${worker.process.pid} died`);
   });
 } else {
+    console.log(`Child ${process.pid} is running`);
     const populationCache = {}
 
     http.createServer((req, res) => {

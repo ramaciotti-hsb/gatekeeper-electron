@@ -92,6 +92,10 @@ $red-colour: #C02942;
         display: flex;
     }
 
+    &.opaque {
+        opacity: 1;
+    }
+
     .loader {
         font-size: 10px;
         position: relative;

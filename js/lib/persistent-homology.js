@@ -74,10 +74,10 @@ export default class PersistentHomology {
                     peak.includeEventIds.push(point[2])
                 } else {
                     // Comparisons to 0 points along the y axis are inverted because of the way images and indexed starting at the top left corner
-                    if (peak.xCutoffs && point[0] === 0 && point[1] <= scales.yScale.invert(peak.xCutoffs[0]) && point[1] >= scales.yScale.invert(peak.xCutoffs[1])) {
+                    if (peak.xCutoffs && point[0] === 0 && point[1] <= scales.yScale.invert(peak.xCutoffs[0]).toFixed(2) && point[1] >= scales.yScale.invert(peak.xCutoffs[1]).toFixed(2)) {
                         peak.includeEventIds.push(point[2])
                     }
-                    if (peak.yCutoffs && point[1] === 0 && point[0] >= scales.xScale.invert(peak.yCutoffs[0]) && point[0] <= scales.xScale.invert(peak.yCutoffs[1])) {
+                    if (peak.yCutoffs && point[1] === 0 && point[0] >= scales.xScale.invert(peak.yCutoffs[0]).toFixed(2) && point[0] <= scales.xScale.invert(peak.yCutoffs[1]).toFixed(2)) {
                         peak.includeEventIds.push(point[2])
                     }
                 }
