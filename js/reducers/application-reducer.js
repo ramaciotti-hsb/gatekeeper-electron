@@ -207,27 +207,29 @@ const applicationReducer = (state = initialState, action) => {
     // --------------------------------------------------
     // Remove a gate template, any child gate templates and unselect if selected
     // --------------------------------------------------
-    } else if (action.type === 'REMOVE_GATE_TEMPLATE') {
+    } else if (action.type === 'REMOVE_GATE_TEMPLATE_GROUP') {
         // Find all gate templates that will be affected, including child templates and template groups
         const gateTemplatesToRemove = []
-        const gateTemplateGroupsToRemove = []
+        const gateTemplateGroupsToRemove = [action.payload.gateTemplateGroupId]
         const addChildTemplates = (gateTemplateId) => {
             const gateTemplate = _.find(newState.gateTemplates, gt => gt.id === gateTemplateId)
-            if (gateTemplateId) {
-                gateTemplatesToRemove.push(gateTemplateId)
+            gateTemplatesToRemove.push(gateTemplateId)
 
-                const templateGroup = _.find(newState.gateTemplateGroups, g => g.parentGateTemplateId === gateTemplateId)
-                if (templateGroup) {
-                    gateTemplateGroupsToRemove.push(templateGroup.id)
+            const templateGroup = _.find(newState.gateTemplateGroups, g => g.parentGateTemplateId === gateTemplateId)
+            if (templateGroup) {
+                gateTemplateGroupsToRemove.push(templateGroup.id)
 
-                    for (let childGateTemplateId of templateGroup.childGateTemplateIds) {
-                        addChildTemplates(childGateTemplateId)
-                    }
+                for (let childGateTemplateId of templateGroup.childGateTemplateIds) {
+                    addChildTemplates(childGateTemplateId)
                 }
             }
         }
 
-        addChildTemplates(action.payload.gateTemplateId)
+        const gateTemplateGroup = _.find(state.gateTemplateGroups, g => g.id === action.payload.gateTemplateGroupId)
+
+        for (let gateTemplateId of gateTemplateGroup.childGateTemplateIds) {
+            addChildTemplates(gateTemplateId)
+        }
         
         for (let gateTemplateId of gateTemplatesToRemove) {
             const removeAction = removeGateTemplate(gateTemplateId)

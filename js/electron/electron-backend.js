@@ -22,6 +22,7 @@ import isDev from 'electron-is-dev'
 import applicationReducer from '../reducers/application-reducer'
 import { updateSample, removeSample, setSamplePlotImage, setSampleParametersLoading } from '../actions/sample-actions'
 import { updateGateTemplate, removeGateTemplate } from '../actions/gate-template-actions'
+import { removeGateTemplateGroup } from '../actions/gate-template-group-actions'
 import { updateFCSFile, removeFCSFile } from '../actions/fcs-file-actions'
 import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace,
     createFCSFileAndAddToWorkspace, selectFCSFile,
@@ -348,8 +349,8 @@ export const api = {
         saveSessionToDisk()
     },
 
-    removeGateTemplate: async function (gateTemplateId) {
-        const removeAction = removeGateTemplate(gateTemplateId)
+    removeGateTemplateGroup: async function (gateTemplateGroupId) {
+        const removeAction = removeGateTemplateGroup(gateTemplateGroupId)
 
         currentState = applicationReducer(currentState, removeAction)
         reduxStore.dispatch(removeAction)

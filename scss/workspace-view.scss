@@ -30,8 +30,32 @@
                 font-size: 12px;
                 font-weight: 600;
                 color: #999;
-                padding: 10px;
                 background: #fafafa;
+                align-items: stretch;
+
+                .text {
+                    flex-grow: 1;
+                    padding: 10px;
+                }
+
+                .remove-gate-template-group {
+                    display: none;
+                    color: #f00;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 0 10px;
+                    font-size: 18px;
+                    cursor: pointer;
+                    @include backgroundHover(#f2f2f2);
+                    @include backgroundClick(#f2f2f2);
+                }
+
+                &:hover {
+
+                    .remove-gate-template-group {
+                        display: flex;
+                    }
+                }
             }
 
             .show-plot {
@@ -55,21 +79,11 @@
                 @include backgroundHover(#fafafa);
                 @include backgroundClick(#fafafa);    
                 border-right: 5px solid $highlight-colour;
-
-                .remove-gate-template {
-                    @include backgroundHover(#ededed);
-                    @include backgroundClick(#ededed);
-                }
             }
 
             &.highlighted > .body {
                 @include backgroundHover(lighten(#A7DBD8, 20%));
                 @include backgroundClick(lighten(#A7DBD8, 20%));    
-
-                .remove-gate-template {
-                    @include backgroundHover(darken(lighten(#A7DBD8, 20%), 5%));
-                    @include backgroundClick(darken(lighten(#A7DBD8, 20%), 5%));
-                }
             }
 
             & > .body {
@@ -82,29 +96,6 @@
                 align-items: center;
                 border-right: 5px solid transparent;
                 box-sizing: border-box;
-
-                &:hover {
-
-                    .remove-gate-template {
-                        display: flex;
-                    }
-                }
-
-                .remove-gate-template {
-                    display: none;
-                    color: #f00;
-                    position: absolute;
-                    right: -5px;
-                    top: 0;
-                    height: 100%;
-                    align-items: center;
-                    justify-content: center;
-                    width: 30px;
-                    font-size: 18px;
-                    cursor: pointer;
-                    @include backgroundHover(#f2f2f2);
-                    @include backgroundClick(#f2f2f2);
-                }
     
                 & > .title {
                     font-size: 12px;

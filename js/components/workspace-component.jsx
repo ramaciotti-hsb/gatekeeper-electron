@@ -12,9 +12,9 @@ import FCSFileSelector from '../containers/fcs-file-selector-container.jsx'
 
 export default class WorkspaceView extends Component {
 
-    removeGateTemplate (gateTemplateId, workspaceId, event) {
+    removeGateTemplateGroup (gateTemplateId, event) {
         event.stopPropagation()
-        this.props.api.removeGateTemplate(gateTemplateId, workspaceId)
+        this.props.api.removeGateTemplateGroup(gateTemplateId)
     }
 
     renderSubGateTemplates (gateTemplate) {
@@ -32,10 +32,6 @@ export default class WorkspaceView extends Component {
                         <div className='body' onClick={this.props.api.selectGateTemplate.bind(null, childGateTemplate.id, this.props.workspace.id)}>
                             <div className='title'>{childGateTemplate.title}</div>
                             <div className='number'>{childGateTemplate.populationCount}</div>
-                            <div className='remove-gate-template' onClick={this.removeGateTemplate.bind(this, childGateTemplate.id, this.props.workspace.id)}>
-                                <div className={`loader-outer${childGateTemplate.loading ? ' active' : ''}`}><div className='loader'></div></div>
-                                <i className='lnr lnr-cross'></i>
-                            </div>
                         </div>
                         <div className='child-gate-templates'>{this.renderSubGateTemplates(childGateTemplate)}</div>
                     </div>
@@ -46,13 +42,11 @@ export default class WorkspaceView extends Component {
                 <div className='sidebar-gate-template-group' key={childGateTemplateGroup.id}>
                     <div className={`loader-outer${childGateTemplateGroup.loading ? ' active' : ''}`}><div className='loader small'></div></div>
                     <div className='title'>
-                        {childGateTemplateGroup.title}
-                        <div className='show-plot' onClick={this.props.api.updateWorkspace.bind(null, this.props.workspace.id, {
-                            selectedXParameterIndex: childGateTemplateGroup.selectedXParameterIndex,
-                            selectedYParameterIndex: childGateTemplateGroup.selectedYParameterIndex,
-                            selectedXScale: childGateTemplateGroup.selectedXScale,
-                            selectedYScale: childGateTemplateGroup.selectedYScale
-                        }) }>Show Plot</div>
+                        <div className='text'>{childGateTemplateGroup.title}</div>
+                        <div className='remove-gate-template-group' onClick={this.removeGateTemplateGroup.bind(this, childGateTemplateGroup.id)}>
+                            <div className={`loader-outer${childGateTemplateGroup.loading ? ' active' : ''}`}><div className='loader'></div></div>
+                            <i className='lnr lnr-cross'></i>
+                        </div>
                     </div>
                     {childrenRendered}
                 </div>
@@ -71,7 +65,6 @@ export default class WorkspaceView extends Component {
                         <div className='body' onClick={this.props.api.selectGateTemplate.bind(null, gateTemplate.id, this.props.workspace.id)}>
                             <div className='title'>{gateTemplate.title}</div>
                             <div className='number'>{gateTemplate.populationCount}</div>
-                            <div className='remove-gate-template' onClick={this.removeGateTemplate.bind(this, gateTemplate.id, this.props.workspace.id)}><i className='lnr lnr-cross'></i></div>
                         </div>
                         <div className='child-gate-templates'>{this.renderSubGateTemplates(gateTemplate)}</div>
                     </div>
