@@ -606,9 +606,9 @@ export const api = {
 
         if (currentState.selectedWorkspaceId) {
             const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
-            const options = { selectedXParameterIndex: selectedYParameterIndex, selectedYParameterIndex: selectedXParameterIndex, selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale, machineType: workspace.machineType }
             for (let sample of currentState.samples) {
                 const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
+                const options = { selectedXParameterIndex: selectedYParameterIndex, selectedYParameterIndex: selectedXParameterIndex, selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale, machineType: FCSFile.machineType }
                 const imageForPlot = await getImageForPlot(sample, FCSFile, options)
                 const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
                 currentState = applicationReducer(currentState, imageAction)
@@ -812,6 +812,7 @@ export const api = {
 
     recursiveHomology: async (sampleId) => {
         const sample = _.find(currentState.samples, s => s.id === sampleId)
+        const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
         const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sampleId))
 
         let comparisons = []
@@ -837,7 +838,7 @@ export const api = {
                     selectedYParameterIndex: comp[0][1],
                     selectedXScale: constants.SCALE_LOG,
                     selectedYScale: constants.SCALE_LOG,
-                    machineType: workspace.machineType
+                    machineType: FCSFile.machineType
                 }
                 console.log('trying population', workerIndex)
                 const population = await api.getPopulationDataForSample(sampleId, options)
