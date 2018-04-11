@@ -23,6 +23,13 @@ let initialState = {
     gateTemplateGroups: gateTemplateGroupReducer(),
     selectedWorkspaceId: null,
     sessionLoading: true, // Display a global loading spinner while the session loads
+    modals: {
+        homology: {
+            visible: false,
+            selectedXParameterIndex: 26,
+            selectedYParameterIndex: 49
+        }
+    },
     api: {}
 }
 
@@ -36,6 +43,7 @@ const applicationReducer = (state = initialState, action) => {
         gateTemplateGroups: state.gateTemplateGroups ? state.gateTemplateGroups.slice(0) : [],
         selectedWorkspaceId: state.selectedWorkspaceId,
         sessionLoading: state.sessionLoading,
+        modals: state.modals,
         api: state.api
     }
 
@@ -66,6 +74,14 @@ const applicationReducer = (state = initialState, action) => {
     // --------------------------------------------------
     else if (action.type === 'SET_SESSION_LOADING') {
         newState.sessionLoading = action.payload.sessionLoading
+    }
+    // --------------------------------------------------
+    // Updates parameters for modals
+    // --------------------------------------------------
+    else if (action.type === 'UPDATE_MODAL_PARAMETERS') {
+        console.log('test')
+        newState.modals[action.payload.modalKey] = _.merge(newState.modals[action.payload.modalKey], action.payload.parameters)
+        console.log(newState.modals)
     }
     // --------------------------------------------------
     // Create a new workspace and select it

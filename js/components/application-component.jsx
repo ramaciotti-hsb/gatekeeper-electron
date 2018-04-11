@@ -5,6 +5,7 @@ import { remote } from 'electron'
 import path from 'path'
 const { dialog, Menu, MenuSample } = remote
 import Workspace from '../containers/workspace-container.jsx'
+import HomologyModal from '../containers/homology-modal-container.jsx'
 
 export default class Application extends Component {
 
@@ -235,6 +236,7 @@ export default class Application extends Component {
                 <div className='container-inner'>
                     {workspaceView}
                 </div>
+                <HomologyModal />
             </div>
         )
     }

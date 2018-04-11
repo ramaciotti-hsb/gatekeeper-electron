@@ -16,6 +16,7 @@ import constants from '../../lib/constants.js'
 import area from 'area-polygon'
 import { heatMapHSLStringForValue, getPlotImageKey, getScales, getPolygonCenter } from '../../lib/utilities.js'
 import PersistantHomology from '../../lib/persistent-homology'
+import '../../../scss/bivariate-plot-component.scss'
 
 export default class BivariatePlot extends Component {
     
@@ -24,7 +25,7 @@ export default class BivariatePlot extends Component {
         this.state = {
             graphWidth: 500,
             graphHeight: 500,
-            graphMargin: {top: 20, right: 20, bottom: 20, left: 50},
+            graphMargin: {top: 20, right: 0, bottom: 20, left: 50},
             gateSelection: null,
             truePeaks: [],
             homologyPeaks: [],

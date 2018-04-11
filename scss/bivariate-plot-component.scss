@@ -1,0 +1,189 @@
+// ----------------------------------------------
+// Styles for bivariate-plot-component.jsx
+// ----------------------------------------------
+
+@import './mixins';
+
+.graph {
+    background: #fff;
+    border-radius: 10px;
+    flex-direction: column;
+
+    .axis-selection.y {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+
+        .dropdown-inline.scale {
+            margin: 10px 0 0 0;
+        }
+    }
+
+    .axis-selection.x {
+        justify-content: center;
+    }
+
+    svg {
+        z-index: 1;
+        @include unselectable;
+        padding: 20px 0px 0px 50px;           
+
+        .selection {
+          fill: #3f5996;
+          stroke: #3f5996;
+          fill-opacity: 0.5;
+          stroke-opacity: 0.7;
+          stroke-width: 5;
+          stroke-dasharray: 5, 5;
+        }
+
+        .gate {
+            fill-opacity: 0;
+            stroke: #3f5996;
+            stroke-opacity: 0.7;
+            stroke-width: 2;
+            cursor: pointer;
+
+            &.highlighted, &:hover {
+                fill-opacity: 0.05;
+            }
+
+            &:active {
+                fill-opacity: 0.1;
+            }
+            // stroke-dasharray: 5, 5;
+        }
+
+        .domain {
+            stroke: #ccc;
+            stroke-width: 2;
+        }
+
+        .tick {
+
+            line {
+                stroke: #ccc;
+            }
+
+            text {
+                fill: #999;
+                font: 200 12px 'Open Sans';
+            }
+        } // .tick
+
+        &.gates {
+            position: absolute;
+            z-index: 2;
+        }
+    } // svg
+} // .graph
+
+.svg-outer {
+    position: relative;
+    flex-direction: column;
+    padding-left: 15px;
+
+    .tooltip {
+        font-size: 12px;
+        position: absolute;
+        background: #fff;
+        overflow: visible;
+        border: 2px solid #ddd;   
+        z-index: 3;
+
+        &:after, &:before {
+            top: 100%;
+            left: 50%;
+            border: solid transparent;
+            content: " ";
+            height: 0;
+            width: 0;
+            position: absolute;
+            pointer-events: none;
+        }
+
+        &:after {
+            border-color: rgba(136, 183, 213, 0);
+            border-top-color: #fff;
+            border-width: 10px;
+            margin-left: -10px;
+        }
+        &:before {
+            border-color: rgba(221, 221, 221, 0);
+            border-top-color: #ddd;
+            border-width: 13px;
+            margin-left: -13px;
+        }
+
+        .tooltip-inner {
+            flex-grow: 1;
+            flex-direction: column;
+
+            & > div {
+                padding: 0 10px;
+            }
+
+            .title {
+                padding-top: 5px;
+                font-weight: 600;
+                color: #999;
+                margin-bottom: 5px;
+            }
+
+            .divider {
+                padding: 0;
+                height: 0px;
+                border-top: 1px solid #eee;
+                margin: 10px 0;
+            }
+
+            .width {
+                align-items: center;
+
+                .text {
+                    flex-grow: 1;
+                }
+
+                .value {
+                    margin-right: 5px;
+                    font-size: 18px;
+                    color: #aaa;
+                }
+
+                i {
+                    font-size: 18px;
+                    margin-right: 5px;
+                    cursor: pointer;
+
+                    &:hover {
+                        color: #555;
+                    }
+
+                    &:active {
+                        color: $highlight-colour;
+                    }
+                }
+            }
+        }
+    }
+
+    canvas {
+        z-index: 0;
+        cursor: default;
+        position: absolute;
+        padding: 20px 20px 20px 50px;
+    }
+}
+
+.axis-selection {
+    padding: 0 0 15px 15px;
+    align-items: center;
+
+    .dropdown-inline.scale {
+        margin-left: 10px;
+    }
+
+    .versus {
+        margin: 0 15px;
+    }
+} // .axis-selection

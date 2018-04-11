@@ -1,0 +1,97 @@
+// ----------------------------------------------
+// Styles for homology-modal-component.jsx
+// ----------------------------------------------
+
+@import 'mixins.scss';
+
+.homology-modal-outer {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(100, 100, 100, 0.58);
+    z-index: 10;
+    align-items: center;
+    justify-content: center;
+
+    &.active {
+        display: flex;
+    }
+
+    .homology-modal-inner {
+        width: 1000px;
+        height: 600px;
+        background: #fff;
+        flex-direction: column;
+        align-items: stretch;
+        -webkit-box-shadow: 2px 4px 28px 1px rgba(138,138,138,1);
+        -moz-box-shadow: 2px 4px 28px 1px rgba(138,138,138,1);
+        box-shadow: 2px 4px 28px 1px rgba(138,138,138,1);
+
+        .upper {
+            padding: 10px;
+            background: #ccc;
+            font-weight: 600;
+            font-size: 12px;
+            
+            .title {
+            
+            }
+        }
+
+        .lower {
+            flex-direction: row;
+
+            .homology-options {
+                background: #fafafa;
+                flex-direction: column;
+                flex-grow: 1;
+                padding: 15px;
+
+                .title {
+                    font-size: 18px;
+                    color: #777;
+                    font-weight: 200;
+                    margin-bottom: 30px;
+                }
+
+                .row {
+                    margin-bottom: 15px;
+                    align-items: center;
+
+                    .text {
+                        font-size: 12px;
+                        margin-right: 15px;
+                        flex-grow: 1;
+                    }
+
+                    input {
+                        padding: 8px 12px;
+                        border: 1px solid #ccc;
+                        width: 100px;
+                    }
+                }
+
+                .divider {
+                    flex-grow: 1;
+                }
+
+                .actions {
+                    margin-bottom: 25px;
+
+                    .calculate-homology {
+                        padding: 8px 12px;
+                        color: #fff;
+                        font-weight: 600;
+                        font-size: 12px;
+                        cursor: pointer;
+                        @include backgroundHover(darken($highlight-colour, 10%));
+                        @include backgroundClick(darken($highlight-colour, 10%));
+                    }
+                }
+            }
+        } // .lower
+    } // .homology-modal-inner
+} // .homology-modal-outer

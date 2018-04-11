@@ -9,15 +9,14 @@ import _ from 'lodash'
 import constants from '../../lib/constants'
 import pointInsidePolygon from 'point-in-polygon'
 import { heatMapHSLStringForValue, getScales, getPlotImageKey } from '../../lib/utilities.js'
-import '../../../scss/sample-view/sample-gates.scss'
 import BivariatePlot from '../../containers/bivariate-plot-container.jsx'
-import '../../../scss/sample-view/sample-gates.scss'
 import List from 'react-virtualized/dist/commonjs/List'
 import Dropdown from '../../lib/dropdown.jsx'
 import AutoSizer from 'react-virtualized/dist/commonjs/AutoSizer'
 import Masonry from 'react-virtualized/dist/commonjs/Masonry';
 import { CellMeasurer, CellMeasurerCache } from 'react-virtualized/dist/commonjs/CellMeasurer';
 import createCellPositioner from 'react-virtualized/dist/commonjs/Masonry/createCellPositioner';
+import '../../../scss/sample-view/sample-gates.scss'
 
 export default class MultipleSampleView extends Component {
 
@@ -55,13 +54,7 @@ export default class MultipleSampleView extends Component {
     }
 
     calculateHomology (selectedXParameterIndex, selectedYParameterIndex) {
-        this.props.api.calculateHomology(this.props.sample.id, {
-            selectedXParameterIndex: selectedXParameterIndex,
-            selectedYParameterIndex: selectedYParameterIndex,
-            selectedXScale: this.props.workspace.selectedXScale,
-            selectedYScale: this.props.workspace.selectedYScale,
-            machineType: this.props.FCSFile.machineType
-        })
+        this.props.updateModalParameters('homology', { visible: true, selectedXParameterIndex, selectedYParameterIndex })
         // this.refs['homologyDropdown-' + selectedXParameterIndex + '-' + selectedYParameterIndex].getInstance().hideDropdown()
     }
 

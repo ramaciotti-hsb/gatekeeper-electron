@@ -7,6 +7,7 @@ import { updateGate } from '../actions/gate-actions'
 import { updateGateTemplate } from '../actions/gate-template-actions'
 import constants from '../lib/constants'
 import MultipleSampleView from '../components/sample-components/multiple-sample-view-component.jsx'
+import { updateModalParameters } from '../actions/application-actions'
 import _ from 'lodash'
 
 const mapStateToProps = (state, ownProps) => {
@@ -77,6 +78,9 @@ const mapDispatchToProps = dispatch => {
     return {
         updateGateTemplate: (gateTemplateId, parameters) => {
             dispatch(updateGateTemplate(gateTemplateId, parameters))
+        },
+        updateModalParameters: (modalKey, parameters) => {
+            dispatch(updateModalParameters(modalKey, parameters))
         }
     }
 }

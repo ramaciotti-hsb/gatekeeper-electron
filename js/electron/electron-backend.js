@@ -59,8 +59,8 @@ workerFork.stdout.on('data', (result) => {
         if (currentState.selectedWorkspaceId) {
             const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
             for (let sample of currentState.samples) {
-                getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
-                api.applyGateTemplatesToSample(sample.id)
+                // getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
+                // api.applyGateTemplatesToSample(sample.id)
             }
         }
     }
@@ -657,7 +657,7 @@ export const api = {
         // If there are already gating templates defined for this parameter combination
         if (gateTemplateGroup) {
             const gateTemplates = _.filter(currentState.gateTemplates, gt => gateTemplateGroup.childGateTemplateIds.includes(gt.id))
-            homologyOptions = _.merge(homologyOptions, gateTemplateGroup.typeSpecificData)
+            homologyOptions.options = _.merge(homologyOptions.options, gateTemplateGroup.typeSpecificData)
             homologyOptions.gateTemplates = gateTemplates.map(g => _.clone(g))
         }
 
@@ -718,8 +718,6 @@ export const api = {
                 includeEventIds: peak.includeEventIds
             }
 
-            console.log(gate.gateData)
-
             if (FCSFile.machineType === constants.MACHINE_CYTOF) {
                 // On the cytof, add any zero cutoffs to gates
                 if (peak.xCutoffs) {
@@ -747,7 +745,7 @@ export const api = {
                 parentGateTemplateId: sample.gateTemplateId,
                 childGateTemplateIds: [],
                 expectedGates: [],
-                typeSpecificData: {}
+                typeSpecificData: options
             }
 
             const newGateTemplates = gates.map((gate, index) => {
@@ -803,6 +801,12 @@ export const api = {
                 },
                 gate,
             )
+        }
+
+        let samplesToRecalculate = _.filter(currentState.samples, s => s.gateTemplateId === sample.gateTemplateId && s.id !== sample.id)
+        // Recalculate the gates on other FCS files
+        for (let sampleToRecalculate of samplesToRecalculate) {
+            api.applyGateTemplatesToSample(sampleToRecalculate.id)
         }
 
         const loadingFinishedAction = setSampleParametersLoading(sampleId, options.selectedXParameterIndex + '_' + options.selectedYParameterIndex, { loading: false, loadingMessage: null })

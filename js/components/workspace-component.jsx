@@ -31,7 +31,7 @@ export default class WorkspaceView extends Component {
                     key={childGateTemplate.id}>
                         <div className='body' onClick={this.props.api.selectGateTemplate.bind(null, childGateTemplate.id, this.props.workspace.id)}>
                             <div className='title'>{childGateTemplate.title}</div>
-                            <div className='number'>{childGateTemplate.populationCount} ({(childGateTemplate.populationCount / gateTemplate.populationCount * 100).toFixed(1)}%)</div>
+                            <div className='number' style={!childGateTemplate.populationCount ? { display: 'none'} : null}>{childGateTemplate.populationCount} ({(childGateTemplate.populationCount / gateTemplate.populationCount * 100).toFixed(1)}%)</div>
                         </div>
                         <div className='child-gate-templates'>{this.renderSubGateTemplates(childGateTemplate)}</div>
                     </div>
@@ -49,7 +49,7 @@ export default class WorkspaceView extends Component {
                             <div className={`loader-outer${childGateTemplateGroup.loading ? ' active' : ''}`}><div className='loader'></div></div>
                             <i className='lnr lnr-cross'></i>
                         </div>
-                        <div className='number'>{totalEvents} ({(totalEvents / gateTemplate.populationCount * 100).toFixed(1)}%)</div>
+                        <div className='number' style={_.isNaN(totalEvents) ? { display: 'none'} : null}>{totalEvents} ({(totalEvents / gateTemplate.populationCount * 100).toFixed(1)}%)</div>
                     </div>
                     {childrenRendered}
                 </div>

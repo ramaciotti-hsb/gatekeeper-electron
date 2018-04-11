@@ -38,10 +38,12 @@ export default class PersistentHomology {
 
     constructor (options) {
         this.options = _.merge({
-            edgeDistance: constants.PLOT_WIDTH * 0.05,
-            minPeakHeight: constants.PLOT_WIDTH * 0.04,
-            maxIterations: 10,//constants.PLOT_WIDTH * 0.02,
-            densityMap: null
+            options: {
+                edgeDistance: constants.PLOT_WIDTH * 0.05,
+                minPeakHeight: constants.PLOT_WIDTH * 0.04,
+                minPeakSize: 5000,
+                maxIterations: 10,//constants.PLOT_WIDTH * 0.02,
+            }
         }, options)
 
         if (!this.options.sample || !this.options.options || !this.options.population) {
@@ -362,7 +364,7 @@ export default class PersistentHomology {
     // Find peaks using gating template information
     findPeaksWithTemplate (stepCallback) {
         // First find true peaks at their original size
-        this.options.maxIterations = 0
+        this.options.options.maxIterations = 0
         this.findPeaks(stepCallback, true)
         // Try and match them to options.gateTemplates
         if (this.truePeaks.length !== this.options.gateTemplates.length) {
@@ -504,7 +506,7 @@ export default class PersistentHomology {
                             }
                         }
 
-                        if (closestPeakDistance < this.options.edgeDistance) {
+                        if (closestPeakDistance < this.options.options.edgeDistance) {
                             this.homologyPeaks[closestPeakIndex].pointsToAdd.push([x, y])
                             foundPeak = true
                         }
@@ -515,7 +517,7 @@ export default class PersistentHomology {
                                 polygon: [[x, y]],
                                 height: 0,
                                 bonusIterations: 0,
-                                maxIterations: this.options.maxIterations,
+                                maxIterations: this.options.options.maxIterations,
                                 pointsToAdd: []
                             })
                         }
@@ -546,7 +548,7 @@ export default class PersistentHomology {
                 if (!intersected) {
                     // If the edge of a polygon is within a small distance of the nearby polygon, count them as intersected
                     for (let p = 0; p < this.homologyPeaks[i].polygon.length; p++) {
-                        if (distanceToPolygon([this.homologyPeaks[i].polygon[p]], this.homologyPeaks[j].polygon) < this.options.edgeDistance) {
+                        if (distanceToPolygon([this.homologyPeaks[i].polygon[p]], this.homologyPeaks[j].polygon) < this.options.options.edgeDistance) {
                             intersected = true
                             break
                         }
@@ -563,14 +565,14 @@ export default class PersistentHomology {
 
                     let jCondition
                     if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF) {
-                        jCondition = jSize < 5000// || this.homologyPeaks[j].height > this.options.minPeakHeight
+                        jCondition = jSize < 5000 && this.homologyPeaks[j].height > this.options.options.minPeakHeight
                     } else {
                         jCondition = jSize < 1000
                     }
 
                     let iCondition
                     if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF) {
-                        iCondition = iSize > 5000// || this.homologyPeaks[i].height > this.options.minPeakHeight
+                        iCondition = iSize > 5000 && this.homologyPeaks[i].height > this.options.options.minPeakHeight
                     } else {
                         iCondition = iSize > 5000
                     }
