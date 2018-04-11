@@ -31,13 +31,15 @@ export default class WorkspaceView extends Component {
                     key={childGateTemplate.id}>
                         <div className='body' onClick={this.props.api.selectGateTemplate.bind(null, childGateTemplate.id, this.props.workspace.id)}>
                             <div className='title'>{childGateTemplate.title}</div>
-                            <div className='number'>{childGateTemplate.populationCount}</div>
+                            <div className='number'>{childGateTemplate.populationCount} ({(childGateTemplate.populationCount / gateTemplate.populationCount * 100).toFixed(1)}%)</div>
                         </div>
                         <div className='child-gate-templates'>{this.renderSubGateTemplates(childGateTemplate)}</div>
                     </div>
                 )
             })
 
+
+            const totalEvents = childGateTemplates.reduce((accumulator, current) => { return accumulator + current.populationCount }, 0)
             return (
                 <div className='sidebar-gate-template-group' key={childGateTemplateGroup.id}>
                     <div className={`loader-outer${childGateTemplateGroup.loading ? ' active' : ''}`}><div className='loader small'></div></div>
@@ -47,6 +49,7 @@ export default class WorkspaceView extends Component {
                             <div className={`loader-outer${childGateTemplateGroup.loading ? ' active' : ''}`}><div className='loader'></div></div>
                             <i className='lnr lnr-cross'></i>
                         </div>
+                        <div className='number'>{totalEvents} ({(totalEvents / gateTemplate.populationCount * 100).toFixed(1)}%)</div>
                     </div>
                     {childrenRendered}
                 </div>
@@ -64,7 +67,7 @@ export default class WorkspaceView extends Component {
                     <div className={'sidebar-gate-template' + (gateTemplate.id === this.props.workspace.selectedGateTemplateId ? ' selected' : '') + (gateTemplate.id === this.props.highlightedGate.childGateTemplateId ? ' highlighted' : '')} key={gateTemplate.id}>
                         <div className='body' onClick={this.props.api.selectGateTemplate.bind(null, gateTemplate.id, this.props.workspace.id)}>
                             <div className='title'>{gateTemplate.title}</div>
-                            <div className='number'>{gateTemplate.populationCount}</div>
+                            <div className='number'>{gateTemplate.populationCount} (100%)</div>
                         </div>
                         <div className='child-gate-templates'>{this.renderSubGateTemplates(gateTemplate)}</div>
                     </div>

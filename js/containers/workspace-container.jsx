@@ -17,13 +17,9 @@ const mapStateToProps = (state, ownProps) => {
         newWorkspace.FCSFiles = []
         // If the workspace contains FCSFiles, find them and add them as complete objects
         if (newWorkspace.FCSFileIds) {
-            for (let sampleId of newWorkspace.FCSFileIds) {
-                const sample = _.find(state.FCSFiles, s => s.id === sampleId)
-                const gate = _.find(state.gates, g => g.childSampleId === sampleId)
-                if (gate) {
-                    sample.gate = gate
-                }
-                if (sample) { newWorkspace.FCSFiles.push(sample) }
+            for (let FCSFileId of newWorkspace.FCSFileIds) {
+                const FCSFile = _.find(state.FCSFiles, s => s.id === FCSFileId)
+                if (FCSFile) { newWorkspace.FCSFiles.push(FCSFile) }
             }
             newWorkspace.FCSFileIds = null
         }
@@ -40,8 +36,15 @@ const mapStateToProps = (state, ownProps) => {
         // If the workspace contains gate templates, find them and add them as complete objects
         if (newWorkspace.gateTemplateIds) {
             for (let gateTemplateId of newWorkspace.gateTemplateIds) {
-                const gateTemplate = _.find(state.gateTemplates, s => s.id === gateTemplateId)
-                if (gateTemplate) { newWorkspace.gateTemplates.push(gateTemplate) }
+                const gateTemplate = _.clone(_.find(state.gateTemplates, s => s.id === gateTemplateId))
+                if (gateTemplate) {
+                    // Add the population count for the corresponding sample
+                    const sampleForGateTemplate = _.find(state.samples, s => s.FCSFileId === newWorkspace.selectedFCSFileId && s.gateTemplateId === gateTemplate.id)
+                    if (sampleForGateTemplate) {
+                        gateTemplate.populationCount = sampleForGateTemplate.populationCount
+                    }
+                    newWorkspace.gateTemplates.push(gateTemplate)
+                }
             }
             newWorkspace.gateTemplateIds = null
         }
@@ -68,6 +71,11 @@ const mapStateToProps = (state, ownProps) => {
                 }
             }
             newWorkspace.gateTemplateGroupIds = null
+        }
+
+        let selectedSample
+        if (newWorkspace.selectedSampleId) {
+            selectedSample = _.find(state.samples, s => s.id === newWorkspace.selectedSampleId)
         }
 
         // If there is a highlighted gate, highlight it's subsample

@@ -55,15 +55,18 @@
                     .remove-gate-template-group {
                         display: flex;
                     }
-                }
-            }
 
-            .show-plot {
-                margin-left: 10px;
-                text-decoration: underline;
-                cursor: pointer;
-                @include foregroundHover($highlight-colour);
-                @include foregroundClick($highlight-colour);
+                    .number {
+                        display: none;
+                    }
+                }
+
+                .number {
+                    align-items: center;
+                    font-weight: 600;
+                    color: #555;
+                    padding: 0 10px;
+                }
             }
         }
 
@@ -102,6 +105,11 @@
                     font-weight: 600;
                     color: #666;
                     flex-grow: 1;
+                }
+
+                & > .number {
+                    font-weight: 600;
+                    color: #555;
                 }
             }
 
