@@ -563,21 +563,7 @@ export default class PersistentHomology {
                     const iSize = this.homologyPeaks[i].polygon.length < 3 ? 0 : area(this.homologyPeaks[i].polygon.map((p) => { return { x: p[0], y: p[1] } }))
                     const jSize = this.homologyPeaks[j].polygon.length < 3 ? 0 : area(this.homologyPeaks[j].polygon.map((p) => { return { x: p[0], y: p[1] } }))
 
-                    let jCondition
-                    if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF) {
-                        jCondition = jSize < 5000 && this.homologyPeaks[j].height > this.options.options.minPeakHeight
-                    } else {
-                        jCondition = jSize < 1000
-                    }
-
-                    let iCondition
-                    if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF) {
-                        iCondition = iSize > 5000 && this.homologyPeaks[i].height > this.options.options.minPeakHeight
-                    } else {
-                        iCondition = iSize > 5000
-                    }
-
-                    if (jCondition) {
+                    if (jSize < this.options.options.minPeakSize && this.homologyPeaks[j].height > this.options.options.minPeakHeight) {
                         const newPolygon = this.homologyPeaks[i].polygon.concat(this.homologyPeaks[j].polygon.slice(0))
                         this.homologyPeaks.splice(i, 1, {
                             polygon: newPolygon,
@@ -602,7 +588,7 @@ export default class PersistentHomology {
                         this.homologyPeaks[i].polygon = grahamScan.getHull().map(p => [p.x, p.y])
                         this.homologyPeaks[i].pointsToAdd = []
                         intersected = true
-                    } else if (iCondition) {
+                    } else if (iSize > this.options.options.minPeakSize && this.homologyPeaks[i].height > this.options.options.minPeakHeight) {
                         this.homologyPeaks[i].truePeak = true
                         if (gateTemplates) {
                             const centerPoint = getPolygonCenter(this.homologyPeaks[i].polygon)
