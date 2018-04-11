@@ -458,7 +458,7 @@ export default class PersistentHomology {
             }
 
             if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF && !dontIncludeZeroes) {
-                // this.expandToIncludeZeroes()
+                this.expandToIncludeZeroes()
             }
 
             this.findIncludedEvents()
