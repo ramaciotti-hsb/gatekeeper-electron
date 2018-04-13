@@ -518,7 +518,7 @@ export default class BivariatePlot extends Component {
 
         return (
             <div className='svg-outer' onClick={this.showGateTooltip.bind(this, null)}>
-                <div className={`loader-outer${!this.props.sample.plotImages[getPlotImageKey(this.state)] || isLoading ? ' active' : ''}`}><div className='loader'></div><div className="text">{loadingMessage}</div></div>
+                <div className={`loader-outer${isLoading ? ' active' : ''}`}><div className='loader'></div><div className="text">{loadingMessage}</div></div>
                 {/* D3 Axis */}
                 <svg width={this.state.graphWidth + this.state.graphMargin.left + this.state.graphMargin.right} height={this.state.graphHeight + this.state.graphMargin.bottom + this.state.graphMargin.top} ref="graph" className='axis'></svg>
                 {/* Gate Paths */}
