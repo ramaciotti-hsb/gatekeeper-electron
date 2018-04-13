@@ -1,7 +1,7 @@
 const merge = require('webpack-merge')
 const common = require('./webpack.common.js')
 const webpack = require('webpack')
-const MinifyPlugin = require('babel-minify-webpack-plugin')
+// const MinifyPlugin = require('babel-minify-webpack-plugin')
 const ExtractTextPlugin = require("extract-text-webpack-plugin")
 const HtmlPlugin = require('html-webpack-plugin')
 const CopyPlugin = require('copy-webpack-plugin')
@@ -24,7 +24,7 @@ module.exports = merge(common, {
                 'NODE_ENV': JSON.stringify('production')
             }
         }),
-        new MinifyPlugin({}, { comments: false }),
+        // new MinifyPlugin({}, { comments: false }),
         extractSass,
         htmlPlugin
     ],

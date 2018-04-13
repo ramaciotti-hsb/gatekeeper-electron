@@ -24,9 +24,7 @@
   "license": "ISC",
   "dependencies": {
     "area-polygon": "^1.0.1",
-    "babel-polyfill": "^6.26.0",
     "babel-preset-env": "^1.6.1",
-    "babel-register": "^6.26.0",
     "body-parser": "^1.18.2",
     "copy-webpack-plugin": "^4.5.1",
     "d3": "^4.12.0",

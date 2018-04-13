@@ -5,6 +5,7 @@
 import constants from './constants'
 import _ from 'lodash'
 import pngjs from 'pngjs'
+import path from 'path'
 import mkdirp from 'mkdirp'
 import fs from 'fs'
 import * as d3 from 'd3'
@@ -150,7 +151,7 @@ export default async (sample, FCSFile, subPopulation, options) => {
         PNGFile = tempPNGFile
     }
 
-    const directory = `/Users/nicbarker/Downloads/sample-images/${sample.id}`
+    const directory = path.join(options.directory, 'sample-images', sample.id)
     const sampleKey = getPlotImageKey(options)
     const fileName = `${directory}/${sampleKey}.png`
     await mkdirpPromise(directory)

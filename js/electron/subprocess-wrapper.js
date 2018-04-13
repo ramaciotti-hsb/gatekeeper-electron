@@ -2,36 +2,12 @@
 // IPC wrapper for running cpu intensive subprocess tasks
 // -------------------------------------------------------------
 
-const whitelist = ['d3-scale']
-require('babel-polyfill')
-require("babel-register")({
-    "presets": ["env"],
-    ignore: function (filename) {
-        var ignore = false
-
-        if (filename.match('/node_modules/')) {
-            ignore = true
-
-            for (var i = 0, len = whitelist.length; i < len; i++) {
-                var moduleName = whitelist[i]
-
-                if (filename.match('/' + moduleName + '/')) {
-                    ignore = false
-                    break
-                }
-            }
-        }
-
-        return ignore
-    }
-})
-
 let heartbeatTime = process.hrtime()[0]
 
-const getSubPopulation = require('../lib/get-population-data.js').default
-const getImageForPlot = require('../lib/get-image-for-plot.js').default
-const PersistentHomology = require('../lib/persistent-homology.js').default
-const getFCSMetadata = require('../lib/get-fcs-metadata.js').default
+import getSubPopulation from '../lib/get-population-data.js'
+import getImageForPlot from '../lib/get-image-for-plot.js'
+import PersistentHomology from '../lib/persistent-homology.js'
+import getFCSMetadata from '../lib/get-fcs-metadata.js'
 
 const cluster = require('cluster');
 const http = require('http');

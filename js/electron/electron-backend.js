@@ -160,7 +160,8 @@ const getAllPlotImages = async (sample, scales) => {
                 selectedYParameterIndex: workspace.invertedAxisPlots[x + '_' + y] ? x : y,
                 selectedXScale: scales.selectedXScale,
                 selectedYScale: scales.selectedYScale,
-                machineType: FCSFile.machineType
+                machineType: FCSFile.machineType,
+                directory: remote.app.getPath('userData')
             }
             if (!sample.plotImages[getPlotImageKey(options)] && FCSFile.FCSParameters[x].label.match('_') && FCSFile.FCSParameters[y].label.match('_')) {
                 combinations.push(options)
