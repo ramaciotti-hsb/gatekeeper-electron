@@ -37,7 +37,7 @@ export default class FCSFileSelector extends Component {
                 <div className='fcs-file-selector-inner'>
                     <div className='header'>
                         <div className='fcs-file-selector-dropdown'><Dropdown items={FCSFiles} textLabel={this.props.selectedFCSFile ? this.props.selectedFCSFile.title : 'Select FCSFile'} ref='FCSFileDropdown' /></div>
-                        <div className='button'><i className='lnr lnr-cross-circle' onClick={this.props.api.removeFCSFile.bind(null, this.props.selectedFCSFile.id)}></i>Remove File From Workspace</div>
+                        <div className='button' onClick={this.props.api.removeFCSFile.bind(null, this.props.selectedFCSFile.id)}><i className='lnr lnr-cross-circle'></i>Remove File From Workspace</div>
                     </div>
                     {multipleSampleView}
                 </div>
