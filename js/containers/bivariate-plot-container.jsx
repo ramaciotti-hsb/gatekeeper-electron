@@ -34,8 +34,8 @@ const mapStateToProps = (state, ownProps) => {
         // Find any gates on this plot
         const gates = []
         for (let gate of state.gates) {
-            let selectedXParameterIndex = !_.isUndefined(ownProps.selectedXParameterIndex) ? ownProps.selectedXParameterIndex : workspace.selectedXParameterIndex
-            let selectedYParameterIndex = !_.isUndefined(ownProps.selectedYParameterIndex) ? ownProps.selectedYParameterIndex : workspace.selectedYParameterIndex
+            let selectedXParameterIndex = ownProps.selectedXParameterIndex
+            let selectedYParameterIndex = ownProps.selectedYParameterIndex
             if (gate.parentSampleId === ownProps.sampleId
                 && gate.selectedXParameterIndex === selectedXParameterIndex
                 && gate.selectedYParameterIndex === selectedYParameterIndex) {

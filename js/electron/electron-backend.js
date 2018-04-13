@@ -271,8 +271,6 @@ export const api = {
             id: workspaceId,
             title: parameters.title,
             description: parameters.description,
-            selectedXParameterIndex: parameters.selectedXParameterIndex || 49,
-            selectedYParameterIndex: parameters.selectedYParameterIndex || 26,
             selectedXScale: parameters.selectedXScale || constants.SCALE_LOG,
             selectedYScale: parameters.selectedYScale || constants.SCALE_LOG,
             FCSFileIds: [],

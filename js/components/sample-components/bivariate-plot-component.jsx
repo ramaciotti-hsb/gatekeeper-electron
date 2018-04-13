@@ -32,8 +32,6 @@ export default class BivariatePlot extends Component {
             iterations: 0,
             homologyHeight: 100,
             visibleGateTooltipId: null,
-            selectedXParameterIndex: !_.isUndefined(this.props.selectedXParameterIndex) ? this.props.selectedXParameterIndex : this.props.workspace.selectedXParameterIndex,
-            selectedYParameterIndex: !_.isUndefined(this.props.selectedYParameterIndex) ? this.props.selectedYParameterIndex : this.props.workspace.selectedYParameterIndex,
             selectedXScale: this.props.selectedXScale || this.props.workspace.selectedXScale,
             selectedYScale: this.props.selectedYScale || this.props.workspace.selectedYScale,
             machineType: this.props.FCSFile.machineType || this.props.workspace.machineType
@@ -403,8 +401,8 @@ export default class BivariatePlot extends Component {
 
     componentDidUpdate(prevProps) {
         // Update the graph if visible gates have changed
-        const prevPropGates = _.filter(prevProps.gates, g => g.selectedXParameterIndex === prevProps.workspace.selectedXParameterIndex && g.selectedYParameterIndex === prevProps.workspace.selectedYParameterIndex)
-        const propGates = _.filter(this.props.gates, g => g.selectedXParameterIndex === this.props.workspace.selectedXParameterIndex && g.selectedYParameterIndex === this.props.workspace.selectedYParameterIndex)
+        const prevPropGates = _.filter(prevProps.gates, g => g.selectedXParameterIndex === prevProps.selectedXParameterIndex && g.selectedYParameterIndex === prevProps.selectedYParameterIndex)
+        const propGates = _.filter(this.props.gates, g => g.selectedXParameterIndex === this.props.selectedXParameterIndex && g.selectedYParameterIndex === this.props.selectedYParameterIndex)
 
         if (prevPropGates.length !== propGates.length) {
             this.createGraphLayout()
@@ -451,6 +449,10 @@ export default class BivariatePlot extends Component {
         // Need to offset the whole graph if we're including cytof 0 histograms
         const xOffset = this.props.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH * (this.state.graphWidth / constants.PLOT_WIDTH) : 0
         const yOffset = this.props.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT * (this.state.graphHeight / constants.PLOT_HEIGHT) : 0
+        console.log(this.props)
+        console.log(this.props.selectedXParameterIndex, this.props.selectedYParameterIndex)
+        console.log(this.props.FCSFile.FCSParameters)
+        console.log(this.props.FCSFile.FCSParameters[this.props.selectedXParameterIndex])
         const xStats = this.props.FCSFile.FCSParameters[this.props.selectedXParameterIndex].statistics
         const yStats = this.props.FCSFile.FCSParameters[this.props.selectedYParameterIndex].statistics
         const scales = getScales({

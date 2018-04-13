@@ -26,8 +26,8 @@ let initialState = {
     modals: {
         homology: {
             visible: false,
-            selectedXParameterIndex: 26,
-            selectedYParameterIndex: 49
+            selectedXParameterIndex: 0,
+            selectedYParameterIndex: 1
         }
     },
     api: {}
