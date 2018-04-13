@@ -139,6 +139,18 @@ export default class Application extends Component {
         event.stopPropagation()
     }
 
+    onDropFile (event) {
+        event.preventDefault();
+
+        for (let file of event.dataTransfer.files) {
+            if (file.path.match(/\.fcs/)) {
+                this.addNewFCSFilesToWorkspace([file.path])
+            }
+        }
+        
+        return false;
+    }
+
     addNewFCSFilesToWorkspace (filePaths) {
         // Open one or more FCS files and add them to the workspace
         if (filePaths) {
@@ -228,7 +240,7 @@ export default class Application extends Component {
         }
 
         return (
-            <div className='container'>
+            <div className='container' onDrop={this.onDropFile.bind(this)}>
                 <div className={`loader-outer opaque${this.props.sessionLoading ? ' active' : ''}`}><div className='loader'></div><div className='text'>Loading session and starting workers...</div></div>
                 <div className='tab-bar'>
                     {workspaceTabs}

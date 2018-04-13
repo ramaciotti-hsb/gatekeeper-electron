@@ -45,7 +45,7 @@ export default class FCSFileSelector extends Component {
         } else {
             inner = (
                 <div className='fcs-file-selector-inner empty'>
-                    <div>Use File -> Add FCS Files to workspace to add an FCSFile.</div>
+                    <div>Drag and drop FCS Files or use Use File -> Add to workspace to add an FCSFile.</div>
                 </div>
             )
         }
