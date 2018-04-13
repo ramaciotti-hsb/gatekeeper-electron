@@ -1,8 +1,8 @@
 {
   "name": "Gatekeeper",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "author": "Nic Barker",
-  "description": "An atom based graphical interface for running command line utilities.",
+  "description": "An electron based GUI for analysing flow cytometry data.",
   "main": "main.js",
   "scripts": {
     "start": "webpack-dev-server --open --config webpack.dev.js",

@@ -51,7 +51,7 @@ class DropdownInline extends Component {
         if (this.state.dropdownVisible === true) {
             textLabel = <input type='text' placeholder='Type to search...' value={this.state.searchText} onChange={this.updateSearchText.bind(this)} ref='searchInput' />
         } else {
-            textLabel = this.props.textLabel
+            textLabel = <div className='text'>{this.props.textLabel}</div>
         }
 
         var filteredItems = this.props.items
