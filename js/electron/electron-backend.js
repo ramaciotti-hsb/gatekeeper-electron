@@ -189,7 +189,7 @@ const getAllPlotImages = async (sample, scales) => {
         }
     }
 
-    for (let i = 0; i < os.cpus().length - 2; i++) {
+    for (let i = 0; i < Math.max(os.cpus().length - 2, 1); i++) {
         createImage(i)
     }
 }
@@ -861,7 +861,7 @@ export const api = {
             }
         }
 
-        for (let i = 0; i < os.cpus().length - 1; i++) {
+        for (let i = 0; i < Math.max(os.cpus().length - 1, 1); i++) {
             calculate(i)
         }
     },
