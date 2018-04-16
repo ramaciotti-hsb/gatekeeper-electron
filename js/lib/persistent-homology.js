@@ -13,6 +13,7 @@ import constants from './constants'
 import * as d3 from 'd3'
 import { getPolygonCenter, getScales } from './utilities'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
+import * as turf from '@turf/turf'
 
 // This function takes a two dimensional array (e.g foo[][]) and returns an array of polygons
 // representing discovered peaks. e.g:
@@ -253,7 +254,7 @@ export default class PersistentHomology {
                 p--
             } else {
                 // Insert the new 0 edge points
-                const newGatePolygon = closestGate.polygon.slice(0).concat([
+                const newGatePolygon = closestGate.polygon.concat([
                     [yCutoffs[p][0], constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT],
                     [yCutoffs[p][0], constants.PLOT_HEIGHT],
                     [yCutoffs[p][1], constants.PLOT_HEIGHT],
@@ -295,13 +296,14 @@ export default class PersistentHomology {
             } else {
                 console.log('closestGate', getPolygonCenter(closestGate.polygon))
 
-                // Insert the two new 0 edge points
-                const newGatePolygon = closestGate.polygon.slice(0).concat([
+                // Insert the 0 edge points
+                const newGatePolygon = closestGate.polygon.concat([
                     [constants.CYTOF_HISTOGRAM_WIDTH, xCutoffs[p][0]],
                     [0, xCutoffs[p][0]],
                     [0, xCutoffs[p][1]],
                     [constants.CYTOF_HISTOGRAM_WIDTH, xCutoffs[p][1]]
                 ])
+
                 // Recalculate the polygon boundary
                 const grahamScan = new GrahamScan();
                 newGatePolygon.map(p => grahamScan.addPoint(p[0], p[1]))
@@ -326,35 +328,76 @@ export default class PersistentHomology {
         }
     }
 
+    // Breaks up any long straight lines in peak polygons into smaller lines connected by points
+    breakLongLinesIntoPoints () {
+        const getMidPoint = function (x1, y1, x2, y2, per) {
+            return [x1 + (x2 - x1) * per, y1 + (y2 - y1) * per];
+        }
+
+        for (let i = 0; i < this.truePeaks.length; i++) {
+            this.truePeaks[i].polygon.push(this.truePeaks[i].polygon[0])
+
+            for (let p = 0; p < this.truePeaks[i].polygon.length - 1; p++) {
+                const pointOne = this.truePeaks[i].polygon[p]
+                const pointTwo = this.truePeaks[i].polygon[p + 1]
+                const pointDistance = distanceBetweenPoints(pointOne, pointTwo)
+                if (pointDistance > 20) {
+                    // Break the line up into 10px segments
+                    const range = _.range(10, pointDistance, 10)
+                    console.log(pointDistance, range)
+                    const pointsToAdd = []
+                    for (let step = 0; step < range.length; step++) {
+                        const midPoint = getMidPoint(pointOne[0], pointOne[1], pointTwo[0], pointTwo[1], range[step] / pointDistance)
+                        pointsToAdd.push(midPoint)
+                    }
+                    // Slice in the new points
+                    this.truePeaks[i].polygon = this.truePeaks[i].polygon.slice(0, p).concat(pointsToAdd).concat(this.truePeaks[i].polygon.slice(p + 1))
+                }
+            }
+            // // Recalculate the polygon boundary
+            // const grahamScan = new GrahamScan();
+            // this.truePeaks[i].polygon.map(p => grahamScan.addPoint(p[0], p[1]))
+            // this.truePeaks[i].polygon = grahamScan.getHull().map(p => [p.x, p.y])
+            console.log(this.truePeaks[i].polygon)
+        }
+    }
+
     // Fix overlapping peak polygons using the zipper method
     fixOverlappingPolygonsUsingZipper () {
+        console.log('zipper')
         for (let i = 0; i < this.truePeaks.length; i++) {
-            for (let j = i + 1; j < this.truePeaks.length; j++) {
-                if (polygonsIntersect(this.truePeaks[i].polygon, this.truePeaks[j].polygon)) {
+            for (let j = 0; j < this.truePeaks.length; j++) {
+                if (i === j) {
+                    continue
+                }
+
+                const polygonOne = turf.polygon([this.truePeaks[i].polygon.concat([this.truePeaks[i].polygon[0]])])
+                const polygonTwo = turf.polygon([this.truePeaks[j].polygon.concat([this.truePeaks[j].polygon[0]])])
+
+                if (turf.intersect(polygonOne, polygonTwo)) {
+                    console.log('polygons intersect')
                     // Find intersecting points between these two polygons
                     for (let p = 0; p < this.truePeaks[i].polygon.length; p++) {
-                        const pointOne = this.truePeaks[i].polygon[p]
+                        const pointOne = turf.point(this.truePeaks[i].polygon[p])
                         // If this particular point is inside the other polygon
-                        if (pointInsidePolygon(pointOne, this.truePeaks[j].polygon)) {
-                            console.log(pointOne, 'is inside polygon', this.truePeaks[j].polygon)
+                        if (turf.booleanPointInPolygon(pointOne, polygonTwo)) {
+                            console.log('points intersect')
                             // Find the closest point on the border of the other polygon
                             let closestPointIndex
                             let closestPointDistance = Infinity
                             for (let p2 = 0; p2 < this.truePeaks[j].polygon.length; p2++) {
-                                const peakDistance = distanceBetweenPoints(pointOne, this.truePeaks[j].polygon[p2])
-                                if (peakDistance < closestPeakDistance) {
-                                    closestPointDistance = peakDistance
-                                    closestPeakIndex = p2
+                                const pointDistance = distanceBetweenPoints(pointOne.geometry.coordinates, this.truePeaks[j].polygon[p2])
+                                if (pointDistance < closestPointDistance) {
+                                    closestPointDistance = pointDistance
+                                    closestPointIndex = p2
                                 }
                             }
 
                             // Get the halfway point between the two points
-                            const halfwayPoint = [ (pointOne[0] + this.truePeaks[j].polygon[closestPointIndex][0]) / 2, (pointOne[1] + this.truePeaks[j].polygon[closestPointIndex][1]) / 2 ]
+                            const halfwayPoint = [ (pointOne.geometry.coordinates[0] + this.truePeaks[j].polygon[closestPointIndex][0]) / 2, (pointOne.geometry.coordinates[1] + this.truePeaks[j].polygon[closestPointIndex][1]) / 2 ]
                             // Add the halfway point to both polygons and remove both the original points
                             this.truePeaks[i].polygon.splice(p, 1, halfwayPoint)
                             this.truePeaks[j].polygon.splice(closestPointIndex, 1, halfwayPoint)
-
-                            break
                         }
                     }
                 }
@@ -543,7 +586,9 @@ export default class PersistentHomology {
                 this.expandToIncludeZeroes()
             }
 
-            // this.fixOverlappingPolygonsUsingZipper()
+            // this.breakLongLinesIntoPoints()
+
+            this.fixOverlappingPolygonsUsingZipper()
 
             this.findIncludedEvents()
 
