@@ -23,6 +23,7 @@ let initialState = {
     gateTemplateGroups: gateTemplateGroupReducer(),
     selectedWorkspaceId: null,
     sessionLoading: true, // Display a global loading spinner while the session loads
+    backgroundJobsEnabled: true,
     modals: {
         homology: {
             visible: false,
@@ -43,6 +44,7 @@ const applicationReducer = (state = initialState, action) => {
         gateTemplateGroups: state.gateTemplateGroups ? state.gateTemplateGroups.slice(0) : [],
         selectedWorkspaceId: state.selectedWorkspaceId,
         sessionLoading: state.sessionLoading,
+        backgroundJobsEnabled: state.backgroundJobsEnabled,
         modals: state.modals,
         api: state.api
     }
@@ -60,6 +62,7 @@ const applicationReducer = (state = initialState, action) => {
         newState.gateTemplates = action.payload.gateTemplates ? action.payload.gateTemplates.slice(0) : []
         newState.gateTemplateGroups = action.payload.gateTemplateGroups ? action.payload.gateTemplateGroups.slice(0) : []
         newState.selectedWorkspaceId = action.payload.selectedWorkspaceId
+        newState.backgroundJobsEnabled = action.payload.backgroundJobsEnabled
     }
     // --------------------------------------------------
     // Selects which "API" object to use. This changes from
@@ -79,9 +82,13 @@ const applicationReducer = (state = initialState, action) => {
     // Updates parameters for modals
     // --------------------------------------------------
     else if (action.type === 'UPDATE_MODAL_PARAMETERS') {
-        console.log('test')
         newState.modals[action.payload.modalKey] = _.merge(newState.modals[action.payload.modalKey], action.payload.parameters)
-        console.log(newState.modals)
+    }
+    // --------------------------------------------------
+    // Updates parameters for modals
+    // --------------------------------------------------
+    else if (action.type === 'SET_BACKGROUND_JOBS_ENABLED') {
+        newState.backgroundJobsEnabled = action.payload.backgroundJobsEnabled
     }
     // --------------------------------------------------
     // Create a new workspace and select it

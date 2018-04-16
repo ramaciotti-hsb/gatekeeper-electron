@@ -26,14 +26,21 @@
                 margin-right: 15px;
             }
 
+            .divider {
+                flex-grow: 1;
+            }
+
             .button {
                 padding: 8px 15px;
                 align-items: center;
                 cursor: pointer;
                 @include backgroundHover(#eee);
                 @include backgroundClick(#eee);
-                @include foregroundHover($red-colour);
-                @include foregroundClick($red-colour);
+
+                &.delete, &.jobs.disabled {
+                    @include foregroundHover($red-colour);
+                    @include foregroundClick($red-colour);
+                }
 
                 i {
                     margin-right: 10px;

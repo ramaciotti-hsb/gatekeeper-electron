@@ -20,6 +20,7 @@ import pointInsidePolygon from 'point-in-polygon'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import isDev from 'electron-is-dev'
 import applicationReducer from '../reducers/application-reducer'
+import { setBackgroundJobsEnabled } from '../actions/application-actions'
 import { updateSample, removeSample, setSamplePlotImage, setSampleParametersLoading } from '../actions/sample-actions'
 import { updateGateTemplate, removeGateTemplate } from '../actions/gate-template-actions'
 import { removeGateTemplateGroup } from '../actions/gate-template-group-actions'
@@ -176,6 +177,18 @@ const getAllPlotImages = async (sample, scales) => {
             const options = combinations.splice(0, 1)[0]
             console.log('doing combination', options)
 
+            // If background jobs get disabled, just wait here until they get enabled again
+            if (!currentState.backgroundJobsEnabled) {
+                await new Promise((resolve, reject) => {
+                    const intervalToken = setInterval(() => {
+                        if (currentState.backgroundJobsEnabled) {
+                            resolve()
+                            clearInterval(intervalToken)
+                        }
+                    }, 1000)
+                })
+            }
+
             // Generate the cached images
             const imageForPlot = await getImageForPlot(sample, FCSFile, options)
             const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
@@ -265,6 +278,14 @@ export const api = {
             const gateTemplateId = await api.createGateTemplateAndAddToWorkspace(workspaceId, { title: 'New Gating Strategy' })
             await api.selectGateTemplate(gateTemplateId, workspaceId)
         }
+    },
+
+    setBackgroundJobsEnabled: async function (backgroundJobsEnabled) {
+        const action = setBackgroundJobsEnabled(backgroundJobsEnabled)
+        currentState = applicationReducer(currentState, action)
+        reduxStore.dispatch(action)
+
+        await saveSessionToDisk()
     },
 
     createWorkspace: async function (parameters) {
@@ -384,6 +405,18 @@ export const api = {
         // Find all template groups that apply to this sample
         const templateGroups = _.filter(currentState.gateTemplateGroups, g => g.parentGateTemplateId === sample.gateTemplateId)
         for (let templateGroup of templateGroups) {
+            // If background jobs get disabled, just wait here until they get enabled again
+            if (!currentState.backgroundJobsEnabled) {
+                await new Promise((resolve, reject) => {
+                    const intervalToken = setInterval(() => {
+                        if (currentState.backgroundJobsEnabled) {
+                            resolve()
+                            clearInterval(intervalToken)
+                        }
+                    }, 1000)
+                })
+            }
+
             if (templateGroup.creator === constants.GATE_CREATOR_PERSISTENT_HOMOLOGY) {
                 // If there hasn't been any gate templates generated for this sample, try generating them, otherwise leave them as they are
                 if (!_.find(currentState.gates, g => g.parentSampleId === sampleId && templateGroup.childGateTemplateIds.includes(g.gateTemplateId))) {

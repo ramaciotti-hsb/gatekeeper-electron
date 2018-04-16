@@ -9,3 +9,10 @@ export const updateModalParameters = (modalKey, parameters) => {
         payload: { modalKey, parameters }
     }
 }
+
+export const setBackgroundJobsEnabled = (backgroundJobsEnabled) => {
+    return {
+        type: 'SET_BACKGROUND_JOBS_ENABLED',
+        payload: { backgroundJobsEnabled }
+    }
+}

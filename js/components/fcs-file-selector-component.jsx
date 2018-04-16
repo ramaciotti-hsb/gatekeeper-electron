@@ -37,7 +37,11 @@ export default class FCSFileSelector extends Component {
                 <div className='fcs-file-selector-inner'>
                     <div className='header'>
                         <div className='fcs-file-selector-dropdown'><Dropdown items={FCSFiles} textLabel={this.props.selectedFCSFile ? this.props.selectedFCSFile.title : 'Select FCSFile'} ref='FCSFileDropdown' /></div>
-                        <div className='button' onClick={this.props.api.removeFCSFile.bind(null, this.props.selectedFCSFile.id)}><i className='lnr lnr-cross-circle'></i>Remove File From Workspace</div>
+                        <div className='button delete' onClick={this.props.api.removeFCSFile.bind(null, this.props.selectedFCSFile.id)}><i className='lnr lnr-cross-circle'></i>Remove File From Workspace</div>
+                        <div className='divider' />
+                        <div className={'button jobs ' + (this.props.backgroundJobsEnabled ? 'enabled' : 'disabled')} onClick={this.props.api.setBackgroundJobsEnabled.bind(this, !this.props.backgroundJobsEnabled)}>
+                            <i className='lnr lnr-cloud-sync'></i>Background Jobs {this.props.backgroundJobsEnabled ? 'Enabled' : 'Disabled'}
+                        </div>
                     </div>
                     {multipleSampleView}
                 </div>
