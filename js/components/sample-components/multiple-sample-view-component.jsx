@@ -278,6 +278,10 @@ export default class MultipleSampleView extends Component {
             shouldReset = true
         } else if (this.props.FCSFile.FCSParameters.length !== prevProps.FCSFile.FCSParameters.length) {
             shouldReset = true
+        } else if (this.props.workspace.selectedXParameterIndex != prevProps.workspace.selectedXParameterIndex) {
+            shouldReset = true
+        } else if (this.props.workspace.selectedYParameterIndex != prevProps.workspace.selectedYParameterIndex) {
+            shouldReset = true
         }
 
         if (shouldReset) {

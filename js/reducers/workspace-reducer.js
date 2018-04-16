@@ -212,7 +212,7 @@ const workspaces = (state = initialState, action = {}) => {
         const workspaceIndex = _.findIndex(state, s => s.id === action.payload.workspaceId)
 
         if (workspaceIndex > -1) {
-            const newWorkspace = _.merge(_.clone(state[workspaceIndex]), action.payload.parameters)
+            const newWorkspace = _.merge(_.cloneDeep(state[workspaceIndex]), action.payload.parameters)
             newState = state.slice(0, workspaceIndex).concat([newWorkspace]).concat(state.slice(workspaceIndex + 1))
         }
     // --------------------------------------------------

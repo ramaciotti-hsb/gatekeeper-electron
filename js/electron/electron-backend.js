@@ -637,6 +637,13 @@ export const api = {
         if (parameters.machineType) {
             if (currentState.selectedWorkspaceId) {
                 const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
+                const workspaceParameters = {
+                    selectedXScale: parameters.machineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP,
+                    selectedYScale: parameters.machineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP
+                }
+
+                await api.updateWorkspace(workspace.id, workspaceParameters)
+
                 for (let sample of currentState.samples) {
                     getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
                     api.applyGateTemplatesToSample(sample.id)
