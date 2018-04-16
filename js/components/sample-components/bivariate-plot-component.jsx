@@ -410,7 +410,7 @@ export default class BivariatePlot extends Component {
         }
 
         for (let i = 0; i < prevPropGates.length; i++) {
-            if (prevPropGates[i].polygon.length !== this.props.gates[i].polygon.length) {
+            if (prevPropGates[i].polygon && prevPropGates[i].length !== this.props.gates[i].polygon.length) {
                 this.createGraphLayout()
                 return
             }
@@ -449,10 +449,6 @@ export default class BivariatePlot extends Component {
         // Need to offset the whole graph if we're including cytof 0 histograms
         const xOffset = this.props.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH * (this.state.graphWidth / constants.PLOT_WIDTH) : 0
         const yOffset = this.props.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT * (this.state.graphHeight / constants.PLOT_HEIGHT) : 0
-        console.log(this.props)
-        console.log(this.props.selectedXParameterIndex, this.props.selectedYParameterIndex)
-        console.log(this.props.FCSFile.FCSParameters)
-        console.log(this.props.FCSFile.FCSParameters[this.props.selectedXParameterIndex])
         const xStats = this.props.FCSFile.FCSParameters[this.props.selectedXParameterIndex].statistics
         const yStats = this.props.FCSFile.FCSParameters[this.props.selectedYParameterIndex].statistics
         const scales = getScales({

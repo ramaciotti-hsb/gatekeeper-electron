@@ -34,6 +34,42 @@ function kernelEpanechnikov(k) {
   };
 }
 
+// Get the min and max y points of a polygon as [min, max]
+function getPolygonXBoundaries (points) {
+    let minX = Infinity
+    let maxX = -Infinity
+
+    for (let point of points) {
+        if (point[0] < minX) {
+            minX = point[0]
+        }
+
+        if (point[0] > maxX) {
+            maxX = point[0]
+        }
+    }
+
+    return [ minX, maxX ]
+}
+
+// Get the min and max y points of a polygon as [min, max]
+function getPolygonYBoundaries (points) {
+    let minY = Infinity
+    let maxY = -Infinity
+
+    for (let point of points) {
+        if (point[1] < minY) {
+            minY = point[1]
+        }
+
+        if (point[1] > maxY) {
+            maxY = point[1]
+        }
+    }
+
+    return [ minY, maxY ]
+}
+
 export default class PersistentHomology {
 
     constructor (options) {
@@ -198,14 +234,14 @@ export default class PersistentHomology {
 
         for (let p = 0; p < yPeaks.length; p++) {
             const peak = yPeaks[p]
-            // Find the closest gate
+            // Find the closest gate which matches this peak
             let closestGate
             let closestDistance = Infinity
             for (let gate of this.truePeaks) {
+                const xBoundaries = getPolygonXBoundaries(gate.polygon)
                 const centerPoint = getPolygonCenter(gate.polygon)
-                const distance = distanceBetweenPoints(centerPoint, [peak, constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT])
-                if (distance < closestDistance && pointInsidePolygon([peak, centerPoint[1]], gate.polygon)) {
-                    closestDistance = distance
+                if (peak >= xBoundaries[0] && peak <= xBoundaries[1] && (constants.PLOT_HEIGHT - centerPoint[1]) < closestDistance) {
+                    closestDistance = constants.PLOT_HEIGHT - centerPoint[1]
                     closestGate = gate
                 }
             }
@@ -213,6 +249,7 @@ export default class PersistentHomology {
             if (!closestGate) {
                 console.log('Error: no close peak found for y = 0 peak with x value', peak)
                 yPeaks.splice(p, 1)
+                yCutoffs.splice(p, 1)
                 p--
                 continue
             }
@@ -238,10 +275,10 @@ export default class PersistentHomology {
             let closestGate
             let closestDistance = Infinity
             for (let gate of this.truePeaks) {
+                const yBoundaries = getPolygonYBoundaries(gate.polygon)
                 const centerPoint = getPolygonCenter(gate.polygon)
-                const distance = distanceBetweenPoints(centerPoint, [constants.CYTOF_HISTOGRAM_WIDTH, peak])
-                if (distance < closestDistance && pointInsidePolygon([centerPoint[0], peak], gate.polygon)) {
-                    closestDistance = distance
+                if (peak >= yBoundaries[0] && peak <= yBoundaries[1] && centerPoint[0] < closestDistance) {
+                    closestDistance = centerPoint[0]
                     closestGate = gate
                 }
             }
@@ -249,6 +286,7 @@ export default class PersistentHomology {
             if (!closestGate) {
                 console.log('Error: no close peak found for x = 0 peak with y value', peak)
                 xPeaks.splice(p, 1)
+                xCutoffs.splice(p, 1)
                 p--
                 continue
             }
@@ -268,8 +306,8 @@ export default class PersistentHomology {
             closestGate.zeroX = true
         }
 
-        // If a gate includes zeroes on both the x and y axis, add a special (0,0) point to the gate
         for (let gate of this.truePeaks) {
+            // If a gate includes zeroes on both the x and y axis, add a special (0,0) point to the gate            
             if (gate.zeroX && gate.zeroY) {
                 // Insert the two new 0 edge points
                 const newGatePolygon = gate.polygon.concat([[0, constants.PLOT_HEIGHT]])
@@ -279,6 +317,42 @@ export default class PersistentHomology {
                 gate.xCutoffs[1] = constants.PLOT_HEIGHT
                 gate.yCutoffs[0] = 0
                 gate.polygon = grahamScan.getHull().map(p => [p.x, p.y])
+            }
+        }
+    }
+
+    // Fix overlapping peak polygons using the zipper method
+    fixOverlappingPolygonsUsingZipper () {
+        for (let i = 0; i < this.truePeaks.length; i++) {
+            for (let j = i + 1; j < this.truePeaks.length; j++) {
+                if (polygonsIntersect(this.truePeaks[i].polygon, this.truePeaks[j].polygon)) {
+                    // Find intersecting points between these two polygons
+                    for (let p = 0; p < this.truePeaks[i].polygon.length; p++) {
+                        const pointOne = this.truePeaks[i].polygon[p]
+                        // If this particular point is inside the other polygon
+                        if (pointInsidePolygon(pointOne, this.truePeaks[j].polygon)) {
+                            console.log(pointOne, 'is inside polygon', this.truePeaks[j].polygon)
+                            // Find the closest point on the border of the other polygon
+                            let closestPointIndex
+                            let closestPointDistance = Infinity
+                            for (let p2 = 0; p2 < this.truePeaks[j].polygon.length; p2++) {
+                                const peakDistance = distanceBetweenPoints(pointOne, this.truePeaks[j].polygon[p2])
+                                if (peakDistance < closestPeakDistance) {
+                                    closestPointDistance = peakDistance
+                                    closestPeakIndex = p2
+                                }
+                            }
+
+                            // Get the halfway point between the two points
+                            const halfwayPoint = [ (pointOne[0] + this.truePeaks[j].polygon[closestPointIndex][0]) / 2, (pointOne[1] + this.truePeaks[j].polygon[closestPointIndex][1]) / 2 ]
+                            // Add the halfway point to both polygons and remove both the original points
+                            this.truePeaks[i].polygon.splice(p, 1, halfwayPoint)
+                            this.truePeaks[j].polygon.splice(closestPointIndex, 1, halfwayPoint)
+
+                            break
+                        }
+                    }
+                }
             }
         }
     }
@@ -450,7 +524,8 @@ export default class PersistentHomology {
             console.log("Error in PersistantHomology.findPeaks: too many peaks were found (", this.truePeaks.length + ")")
         } else {
             for (let peak of this.homologyPeaks) {
-                if ((peak.truePeak || peak.height > 10) && !_.find(this.truePeaks, p => p.id === peak.id)) {
+                if (peak.height > this.options.options.minPeakHeight && area(peak.polygon.map((p) => { return { x: p[0], y: p[1] } })) > this.options.options.minPeakSize && !_.find(this.truePeaks, p => p.id === peak.id)) {
+                    console.log(peak, 'has qualified to be added to truePeaks')
                     const truePeak = _.cloneDeep(peak)
                     truePeak.homologyParameters = {
                         bonusIterations: peak.maxIterations
@@ -462,6 +537,8 @@ export default class PersistentHomology {
             if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF && !dontIncludeZeroes) {
                 this.expandToIncludeZeroes()
             }
+
+            // this.fixOverlappingPolygonsUsingZipper()
 
             this.findIncludedEvents()
 
