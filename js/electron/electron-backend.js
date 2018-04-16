@@ -136,6 +136,7 @@ const getFCSMetadata = async (filePath) => {
 // Generates an image for a 2d scatter plot
 const getImageForPlot = async (sample, FCSFile, options) => {
     options.directory = remote.app.getPath('userData')
+    options.machineType = FCSFile.machineType
     if (sample.plotImages[getPlotImageKey(options)]) { return sample.plotImages[getPlotImageKey(options)] }
 
     const jobId = uuidv4()
@@ -175,7 +176,12 @@ const getAllPlotImages = async (sample, scales) => {
     const createImage = async () => {
         if (combinations.length > 0) {
             const options = combinations.splice(0, 1)[0]
-            console.log('doing combination', options)
+            let FCSFileUpdated = _.find(currentState.FCSFiles, fcs => sample.FCSFileId === fcs.id)
+            // If the machine type has changed, cancel the calculation of the plot images
+            if (options.machineType !== FCSFileUpdated.machineType) {
+                console.log('Changed machine type, abandoning image generation')
+                return
+            }
 
             // If background jobs get disabled, just wait here until they get enabled again
             if (!currentState.backgroundJobsEnabled) {
@@ -190,7 +196,13 @@ const getAllPlotImages = async (sample, scales) => {
             }
 
             // Generate the cached images
-            const imageForPlot = await getImageForPlot(sample, FCSFile, options)
+            let imageForPlot
+            try {
+                // Try twice, sometimes there are socket timeouts or hangups
+                imageForPlot = await getImageForPlot(sample, FCSFile, options)                
+            } catch (error) {
+                imageForPlot = await getImageForPlot(sample, FCSFile, options)
+            }
             const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
             currentState = applicationReducer(currentState, imageAction)
             reduxStore.dispatch(imageAction)
@@ -613,6 +625,26 @@ export const api = {
         saveSessionToDisk()
     },
 
+    // Update an FCSFile with arbitrary parameters
+    updateFCSFile: async function (FCSFileId, parameters) {
+        const updateAction = updateFCSFile(FCSFileId, parameters)
+        currentState = applicationReducer(currentState, updateAction)
+        reduxStore.dispatch(updateAction)
+
+        saveSessionToDisk()
+
+        // If the machine type was updated, recalculate gates and images
+        if (parameters.machineType) {
+            if (currentState.selectedWorkspaceId) {
+                const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
+                for (let sample of currentState.samples) {
+                    getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
+                    api.applyGateTemplatesToSample(sample.id)
+                }
+            }
+        }
+    },
+
     // Update a workspace with arbitrary parameters
     updateWorkspace: async function (workspaceId, parameters) {
         const updateWorkspaceAction = updateWorkspace(workspaceId, parameters)
@@ -626,7 +658,7 @@ export const api = {
         const sample = _.find(currentState.samples, s => s.id === sampleId)
         const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
         const imageForPlot = await getImageForPlot(sample, FCSFile, options)
-        const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
+        const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(_.merge(options, FCSFile)), imageForPlot)
         currentState = applicationReducer(currentState, imageAction)
         reduxStore.dispatch(imageAction)
 

@@ -17,6 +17,11 @@ export default class FCSFileSelector extends Component {
         this.props.api.selectFCSFile(FCSFileId, this.props.workspaceId)   
     }
 
+    selectMachineType (FCSFileId, machineType) {
+        this.refs['machineTypeDropdown'].getInstance().hideDropdown()
+        this.props.api.updateFCSFile(FCSFileId, { machineType })
+    }
+
     render () {
         let inner
 
@@ -33,11 +38,30 @@ export default class FCSFileSelector extends Component {
                 }
             })
 
+            const machineTypes = [
+                {
+                    key: constants.MACHINE_FLORESCENT,
+                    label: 'Florescent'
+                },
+                {
+                    key: constants.MACHINE_CYTOF,
+                    label: 'Mass Cytometry'
+                }
+            ]
+
+            const machineTypesRendered = machineTypes.map((machineType) => {
+                return {
+                    value: machineType.label,
+                    component: <div className='item' onClick={this.selectMachineType.bind(this, this.props.selectedFCSFile.id, machineType.key)} key={machineType.key}>{machineType.label}</div>
+                }
+            })
+
             inner = (
                 <div className='fcs-file-selector-inner'>
                     <div className='header'>
                         <div className='fcs-file-selector-dropdown'><Dropdown items={FCSFiles} textLabel={this.props.selectedFCSFile ? this.props.selectedFCSFile.title : 'Select FCSFile'} ref='FCSFileDropdown' /></div>
                         <div className='button delete' onClick={this.props.api.removeFCSFile.bind(null, this.props.selectedFCSFile.id)}><i className='lnr lnr-cross-circle'></i>Remove File From Workspace</div>
+                        <div className='machine-type-selector-dropdown'><Dropdown items={machineTypesRendered} textLabel={'File Type: ' + (this.props.selectedFCSFile && _.find(machineTypes, m => m.key === this.props.selectedFCSFile.machineType).label)} ref='machineTypeDropdown' /></div>
                         <div className='divider' />
                         <div className={'button jobs ' + (this.props.backgroundJobsEnabled ? 'enabled' : 'disabled')} onClick={this.props.api.setBackgroundJobsEnabled.bind(this, !this.props.backgroundJobsEnabled)}>
                             <i className='lnr lnr-cloud-sync'></i>Background Jobs {this.props.backgroundJobsEnabled ? 'Enabled' : 'Disabled'}

@@ -66,8 +66,8 @@ const heatMapRGBForValue = function (value) {
     return hslToRGB(h, s, l)
 }
 
-const getPlotImageKey = function (sample) {
-    return `${sample.selectedXParameterIndex}_${sample.selectedXScale}-${sample.selectedYParameterIndex}_${sample.selectedYScale}`
+const getPlotImageKey = function (options) {
+    return `${options.machineType}_${options.selectedXParameterIndex}_${options.selectedXScale}-${options.selectedYParameterIndex}_${options.selectedYScale}`
 }
 
 
