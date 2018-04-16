@@ -337,7 +337,6 @@ const applicationReducer = (state = initialState, action) => {
             newState = applicationReducer(newState, { type: 'REMOVE_SAMPLE', payload: { sampleId: sample.id } })
         }
         // Delete any empty gate template groups
-        console.log(newState.gateTemplateGroups)
         let emptyGroups = _.filter(newState.gateTemplateGroups, g => g.childGateTemplateIds.length === 0)
         for (let gateTemplateGroup of emptyGroups) {
             newState.gateTemplateGroups = gateTemplateGroupReducer(newState.gateTemplateGroups, { type: 'REMOVE_GATE_TEMPLATE_GROUP', payload: { gateTemplateGroupId: gateTemplateGroup.id } })

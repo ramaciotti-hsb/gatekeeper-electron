@@ -262,7 +262,8 @@ export const api = {
         if (currentState.workspaces.length === 0) {
             const workspaceId = await api.createWorkspace({ title: 'New Workspace', description: 'New Workspace' })
             // Add an empty Gate Template
-            await api.createGateTemplateAndAddToWorkspace(workspaceId, { title: 'New Gating Strategy' })
+            const gateTemplateId = await api.createGateTemplateAndAddToWorkspace(workspaceId, { title: 'New Gating Strategy' })
+            await api.selectGateTemplate(gateTemplateId, workspaceId)
         }
     },
 
@@ -327,6 +328,8 @@ export const api = {
         reduxStore.dispatch(createGateTemplateAction)
 
         saveSessionToDisk()
+
+        return gateTemplateId
     },
 
     // Update a gate template with arbitrary parameters
