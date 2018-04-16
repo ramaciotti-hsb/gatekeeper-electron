@@ -40,7 +40,7 @@ import request from 'request'
 // Fork a new node process for doing CPU intensive jobs
 let workerFork
 if (isDev) {
-    workerFork = fork(__dirname + '/webpack-build/fork.bundle.js', [], { silent: true })
+    workerFork = fork(__dirname + '/js/electron/subprocess-wrapper-dev.js', [], { silent: true })
 } else {
     workerFork = fork(__dirname + '/webpack-build/fork.bundle.js', [], { silent: true })
 }
