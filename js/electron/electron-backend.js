@@ -59,8 +59,8 @@ workerFork.stdout.on('data', (result) => {
         if (currentState.selectedWorkspaceId) {
             const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
             for (let sample of currentState.samples) {
-                getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
-                api.applyGateTemplatesToSample(sample.id)
+                // getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
+                // api.applyGateTemplatesToSample(sample.id)
             }
         }
     }

@@ -251,26 +251,28 @@ export default class PersistentHomology {
                 yPeaks.splice(p, 1)
                 yCutoffs.splice(p, 1)
                 p--
-                continue
+            } else {
+                // Insert the new 0 edge points
+                const newGatePolygon = closestGate.polygon.slice(0).concat([
+                    [yCutoffs[p][0], constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT],
+                    [yCutoffs[p][0], constants.PLOT_HEIGHT],
+                    [yCutoffs[p][1], constants.PLOT_HEIGHT],
+                    [yCutoffs[p][1], constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT]
+                ])
+                // Recalculate the polygon boundary
+                const grahamScan = new GrahamScan();
+                newGatePolygon.map(p => grahamScan.addPoint(p[0], p[1]))
+                closestGate.polygon = grahamScan.getHull().map(p => [p.x, p.y])
+                closestGate.yCutoffs = yCutoffs[p]
+                closestGate.zeroY = true
             }
-
-            // Insert the new 0 edge points
-            const newGatePolygon = closestGate.polygon.slice(0).concat([
-                [yCutoffs[p][0], constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT],
-                [yCutoffs[p][0], constants.PLOT_HEIGHT],
-                [yCutoffs[p][1], constants.PLOT_HEIGHT],
-                [yCutoffs[p][1], constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT]
-            ])
-            // Recalculate the polygon boundary
-            const grahamScan = new GrahamScan();
-            newGatePolygon.map(p => grahamScan.addPoint(p[0], p[1]))
-            closestGate.polygon = grahamScan.getHull().map(p => [p.x, p.y])
-            closestGate.yCutoffs = yCutoffs[p]
-            closestGate.zeroY = true
         }
+
+        console.log(xPeaks)
 
         for (let p = 0; p < xPeaks.length; p++) {
             const peak = xPeaks[p]
+            console.log('index', p, 'peak', peak)
             // Find the closest gate
             let closestGate
             let closestDistance = Infinity
@@ -285,25 +287,28 @@ export default class PersistentHomology {
 
             if (!closestGate) {
                 console.log('Error: no close peak found for x = 0 peak with y value', peak)
+                console.log(xPeaks, p)
                 xPeaks.splice(p, 1)
                 xCutoffs.splice(p, 1)
-                p--
-                continue
-            }
+                p = p - 1
+                console.log(xPeaks, p)
+            } else {
+                console.log('closestGate', getPolygonCenter(closestGate.polygon))
 
-            // Insert the two new 0 edge points
-            const newGatePolygon = closestGate.polygon.slice(0).concat([
-                [constants.CYTOF_HISTOGRAM_WIDTH, xCutoffs[p][0]],
-                [0, xCutoffs[p][0]],
-                [0, xCutoffs[p][1]],
-                [constants.CYTOF_HISTOGRAM_WIDTH, xCutoffs[p][1]]
-            ])
-            // Recalculate the polygon boundary
-            const grahamScan = new GrahamScan();
-            newGatePolygon.map(p => grahamScan.addPoint(p[0], p[1]))
-            closestGate.polygon = grahamScan.getHull().map(p => [p.x, p.y])
-            closestGate.xCutoffs = xCutoffs[p]
-            closestGate.zeroX = true
+                // Insert the two new 0 edge points
+                const newGatePolygon = closestGate.polygon.slice(0).concat([
+                    [constants.CYTOF_HISTOGRAM_WIDTH, xCutoffs[p][0]],
+                    [0, xCutoffs[p][0]],
+                    [0, xCutoffs[p][1]],
+                    [constants.CYTOF_HISTOGRAM_WIDTH, xCutoffs[p][1]]
+                ])
+                // Recalculate the polygon boundary
+                const grahamScan = new GrahamScan();
+                newGatePolygon.map(p => grahamScan.addPoint(p[0], p[1]))
+                closestGate.polygon = grahamScan.getHull().map(p => [p.x, p.y])
+                closestGate.xCutoffs = xCutoffs[p]
+                closestGate.zeroX = true
+            }
         }
 
         for (let gate of this.truePeaks) {
