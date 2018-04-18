@@ -46,7 +46,7 @@ export default async function getFCSMetadata (filePath) {
         return
     }
 
-    const machineType = FCSFile.text['$CYT'].match(/CYTOF/) ? constants.MACHINE_CYTOF : constants.MACHINE_FLORESCENT
+    const machineType = FCSFile.text['$CYT'] && FCSFile.text['$CYT'].match(/CYTOF/) ? constants.MACHINE_CYTOF : constants.MACHINE_FLORESCENT
 
     const populationCount = parseInt(FCSFile.text['$TOT'], 10)
 
