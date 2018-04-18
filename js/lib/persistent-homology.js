@@ -364,7 +364,6 @@ export default class PersistentHomology {
 
     // Fix overlapping peak polygons using the zipper method
     fixOverlappingPolygonsUsingZipper () {
-        console.log('zipper')
         for (let i = 0; i < this.truePeaks.length; i++) {
             for (let j = 0; j < this.truePeaks.length; j++) {
                 if (i === j) {
@@ -375,13 +374,11 @@ export default class PersistentHomology {
                 const polygonTwo = turf.polygon([this.truePeaks[j].polygon.concat([this.truePeaks[j].polygon[0]])])
 
                 if (turf.intersect(polygonOne, polygonTwo)) {
-                    console.log('polygons intersect')
                     // Find intersecting points between these two polygons
                     for (let p = 0; p < this.truePeaks[i].polygon.length; p++) {
                         const pointOne = turf.point(this.truePeaks[i].polygon[p])
                         // If this particular point is inside the other polygon
                         if (turf.booleanPointInPolygon(pointOne, polygonTwo)) {
-                            console.log('points intersect')
                             // Find the closest point on the border of the other polygon
                             let closestPointIndex
                             let closestPointDistance = Infinity
@@ -439,7 +436,7 @@ export default class PersistentHomology {
             
                 for (let group of xGroups) {
                     // If the peak is within 10% of an existing group, add it to that group
-                    if (Math.abs(group.position - peakCenter[0]) <= ((xRange[1] - xRange[0]) * 0.3)) {
+                    if (Math.abs(group.position - peakCenter[0]) <= ((xRange[1] - xRange[0]) * 0.3) || Math.abs(group.position - peakCenter[0]) < 20) {
                         group.peaks.push(peak.id)
                         found = true
                     }
@@ -466,7 +463,7 @@ export default class PersistentHomology {
             
                 for (let group of yGroups) {
                     // If the peak is within 10% of an existing group, add it to that group
-                    if (Math.abs(group.position - peakCenter[1]) <= ((yRange[1] - yRange[0]) * 0.3)) {
+                    if (Math.abs(group.position - peakCenter[1]) <= ((yRange[1] - yRange[0]) * 0.3) || Math.abs(group.position - peakCenter[1]) < 20) {
                         group.peaks.push(peak.id)
                         found = true
                     }
@@ -513,7 +510,7 @@ export default class PersistentHomology {
             // If we match along one of the axis, it's likely that the peaks have just shifted order slightly. Re order them so they match the other axis
             if (!orderMatches) {
                 console.log(this.truePeaks)
-                console.log(this.groups)
+                console.log(groups)
                 console.log('neither order matches, aborting')
                 return []
             }

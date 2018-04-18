@@ -10,15 +10,7 @@
     position: relative;
     overflow-y: auto;
     flex-shrink: 1;
-
-    .ReactVirtualized__Masonry {
-        display: block;
-        padding: 10px;
-
-        & > div {
-            padding: 10px 0;
-        }
-    }
+    padding: 10px;
 
     .gate-group {
         flex-direction: column;

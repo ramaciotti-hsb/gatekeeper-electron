@@ -113,6 +113,35 @@ export default class MultipleSampleView extends Component {
         }
     }
 
+    componentDidUpdate (prevProps) {
+        if (!this.props.sample) {
+            return
+        }
+
+        let shouldReset = false
+        if (!prevProps.sample) {
+            shouldReset = true
+        } else if (this.props.sample.id !== prevProps.sample.id) {
+            shouldReset = true
+        } else if (this.props.workspace.hideUngatedPlots !== prevProps.workspace.hideUngatedPlots) {
+            shouldReset = true
+        } else if (this.props.workspace.invertedAxisPlots !== prevProps.workspace.invertedAxisPlots) {
+            shouldReset = true
+        } else if (this.props.FCSFile.FCSParameters.length !== prevProps.FCSFile.FCSParameters.length) {
+            shouldReset = true
+        } else if (this.props.workspace.selectedXParameterIndex != prevProps.workspace.selectedXParameterIndex) {
+            shouldReset = true
+        } else if (this.props.workspace.selectedYParameterIndex != prevProps.workspace.selectedYParameterIndex) {
+            shouldReset = true
+        }
+
+        if (shouldReset) {
+            this.setState({
+                combinations: this.filterPlots()
+            })
+        }
+    }
+
     render () {
         if (!this.props.sample) {
             return null
