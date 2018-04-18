@@ -58,6 +58,19 @@ export default class WorkspaceView extends Component {
     }
 
     render () {
+        if (!this.props.workspace) {
+            return (
+                <div className='workspace'>
+                    <div className='sidebar'>
+                    </div>
+                    <div className='fcs-file-selector-outer'>
+                        <div className='fcs-file-selector-inner empty'>
+                            <div>Use File -> New Workspace to get started.</div>
+                        </div>
+                    </div>
+                </div>
+            )
+        }
         const workspacesGateTemplatesRendered = []
 
         for (let gateTemplate of this.props.workspace.gateTemplates) {

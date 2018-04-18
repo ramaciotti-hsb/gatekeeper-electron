@@ -82,7 +82,7 @@ const mapStateToProps = (state, ownProps) => {
         const highlightedGate = _.find(state.gates, g => g.highlighted && workspace.sampleIds.includes(g.childSampleId)) || {}
         return { api: state.api, workspace: newWorkspace, highlightedGate }
     } else {
-        return { api: state.api, workspace: { FCSFiles: [] }, highlightGate: {} }
+        return { api: state.api }
     }
 }
 

@@ -177,12 +177,32 @@ const applicationReducer = (state = initialState, action) => {
     } else if (action.type === 'REMOVE_WORKSPACE') {
         // Find all samples related to the workspace being removed
         const workspace = _.find(state.workspaces, w => w.id === action.payload.id)
-        const samplesToRemove = workspace.sampleIds
-        for (let sample of state.samples) {
-            newState.samples = sampleReducer(newState.samples, { type: 'REMOVE_SAMPLE', payload: { id: sample.id } })
+        newState.workspaces = workspaceReducer(newState.workspaces, action)
+
+        // Delete any gate template groups that are no longer in a workspace
+        let removedGroups = _.filter(newState.gateTemplateGroups, g => !_.find(newState.workspaces, w => w.gateTemplateGroupIds.includes(g.id)))
+        for (let gateTemplateGroup of removedGroups) {
+            newState.gateTemplateGroups = gateTemplateGroupReducer(newState.gateTemplateGroups, { type: 'REMOVE_GATE_TEMPLATE_GROUP', payload: { gateTemplateGroupId: gateTemplateGroup.id } })
         }
 
-        newState.workspaces = workspaceReducer(newState.workspaces, action)
+        // Delete any gate templates that are no longer in a workspace
+        let removedTemplates = _.filter(newState.gateTemplates, gt => !_.find(newState.workspaces, w => w.gateTemplateIds.includes(gt.id)))
+        for (let gateTemplate of removedTemplates) {
+            newState.gateTemplates = gateTemplateReducer(newState.gateTemplates, { type: 'REMOVE_GATE_TEMPLATE', payload: { gateTemplateId: gateTemplate.id } })
+        }
+
+        // Delete any FCS Files that are no longer in a workspace
+        let removedFCSFiles = _.filter(newState.FCSFiles, gt => !_.find(newState.workspaces, w => w.FCSFileIds.includes(gt.id)))
+        for (let FCSFile of removedFCSFiles) {
+            newState.FCSFiles = FCSFileReducer(newState.FCSFiles, { type: 'REMOVE_FCS_FILE', payload: { FCSFileId: FCSFile.id } })
+        }
+
+        // Delete any samples that are no longer in a workspace
+        let orphanSamples = _.filter(newState.samples, s => !_.find(newState.workspaces, w => w.sampleIds.includes(s.id)))
+        for (let sample of orphanSamples) {
+            newState = applicationReducer(newState, { type: 'REMOVE_SAMPLE', payload: { sampleId: sample.id } })
+        }
+
     // --------------------------------------------------
     // Remove an FCS File, and all the samples that depend on it
     // --------------------------------------------------    
