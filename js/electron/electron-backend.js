@@ -286,9 +286,6 @@ export const api = {
         // After reading the session, if there's no workspace, create a default one
         if (currentState.workspaces.length === 0) {
             const workspaceId = await api.createWorkspace({ title: 'New Workspace', description: 'New Workspace' })
-            // Add an empty Gate Template
-            const gateTemplateId = await api.createGateTemplateAndAddToWorkspace(workspaceId, { title: 'New Gating Strategy' })
-            await api.selectGateTemplate(gateTemplateId, workspaceId)
         }
     },
 
@@ -322,6 +319,10 @@ export const api = {
         reduxStore.dispatch(createAction)
 
         saveSessionToDisk()
+
+        // Add an empty Gate Template
+        const gateTemplateId = await api.createGateTemplateAndAddToWorkspace(workspaceId, { title: 'New Gating Strategy' })
+        await api.selectGateTemplate(gateTemplateId, workspaceId)
 
         return newWorkspace.id
     },
