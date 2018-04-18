@@ -93,8 +93,7 @@ export default class MultipleSampleView extends Component {
         const combinations = []
         for (let x = 2; x < this.props.FCSFile.FCSParameters.length; x++) {
             for (let y = x + 1; y < this.props.FCSFile.FCSParameters.length; y++) {
-                if (this.props.FCSFile.FCSParameters[x].label.match('_') && this.props.FCSFile.FCSParameters[y].label.match('_')
-                    && this.matchLabels(this.props.FCSFile.FCSParameters[x].label, this.props.FCSFile.FCSParameters[y].label, this.state.filterPlotString)) {
+                if (this.matchLabels(this.props.FCSFile.FCSParameters[x].label, this.props.FCSFile.FCSParameters[y].label, this.state.filterPlotString)) {
 
                     let shouldAdd = true
                     if (this.props.workspace.hideUngatedPlots) {
