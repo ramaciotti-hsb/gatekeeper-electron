@@ -216,6 +216,7 @@ const applicationReducer = (state = initialState, action) => {
     // --------------------------------------------------    
     } else if (action.type === 'REMOVE_FCS_FILE') {
         // newState.FCSFiles = FCSFileReducer(newState.FCSFiles, action)
+        console.log(action.payload)
         const removeAction = removeFCSFile(action.payload.FCSFileId)
         // Find the workspace that the gateTemplate is inside and remove it from there
         const workspaceIndex = _.findIndex(newState.workspaces, w => w.FCSFileIds.includes(removeAction.payload.FCSFileId))
@@ -227,22 +228,25 @@ const applicationReducer = (state = initialState, action) => {
             if (newWorkspace.selectedFCSFileId === removeAction.payload.FCSFileId) {
                 const selectedFCSFileIndex = _.findIndex(newWorkspace.FCSFileIds, id => id === removeAction.payload.FCSFileId)
                 if (selectedFCSFileIndex > -1) {
-
                     // Select another FCS File if there is one available to select, otherwise do nothing
                     if (newWorkspace.FCSFileIds.length > 1) {
 
                         if (selectedFCSFileIndex < newWorkspace.FCSFileIds.length - 1) {
                             newWorkspace.selectedFCSFileId = newWorkspace.FCSFileIds[Math.min(Math.max(selectedFCSFileIndex + 1, 0), newWorkspace.FCSFileIds.length - 1)]
                         } else {
-                            newWorkspace.selectedFCSFileId = newWorkspace.FCSFileIds[newWorkspace.FCSFileIds.length - 2]
+                            newWorkspace.selectedFCSFileId = newWorkspace.FCSFileIds[Math.max(newWorkspace.FCSFileIds.length - 2, 0)]
                         }
                     } else {
                         newWorkspace.selectedFCSFileId = null
                     }
 
+                    newWorkspace.FCSFileIds = newWorkspace.FCSFileIds.slice(0, selectedFCSFileIndex).concat(newWorkspace.FCSFileIds.slice(selectedFCSFileIndex + 1))
+
+                    console.log('selecting fcs file', newWorkspace.selectedFCSFileId)
+
                     newState.workspaces = newState.workspaces.slice(0, workspaceIndex).concat([ newWorkspace ]).concat(newState.workspaces.slice(workspaceIndex + 1))
                 } else {
-                    console.log('REMOVE_FCS_FILE failed: no FCS File with id', removeAction.payload.FCSFileId, 'was found in FCSFileIds of workspace with id', removeAction.payload.workspaceId)       
+                    console.log('REMOVE_FCS_FILE failed: selected FCS file is null or undefined')
                 }
             }
 
@@ -251,7 +255,6 @@ const applicationReducer = (state = initialState, action) => {
             console.log('REMOVE_FCS_FILE failed: no FCS File with id', removeAction.payload.FCSFileId, 'was found in FCSFileIds of workspace with id', removeAction.payload.workspaceId)       
         }
 
-        newState.FCSFiles = FCSFileReducer(newState.FCSFiles, removeAction)
         // Delete any samples that no longer point to a valid FCSFile (i.e. their parent or child has been deleted)
         let orphanSamples = _.filter(newState.samples, s => !_.find(newState.FCSFiles, fcs => s.FCSFileId === fcs.id))
         for (let sample of orphanSamples) {

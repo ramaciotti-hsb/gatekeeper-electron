@@ -27,13 +27,13 @@ const FCSFiles = (state = [], action = {}) => {
     // Remove an FCS File
     // --------------------------------------------------
     } else if (action.type === 'REMOVE_FCS_FILE') {
-        const FCSFile = _.find(state, fcs => fcs.id === action.payload.FCSFileId)
+        const FCSFile = _.find(newState, fcs => fcs.id === action.payload.FCSFileId)
 
         if (FCSFile) {
             const FCSFileIndex = _.findIndex(state, fcs => fcs.id === FCSFile.id)
             newState = newState.slice(0, FCSFileIndex).concat(newState.slice(FCSFileIndex + 1))
         } else {
-            console.log('REMOVE_FCS_FILE failed: no fcs file with id', action.payload.sampleId, 'was found')
+            console.log('REMOVE_FCS_FILE failed: no fcs file with id', action.payload.FCSFileId, 'was found')
         }
     // --------------------------------------------------
     // Update an arbitrary parameters on an FCS File
