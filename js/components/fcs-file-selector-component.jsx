@@ -56,12 +56,19 @@ export default class FCSFileSelector extends Component {
                 }
             })
 
+            let machineTypeMessage
+            if (this.props.selectedFCSFile && this.props.selectedFCSFile.machineType) {
+                machineTypeMessage = 'File Name: ' + _.find(machineTypes, m => m.key === this.props.selectedFCSFile.machineType).label
+            } else {
+                machineTypeMessage = 'Loading...'
+            }
+
             inner = (
                 <div className='fcs-file-selector-inner'>
                     <div className='header'>
                         <div className='fcs-file-selector-dropdown'><Dropdown items={FCSFiles} textLabel={this.props.selectedFCSFile ? this.props.selectedFCSFile.title : 'Select FCSFile'} ref='FCSFileDropdown' /></div>
                         <div className='button delete' onClick={this.props.api.removeFCSFile.bind(null, this.props.selectedFCSFile.id)}><i className='lnr lnr-cross-circle'></i>Remove File From Workspace</div>
-                        <div className='machine-type-selector-dropdown'><Dropdown items={machineTypesRendered} textLabel={'File Type: ' + (this.props.selectedFCSFile && _.find(machineTypes, m => m.key === this.props.selectedFCSFile.machineType).label)} ref='machineTypeDropdown' /></div>
+                        <div className='machine-type-selector-dropdown'><Dropdown items={machineTypesRendered} textLabel={machineTypeMessage} ref='machineTypeDropdown' /></div>
                         <div className='divider' />
                         <div className={'button jobs ' + (this.props.backgroundJobsEnabled ? 'enabled' : 'disabled')} onClick={this.props.api.setBackgroundJobsEnabled.bind(this, !this.props.backgroundJobsEnabled)}>
                             <i className='lnr lnr-cloud-sync'></i>Background Jobs {this.props.backgroundJobsEnabled ? 'Enabled' : 'Disabled'}
