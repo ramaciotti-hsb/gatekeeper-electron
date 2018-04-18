@@ -175,8 +175,16 @@ const applicationReducer = (state = initialState, action) => {
     // Remove a workspace and all the samples in it
     // --------------------------------------------------
     } else if (action.type === 'REMOVE_WORKSPACE') {
-        // Find all samples related to the workspace being removed
-        const workspace = _.find(state.workspaces, w => w.id === action.payload.id)
+        if (newState.selectedWorkspaceId === action.payload.id) {
+            const workspaceIndex = _.findIndex(state.workspaces, w => w.id === action.payload.id)
+            let indexToSelect = Math.max(workspaceIndex - 1, 0)
+            if (newState.workspaces.length > 1) {
+                newState = applicationReducer(newState, { type: 'SELECT_WORKSPACE', payload: { id: newState.workspaces[indexToSelect].id }})
+            } else {
+                newState = applicationReducer(newState, { type: 'SELECT_WORKSPACE', payload: { id: null }})
+            }
+        }
+        
         newState.workspaces = workspaceReducer(newState.workspaces, action)
 
         // Delete any gate template groups that are no longer in a workspace
