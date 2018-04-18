@@ -11,7 +11,6 @@ export default class Application extends Component {
 
     constructor (props) {
         super(props)
-        console.log(props)
 
         const template = [
             {
@@ -120,6 +119,11 @@ export default class Application extends Component {
         // Create the file menu with open, etc
         const menu = Menu.buildFromTemplate(template)
         Menu.setApplicationMenu(menu)
+
+        this.state = {
+            editingWorkspaceTitleId: null,
+            editingWorkspaceTitleText: null
+        }
     }
 
     newWorkspace () {
@@ -166,6 +170,25 @@ export default class Application extends Component {
                 this.props.api.createFCSFileAndAddToWorkspace(this.props.selectedWorkspaceId, FCSFile)
             }
         }
+    }
+
+    enableWorkspaceTitleEditing (workspaceId, workspaceText, event) {
+        this.setState({
+            editingWorkspaceTitleId: workspaceId,
+            editingWorkspaceTitleText: workspaceText
+        })
+    }
+
+    saveWorkspaceTitle () {
+        this.props.api.updateWorkspace(this.state.editingWorkspaceTitleId, { title: this.state.editingWorkspaceTitleText })
+        this.setState({
+            editingWorkspaceTitleId: null,
+            editingWorkspaceTitleText: null
+        })
+    }
+
+    updateWorkspaceTitleText (event) {
+        this.setState({ editingWorkspaceTitleText: event.target.value })
     }
 
     // TODO
@@ -225,9 +248,15 @@ export default class Application extends Component {
         let workspace = _.find(this.props.workspaces, workspace => workspace.id === this.props.selectedWorkspaceId)
 
         const workspaceTabs = this.props.workspaces.map((workspace) => {
+            let tabText
+            if (this.state.editingWorkspaceTitleId === workspace.id) {
+                tabText = <input type="text" value={this.state.editingWorkspaceTitleText} onChange={this.updateWorkspaceTitleText.bind(this)} onBlur={this.saveWorkspaceTitle.bind(this)} autoFocus onFocus={(event) => { event.target.select() }} onKeyPress={(event) => { event.key === 'Enter' && event.target.blur() }} />
+            } else {
+                tabText = <div className='text' onClick={this.enableWorkspaceTitleEditing.bind(this, workspace.id, workspace.title)}>{workspace.title}</div>
+            }
             return (
                 <div className={`tab${this.props.selectedWorkspaceId === workspace.id ? ' selected' : ''}`} key={workspace.id} onClick={this.selectWorkspace.bind(this, workspace.id)}>
-                    <div className='text'>{workspace.title}</div>
+                    {tabText}
                     <div className='close-button' onClick={this.closeWorkspace.bind(this, workspace.id)}><i className='lnr lnr-cross' /></div>
                 </div>
             )
