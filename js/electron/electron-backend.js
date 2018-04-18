@@ -54,6 +54,7 @@ const processJob = async function () {
     if (currentJob.length === 0) {
         return false
     } else {
+        console.log('current job', )
         const result = await new Promise((resolve, reject) => {
             request.post(currentJob[0].jobParameters, function (error, response, body) {
                 if (error) {
@@ -176,9 +177,6 @@ const getImageForPlot = async (sample, FCSFile, options, priority) => {
     const jobId = uuidv4()
 
     const imagePath = await new Promise((resolve, reject) => {
-        if (priority) {
-            console.log('pushing to priority queue')
-        }
         const queueToPush = priority ? priorityQueue : jobQueue
         queueToPush.push({
             jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-image-for-plot', payload: { sample, FCSFile, options } } },
@@ -232,13 +230,7 @@ const getAllPlotImages = async (sample, scales) => {
             }
 
             // Generate the cached images
-            let imageForPlot
-            try {
-                // Try twice, sometimes there are socket timeouts or hangups
-                imageForPlot = await getImageForPlot(sample, FCSFile, options)                
-            } catch (error) {
-                imageForPlot = await getImageForPlot(sample, FCSFile, options)
-            }
+            const imageForPlot = await getImageForPlot(sample, FCSFile, options)                
             const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
             currentState = applicationReducer(currentState, imageAction)
             reduxStore.dispatch(imageAction)
@@ -682,7 +674,7 @@ export const api = {
                 await api.updateWorkspace(workspace.id, workspaceParameters)
 
                 for (let sample of currentState.samples) {
-                    getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
+                    getAllPlotImages(sample, workspaceParameters)
                     api.applyGateTemplatesToSample(sample.id)
                 }
             }
