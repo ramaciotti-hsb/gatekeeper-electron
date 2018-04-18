@@ -46,6 +46,42 @@ if (isDev) {
     workerFork = fork(__dirname + '/webpack-build/fork.bundle.js', [], { silent: true })
 }
 
+const jobQueue = []
+
+const processJob = async function () {
+    console.log('processing job')
+    const currentJob = jobQueue.splice(0, 1)
+    if (currentJob.length === 0) {
+        return false
+    } else {
+        const result = await new Promise((resolve, reject) => {
+            request.post(currentJob[0].jobParameters, function (error, response, body) {
+                if (error) {
+                    reject(error)
+                }
+                resolve(body)
+            });
+        })
+
+        if (result) {
+            currentJob[0].callback(result)
+        }
+    }
+}
+
+const processJobs = async function () {
+    while (true) {
+        const result = await processJob()
+        if (result === false) {
+            await new Promise((resolve, reject) => { setTimeout(() => { resolve() }, 1000) })
+        }
+    }
+}
+
+for (let i = 0; i < Math.max(os.cpus().length - 2, 1); i++) {
+    processJobs()
+}
+
 workerFork.stdout.on('data', (result) => {
     if (reduxStore.getState().sessionLoading) {
         const action = {
@@ -122,12 +158,10 @@ const getFCSMetadata = async (filePath) => {
     const jobId = uuidv4()
 
     const metadata = await new Promise((resolve, reject) => {
-        request.post({ url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-fcs-metadata', payload: { filePath } } }, function (error, response, body) {
-            if (error) {
-                reject(error)
-            }
-            resolve(body)
-        });
+        jobQueue.push({
+            jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-fcs-metadata', payload: { filePath } } },
+            callback: (data) => { resolve(data) }
+        })
     })
 
     return metadata
@@ -142,12 +176,10 @@ const getImageForPlot = async (sample, FCSFile, options) => {
     const jobId = uuidv4()
 
     const imagePath = await new Promise((resolve, reject) => {
-        request.post({ url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-image-for-plot', payload: { sample, FCSFile, options } } }, function (error, response, body) {
-            if (error) {
-                reject(error)
-            }
-            resolve(body)
-        });
+        jobQueue.push({
+            jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-image-for-plot', payload: { sample, FCSFile, options } } },
+            callback: (data) => { resolve(data) }
+        })
     })
 
     return imagePath

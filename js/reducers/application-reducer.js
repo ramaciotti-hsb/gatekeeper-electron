@@ -107,7 +107,7 @@ const applicationReducer = (state = initialState, action) => {
     // --------------------------------------------------
     } else if (action.type === 'CREATE_FCS_FILE_AND_ADD_TO_WORKSPACE') {
         // Find the workspace the user wants to add to
-        const workspace = _.find(state.workspaces, w => w.id === action.payload.workspaceId)
+        const workspace = _.find(newState.workspaces, w => w.id === action.payload.workspaceId)
         if (workspace) {
             // Create a new sample with the sample reducer
             newState.FCSFiles = FCSFileReducer(newState.FCSFiles, { type: 'CREATE_FCS_FILE', payload: action.payload.FCSFile })
@@ -121,7 +121,7 @@ const applicationReducer = (state = initialState, action) => {
     // --------------------------------------------------
     } else if (action.type === 'CREATE_GATE_TEMPLATE_AND_ADD_TO_WORKSPACE') {
         // Find the workspace the user wants to add to
-        const workspace = _.find(state.workspaces, w => w.id === action.payload.workspaceId)
+        const workspace = _.find(newState.workspaces, w => w.id === action.payload.workspaceId)
         if (workspace) {
             // Create a new gate template with the gate template reducer
             newState.gateTemplates = gateTemplateReducer(newState.gateTemplates, { type: 'CREATE_GATE_TEMPLATE', payload: action.payload })
@@ -134,7 +134,7 @@ const applicationReducer = (state = initialState, action) => {
     // --------------------------------------------------
     } else if (action.type === 'CREATE_GATE_TEMPLATE_GROUP_AND_ADD_TO_WORKSPACE') {
         // Find the workspace the user wants to add to
-        const workspace = _.find(state.workspaces, w => w.id === action.payload.workspaceId)
+        const workspace = _.find(newState.workspaces, w => w.id === action.payload.workspaceId)
         if (workspace) {
             // Create a new gate template with the gate template reducer
             newState.gateTemplateGroups = gateTemplateGroupReducer(newState.gateTemplateGroups, { type: 'CREATE_GATE_TEMPLATE_GROUP', payload: action.payload })
@@ -147,7 +147,7 @@ const applicationReducer = (state = initialState, action) => {
     // --------------------------------------------------
     } else if (action.type === 'CREATE_SAMPLE_AND_ADD_TO_WORKSPACE') {
         // Find the workspace the user wants to add to
-        const workspace = _.find(state.workspaces, w => w.id === action.payload.workspaceId)
+        const workspace = _.find(newState.workspaces, w => w.id === action.payload.workspaceId)
         if (workspace) {
             // Create a new sample with the sample reducer
             newState.samples = sampleReducer(newState.samples, { type: 'CREATE_SAMPLE', payload: action.payload.sample })
@@ -160,7 +160,7 @@ const applicationReducer = (state = initialState, action) => {
     // --------------------------------------------------
     } else if (action.type === 'CREATE_SUBSAMPLE_AND_ADD_TO_WORKSPACE') {
         // Find the workspace the user wants to add to
-        const workspace = _.find(state.workspaces, w => w.id === action.payload.workspaceId)
+        const workspace = _.find(newState.workspaces, w => w.id === action.payload.workspaceId)
         if (workspace) {
             // Create a new sample with the sample reducer
             newState.samples = sampleReducer(newState.samples, { type: 'CREATE_SAMPLE', payload: action.payload.sample })
@@ -176,7 +176,7 @@ const applicationReducer = (state = initialState, action) => {
     // --------------------------------------------------
     } else if (action.type === 'REMOVE_WORKSPACE') {
         if (newState.selectedWorkspaceId === action.payload.id) {
-            const workspaceIndex = _.findIndex(state.workspaces, w => w.id === action.payload.id)
+            const workspaceIndex = _.findIndex(newState.workspaces, w => w.id === action.payload.id)
             let indexToSelect = Math.max(workspaceIndex - 1, 0)
             if (newState.workspaces.length > 1) {
                 newState = applicationReducer(newState, { type: 'SELECT_WORKSPACE', payload: { id: newState.workspaces[indexToSelect].id }})
@@ -218,21 +218,21 @@ const applicationReducer = (state = initialState, action) => {
         // newState.FCSFiles = FCSFileReducer(newState.FCSFiles, action)
         const removeAction = removeFCSFile(action.payload.FCSFileId)
         // Find the workspace that the gateTemplate is inside and remove it from there
-        const workspaceIndex = _.findIndex(state.workspaces, w => w.FCSFileIds.includes(removeAction.payload.FCSFileId))
+        const workspaceIndex = _.findIndex(newState.workspaces, w => w.FCSFileIds.includes(removeAction.payload.FCSFileId))
 
         if (workspaceIndex > -1) {
-            const newWorkspace = _.clone(state.workspaces[workspaceIndex])
+            const newWorkspace = _.clone(newState.workspaces[workspaceIndex])
             newWorkspace.FCSFileIds = newWorkspace.FCSFileIds.slice(0)
 
             if (newWorkspace.selectedFCSFileId === removeAction.payload.FCSFileId) {
-                const selectedGateTemplateIndex = _.findIndex(newWorkspace.FCSFileIds, s => s === removeAction.payload.FCSFileId)
-                if (selectedGateTemplateIndex > -1) {
+                const selectedFCSFileIndex = _.findIndex(newWorkspace.FCSFileIds, id => id === removeAction.payload.FCSFileId)
+                if (selectedFCSFileIndex > -1) {
 
-                    // Select another gateTemplate if there is one available to select, otherwise do nothing
+                    // Select another FCS File if there is one available to select, otherwise do nothing
                     if (newWorkspace.FCSFileIds.length > 1) {
 
-                        if (selectedGateTemplateIndex < newWorkspace.FCSFileIds.length - 1) {
-                            newWorkspace.selectedFCSFileId = newWorkspace.FCSFileIds[Math.min(Math.max(selectedGateTemplateIndex + 1, 0), newWorkspace.FCSFileIds.length - 1)]
+                        if (selectedFCSFileIndex < newWorkspace.FCSFileIds.length - 1) {
+                            newWorkspace.selectedFCSFileId = newWorkspace.FCSFileIds[Math.min(Math.max(selectedFCSFileIndex + 1, 0), newWorkspace.FCSFileIds.length - 1)]
                         } else {
                             newWorkspace.selectedFCSFileId = newWorkspace.FCSFileIds[newWorkspace.FCSFileIds.length - 2]
                         }
@@ -242,11 +242,13 @@ const applicationReducer = (state = initialState, action) => {
 
                     newState.workspaces = newState.workspaces.slice(0, workspaceIndex).concat([ newWorkspace ]).concat(newState.workspaces.slice(workspaceIndex + 1))
                 } else {
-                    console.log('REMOVE_FCS_FILE failed: no gateTemplate with id', removeAction.payload.FCSFileId, 'was found in FCSFileIds of workspace with id', removeAction.payload.workspaceId)       
+                    console.log('REMOVE_FCS_FILE failed: no FCS File with id', removeAction.payload.FCSFileId, 'was found in FCSFileIds of workspace with id', removeAction.payload.workspaceId)       
                 }
             }
 
-            newState.workspaces = workspaceReducer(newState.workspaces, removeAction)
+            newState.FCSFiles = FCSFileReducer(newState.FCSFiles, removeAction)
+        } else {
+            console.log('REMOVE_FCS_FILE failed: no FCS File with id', removeAction.payload.FCSFileId, 'was found in FCSFileIds of workspace with id', removeAction.payload.workspaceId)       
         }
 
         newState.FCSFiles = FCSFileReducer(newState.FCSFiles, removeAction)
@@ -276,7 +278,7 @@ const applicationReducer = (state = initialState, action) => {
             }
         }
 
-        const gateTemplateGroup = _.find(state.gateTemplateGroups, g => g.id === action.payload.gateTemplateGroupId)
+        const gateTemplateGroup = _.find(newState.gateTemplateGroups, g => g.id === action.payload.gateTemplateGroupId)
 
         for (let gateTemplateId of gateTemplateGroup.childGateTemplateIds) {
             addChildTemplates(gateTemplateId)
@@ -285,10 +287,10 @@ const applicationReducer = (state = initialState, action) => {
         for (let gateTemplateId of gateTemplatesToRemove) {
             const removeAction = removeGateTemplate(gateTemplateId)
             // Find the workspace that the gateTemplate is inside and remove it from there
-            const workspaceIndex = _.findIndex(state.workspaces, w => w.gateTemplateIds.includes(removeAction.payload.gateTemplateId))
+            const workspaceIndex = _.findIndex(newState.workspaces, w => w.gateTemplateIds.includes(removeAction.payload.gateTemplateId))
 
             if (workspaceIndex > -1) {
-                const newWorkspace = _.clone(state.workspaces[workspaceIndex])
+                const newWorkspace = _.clone(newState.workspaces[workspaceIndex])
                 newWorkspace.gateTemplateIds = newWorkspace.gateTemplateIds.slice(0)
 
                 if (newWorkspace.selectedGateTemplateId === removeAction.payload.gateTemplateId) {
@@ -327,10 +329,10 @@ const applicationReducer = (state = initialState, action) => {
         for (let gateTemplateGroupId of gateTemplateGroupsToRemove) {
             const removeAction = removeGateTemplateGroup(gateTemplateGroupId)
             // Find the workspace that the gateTemplateGroup is inside and remove it from there
-            const workspaceIndex = _.findIndex(state.workspaces, w => w.gateTemplateGroupIds.includes(removeAction.payload.gateTemplateGroupId))
+            const workspaceIndex = _.findIndex(newState.workspaces, w => w.gateTemplateGroupIds.includes(removeAction.payload.gateTemplateGroupId))
 
             if (workspaceIndex > -1) {
-                const newWorkspace = _.clone(state.workspaces[workspaceIndex])
+                const newWorkspace = _.clone(newState.workspaces[workspaceIndex])
                 newWorkspace.gateTemplateGroupIds = newWorkspace.gateTemplateGroupIds.slice(0)
 
                 if (newWorkspace.selectedGateTemplateId === removeAction.payload.gateTemplateGroupId) {
@@ -400,10 +402,11 @@ const applicationReducer = (state = initialState, action) => {
         for (let sampleId of samplesToRemove) {
             const newAction = removeSample(sampleId)
             // Find the workspace that the sample is inside and remove it from there
-            const workspaceIndex = _.findIndex(state.workspaces, w => w.sampleIds.includes(newAction.payload.sampleId))
+            console.log(newState.workspaces)
+            const workspaceIndex = _.findIndex(newState.workspaces, w => w.sampleIds.includes(newAction.payload.sampleId))
 
             if (workspaceIndex > -1) {
-                const newWorkspace = _.clone(state.workspaces[workspaceIndex])
+                const newWorkspace = _.clone(newState.workspaces[workspaceIndex])
                 newWorkspace.sampleIds = newWorkspace.sampleIds.slice(0)
 
                 if (newWorkspace.selectedSampleId === newAction.payload.sampleId) {
