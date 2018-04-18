@@ -1,6 +1,6 @@
 {
   "name": "Gatekeeper",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "author": "Nic Barker",
   "description": "An electron based GUI for analysing flow cytometry data.",
   "main": "main.js",
