@@ -127,7 +127,7 @@ export default class PersistentHomology {
     expandToIncludeZeroes () {
         // If we're looking at cytof data, extend lower gates out towards zero if there is a peak there
         const minPeakWidth = constants.PLOT_WIDTH * 0.05
-        const inflectionWidth = 5
+        const inflectionWidth = 10
 
         let yPeaks = []
         // Find peaks in the 1d data where one of the channels is zero
@@ -256,8 +256,6 @@ export default class PersistentHomology {
                 // Insert the new 0 edge points
                 const newGatePolygon = closestGate.polygon.concat([
                     [yCutoffs[p][0], constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT],
-                    [yCutoffs[p][0], constants.PLOT_HEIGHT],
-                    [yCutoffs[p][1], constants.PLOT_HEIGHT],
                     [yCutoffs[p][1], constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT]
                 ])
                 // Recalculate the polygon boundary
@@ -298,10 +296,8 @@ export default class PersistentHomology {
 
                 // Insert the 0 edge points
                 const newGatePolygon = closestGate.polygon.concat([
-                    [constants.CYTOF_HISTOGRAM_WIDTH, xCutoffs[p][0]],
                     [0, xCutoffs[p][0]],
                     [0, xCutoffs[p][1]],
-                    [constants.CYTOF_HISTOGRAM_WIDTH, xCutoffs[p][1]]
                 ])
 
                 // Recalculate the polygon boundary
@@ -317,11 +313,11 @@ export default class PersistentHomology {
             // If a gate includes zeroes on both the x and y axis, add a special (0,0) point to the gate            
             if (gate.zeroX && gate.zeroY) {
                 // Insert the two new 0 edge points
-                const newGatePolygon = gate.polygon.concat([[0, constants.PLOT_HEIGHT]])
+                const newGatePolygon = gate.polygon.concat([[0, constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT]])
                 // Recalculate the polygon boundary
                 const grahamScan = new GrahamScan();
                 newGatePolygon.map(p => grahamScan.addPoint(p[0], p[1]))
-                gate.xCutoffs[1] = constants.PLOT_HEIGHT
+                gate.xCutoffs[1] = constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT
                 gate.yCutoffs[0] = 0
                 gate.polygon = grahamScan.getHull().map(p => [p.x, p.y])
             }
