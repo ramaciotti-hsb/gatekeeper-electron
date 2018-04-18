@@ -47,10 +47,10 @@ if (isDev) {
 }
 
 const jobQueue = []
+const priorityQueue = []
 
 const processJob = async function () {
-    console.log('processing job')
-    const currentJob = jobQueue.splice(0, 1)
+    const currentJob = priorityQueue.length > 0 ? priorityQueue.splice(0, 1) : jobQueue.splice(0, 1)
     if (currentJob.length === 0) {
         return false
     } else {
@@ -168,7 +168,7 @@ const getFCSMetadata = async (filePath) => {
 }
 
 // Generates an image for a 2d scatter plot
-const getImageForPlot = async (sample, FCSFile, options) => {
+const getImageForPlot = async (sample, FCSFile, options, priority) => {
     options.directory = remote.app.getPath('userData')
     options.machineType = FCSFile.machineType
     if (sample.plotImages[getPlotImageKey(options)]) { return sample.plotImages[getPlotImageKey(options)] }
@@ -176,7 +176,11 @@ const getImageForPlot = async (sample, FCSFile, options) => {
     const jobId = uuidv4()
 
     const imagePath = await new Promise((resolve, reject) => {
-        jobQueue.push({
+        if (priority) {
+            console.log('pushing to priority queue')
+        }
+        const queueToPush = priority ? priorityQueue : jobQueue
+        queueToPush.push({
             jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-image-for-plot', payload: { sample, FCSFile, options } } },
             callback: (data) => { resolve(data) }
         })
@@ -199,7 +203,7 @@ const getAllPlotImages = async (sample, scales) => {
                 selectedYScale: scales.selectedYScale,
                 machineType: FCSFile.machineType
             }
-            if (!sample.plotImages[getPlotImageKey(options)] && FCSFile.FCSParameters[x].label.match('_') && FCSFile.FCSParameters[y].label.match('_')) {
+            if (!sample.plotImages[getPlotImageKey(options)]) {
                 combinations.push(options)
             }
         }
@@ -694,10 +698,10 @@ export const api = {
         saveSessionToDisk()
     },
 
-    getImageForPlot: async function (sampleId, options) {
+    getImageForPlot: async function (sampleId, options, priority) {
         const sample = _.find(currentState.samples, s => s.id === sampleId)
         const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
-        const imageForPlot = await getImageForPlot(sample, FCSFile, options)
+        const imageForPlot = await getImageForPlot(sample, FCSFile, options, priority)
         const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(_.merge(options, FCSFile)), imageForPlot)
         currentState = applicationReducer(currentState, imageAction)
         reduxStore.dispatch(imageAction)
@@ -786,9 +790,10 @@ export const api = {
         }
 
         const truePeaks = await new Promise((resolve, reject) => {
-            request.post({ url: 'http://127.0.0.1:3145', json: postBody }, function (error, response, body) {
-                resolve(body)
-            });
+            priorityQueue.push({
+                jobParameters: { url: 'http://127.0.0.1:3145', json: postBody },
+                callback: (data) => { resolve(data) }
+            })
         })
 
         clearInterval(intervalToken)
