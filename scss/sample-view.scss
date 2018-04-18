@@ -31,6 +31,7 @@
             flex-direction: column;
             background: #fdfdfd;
             border-bottom: 1px solid #eee;
+            flex-shrink: 0;
 
             .upper {
                 font-size: 12px;
@@ -96,6 +97,7 @@
             border-bottom: 2px solid #ddd;
             padding: 10px 15px;
             align-items: center;
+            flex-shrink: 0;
 
             input {
                 font-size: 14px;
@@ -122,9 +124,5 @@
                 }
             } // .hide-ungated
         } // .filters
-
-        & > * {
-            flex-shrink: 0;
-        }
     } // .panel-inner
 } // .panel.sample

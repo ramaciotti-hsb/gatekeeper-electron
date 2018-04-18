@@ -7,6 +7,9 @@
 .gates {
     flex-wrap: wrap;
     flex-grow: 1;
+    position: relative;
+    overflow-y: auto;
+    flex-shrink: 1;
 
     .ReactVirtualized__Masonry {
         display: block;

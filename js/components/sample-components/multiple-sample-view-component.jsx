@@ -10,12 +10,7 @@ import constants from '../../lib/constants'
 import pointInsidePolygon from 'point-in-polygon'
 import { heatMapHSLStringForValue, getScales, getPlotImageKey } from '../../lib/utilities.js'
 import BivariatePlot from '../../containers/bivariate-plot-container.jsx'
-import List from 'react-virtualized/dist/commonjs/List'
 import Dropdown from '../../lib/dropdown.jsx'
-import AutoSizer from 'react-virtualized/dist/commonjs/AutoSizer'
-import Masonry from 'react-virtualized/dist/commonjs/Masonry';
-import { CellMeasurer, CellMeasurerCache } from 'react-virtualized/dist/commonjs/CellMeasurer';
-import createCellPositioner from 'react-virtualized/dist/commonjs/Masonry/createCellPositioner';
 import '../../../scss/sample-view/sample-gates.scss'
 
 export default class MultipleSampleView extends Component {
@@ -23,32 +18,12 @@ export default class MultipleSampleView extends Component {
     constructor (props) {
         super(props)
 
-        this._columnCount = 0;
-
-        this._cache = new CellMeasurerCache({
-          defaultHeight: constants.PLOT_HEIGHT + 100,
-          defaultWidth: constants.PLOT_WIDTH + 100,
-          fixedWidth: true,
-          fixedHeight: true
-        });
-
-        this._columnHeights = {};
-
         this.state = {
-          columnWidth: constants.PLOT_WIDTH + 100,
-          height: 1000,
-          gutterSize: 15,
-          overscanByPixels: 500,
           filterPlotString: '',
           combinations: [],
-          flippedCombinations: []
+          flippedCombinations: [],
+          scrollTop: 0
         };
-
-        this._cellRenderer = this._cellRenderer.bind(this);
-        this._onResize = this._onResize.bind(this);
-        this._renderAutoSizer = this._renderAutoSizer.bind(this);
-        this._renderMasonry = this._renderMasonry.bind(this);
-        this._setMasonryRef = this._setMasonryRef.bind(this);
 
         this.state.combinations = this.filterPlots()
     }
@@ -125,174 +100,6 @@ export default class MultipleSampleView extends Component {
         return combinations
     }
 
-    _cellRenderer({ index, key, parent, style }) {
-        const { list } = this.context;
-        const { columnWidth } = this.state;
-
-        if (!this.props.FCSFile.FCSParameters || this.props.FCSFile.FCSParameters.length === 0 || index >= this.state.combinations.length) {
-            return null
-        }
-
-        const x = Math.min(this.state.combinations[index][0], this.state.combinations[index][1])
-        const y = Math.max(this.state.combinations[index][0], this.state.combinations[index][1])
-
-        return (
-            <CellMeasurer cache={this._cache} index={index} key={key} parent={parent}>
-                <div className='gate-group' key={key} style={style}>
-                    <div className='upper'>
-                        <div className='selected-parameters'>
-                            {this.props.FCSFile.FCSParameters[this.state.combinations[index][0]].label + ' · ' + this.props.FCSFile.FCSParameters[this.state.combinations[index][1]].label}
-                            <div className={'icon' + (this.props.workspace.invertedAxisPlots[x + '_' + y] ? ' active' : '')} onClick={this.props.api.invertPlotAxis.bind(null, this.props.workspace.id, this.state.combinations[index][0], this.state.combinations[index][1])}><i className='lnr lnr-sync'></i></div>
-                        </div>
-                        <Dropdown outerClasses='dark' ref={'homologyDropdown-' + this.state.combinations[index][0] + '-' + this.state.combinations[index][1]}>
-                            <div className='inner'>
-                                <div className='icon'><i className='lnr lnr-cog'></i></div>
-                                <div className='menu'>
-                                    <div className='menu-header'>Auto Gating</div>
-                                    <div className='menu-inner'>
-                                        <div className='item' onClick={this.calculateHomology.bind(this, this.state.combinations[index][0], this.state.combinations[index][1])}><div>Persistent Homology</div></div>
-                                        <div className='item' onClick={this.calculateHomology.bind(this, this.state.combinations[index][0], this.state.combinations[index][1])}><div>Persistent Homology (Recursive)</div></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </Dropdown>
-                    </div>
-                    <div className='graph'>
-                        <BivariatePlot sampleId={this.props.sample.id} FCSFileId={this.props.FCSFile.id} selectedXParameterIndex={this.state.combinations[index][0]} selectedYParameterIndex={this.state.combinations[index][1]} selectedXScale={this.props.workspace.selectedXScale} selectedYScale={this.props.workspace.selectedYScale} />
-                    </div>
-                </div>
-            </CellMeasurer>
-        )
-    }
-
-    _onResize({ width }) {
-        this._width = width;
-
-        this._columnHeights = {};
-        this._calculateColumnCount();
-        this._resetCellPositioner();
-        this._masonry.recomputeCellPositions();
-    }
-
-    _renderAutoSizer({height, scrollTop}) {
-        this._height = height;
-        this._scrollTop = scrollTop;
-
-        const { overscanByPixels } = this.state;
-
-        return (
-            <AutoSizer
-                style={{ flex: '1 1 auto' }}
-                onResize={this._onResize}
-                overscanByPixels={overscanByPixels}
-                scrollTop={this._scrollTop}>
-                {this._renderMasonry}
-            </AutoSizer>
-        );
-    }
-
-    _renderMasonry({width, height}) {
-        this._width = width;
-
-        this._calculateColumnCount();
-        this._initCellPositioner();
-
-        const { overscanByPixels } = this.state;
-
-        return (
-            <Masonry
-                cellCount={this.state.combinations.length}
-                cellMeasurerCache={this._cache}
-                cellPositioner={this._cellPositioner}
-                cellRenderer={this._cellRenderer}
-                height={height}
-                overscanByPixels={overscanByPixels}
-                ref={this._setMasonryRef}
-                scrollTop={this._scrollTop}
-                width={width}
-            />
-        );
-    }
-
-    _resetCellPositioner() {
-        const { columnWidth, gutterSize } = this.state;
-
-        this._cellPositioner.reset({
-            columnCount: this._columnCount,
-            columnWidth,
-            spacer: gutterSize,
-        });
-    }
-
-    _initCellPositioner() {
-        if (typeof this._cellPositioner === 'undefined') {
-            const { columnWidth, gutterSize } = this.state;
-
-            this._cellPositioner = createCellPositioner({
-                cellMeasurerCache: this._cache,
-                columnCount: this._columnCount,
-                columnWidth,
-                spacer: gutterSize,
-            });
-        }
-    }
-
-    _calculateColumnCount() {
-        const {columnWidth, gutterSize} = this.state;
-
-        this._columnCount = Math.floor(this._width / (columnWidth + gutterSize));
-    }
-
-    _setMasonryRef(ref) {
-        this._masonry = ref;
-    }
-
-    componentDidMount () {
-        // this.refs.panel.addEventListener('scroll', () => {
-        //     console.log(this.refs.panel.scrollTop, this.refs.panel.scrollHeight)
-        //     if (this.refs.panel.scrollTop + 2000 > this.refs.panel.scrollHeight) {
-        //         this.setState({
-        //             page: this.state.page + 1
-        //         }, () => {
-        //             this.refs.panel.scrollTop = 0
-        //         })
-        //     }
-        // })
-        // this.renderGatePreview()
-    }
-
-    componentDidUpdate (prevProps) {
-        if (!this.props.sample) {
-            return
-        }
-
-        let shouldReset = false
-        if (!prevProps.sample) {
-            shouldReset = true
-        } else if (this.props.sample.id !== prevProps.sample.id) {
-            shouldReset = true
-        } else if (this.props.workspace.hideUngatedPlots !== prevProps.workspace.hideUngatedPlots) {
-            shouldReset = true
-        } else if (this.props.workspace.invertedAxisPlots !== prevProps.workspace.invertedAxisPlots) {
-            shouldReset = true
-        } else if (this.props.FCSFile.FCSParameters.length !== prevProps.FCSFile.FCSParameters.length) {
-            shouldReset = true
-        } else if (this.props.workspace.selectedXParameterIndex != prevProps.workspace.selectedXParameterIndex) {
-            shouldReset = true
-        } else if (this.props.workspace.selectedYParameterIndex != prevProps.workspace.selectedYParameterIndex) {
-            shouldReset = true
-        }
-
-        if (shouldReset) {
-            this._cache.clearAll();
-            this._resetCellPositioner();
-            this._masonry.clearCellPositions();
-            this.setState({
-                combinations: this.filterPlots()
-            })
-        }
-    }
-
     showGate (gateId) {
         const gate = _.find(this.props.gates, g => g.id === gateId)
         if (this.state.selectedXParameterIndex !== gate.selectedXParameterIndex
@@ -311,30 +118,13 @@ export default class MultipleSampleView extends Component {
             return null
         }
 
-        const {
-            columnWidth,
-            height,
-            gutterSize,
-            overscanByPixels,
-            windowScrollerEnabled,
-        } = this.state;
         // Group gates into the 2d parameters that they use
         const gateGroups = {}
         let plots = []
 
-        // console.log(plots)
-        // console.log(this.state.page * this.state.pageSize, (this.state.page * this.state.pageSize) + this.state.pageSize)
-        // plots = plots.slice(Math.max((this.state.page * this.state.pageSize * 2) - this.state.pageSize, 0), (this.state.page * this.state.pageSize * 2) + this.state.pageSize * 2)
-        // console.log(plots)
-
         for (let gate of this.props.gates) {
             const key = `${gate.selectedXParameterIndex}_${gate.selectedYParameterIndex}`
-            // if (!gateGroups[key]) {
-            //     gateGroups[key] = {
-            //         label: this.props.FCSFile.FCSParameters[gate.selectedXParameterIndex].label + ' · ' + this.props.FCSFile.FCSParameters[gate.selectedYParameterIndex].label,
-            //         gates: []
-            //     }
-            // }
+
             if (!gateGroups[key]) {
                 gateGroups[key] = {
                     label: this.props.FCSFile.FCSParameters[gate.selectedXParameterIndex].label + ' · ' + this.props.FCSFile.FCSParameters[gate.selectedYParameterIndex].label,
@@ -349,20 +139,6 @@ export default class MultipleSampleView extends Component {
 
         const gateGroupsRendered = _.keys(gateGroups).map((key) => {
             const gateGroup = gateGroups[key]
-
-            // const gates = gateGroup.gates.map((gate) => {
-            //     const subSample = _.find(this.props.subSamples, s => s.id === gate.childSampleId)
-            //     const gateTemplate = _.find(this.props.gateTemplates, gt => gt.id === gate.gateTemplateId)
-            //     return (
-            //         <div className='gate' key={gate.id}
-            //             onMouseEnter={this.props.updateGateTemplate.bind(null, subSample.gateTemplateId, { highlighted: true })}
-            //             onMouseLeave={this.props.updateGateTemplate.bind(null, subSample.gateTemplateId, { highlighted: false })}
-            //             >
-            //             <div className='subsample-name'>{gateTemplate.title}</div>
-            //             <canvas ref={'canvas-' + gate.id} width={200} height={140} />
-            //         </div>
-            //     )
-            // })
 
             const autoGates = [
                 {
@@ -392,6 +168,47 @@ export default class MultipleSampleView extends Component {
             upperTitle = <div className='upper'>Root Gate</div>
         }
 
+        const minIndex = Math.max(0, (Math.floor(this.state.scrollTop / (constants.PLOT_HEIGHT + 115)) - 3) * 3)
+        const maxIndex = Math.min(this.state.combinations.length, (Math.floor(this.state.scrollTop / (constants.PLOT_HEIGHT + 115)) + 4) * 3)
+
+        console.log(minIndex, maxIndex)
+
+        const gates = this.state.combinations.slice(minIndex, maxIndex).map((c, index) => {
+            if (!this.props.FCSFile.FCSParameters || this.props.FCSFile.FCSParameters.length === 0 || index >= this.state.combinations.length) {
+                return null
+            }
+
+            const realIndex = index + minIndex
+
+            const x = Math.min(c[0], c[1])
+            const y = Math.max(c[0], c[1])
+
+            return (
+                <div className='gate-group' key={x + '_' + y} style={{ position: 'absolute', top: (Math.floor(realIndex / 3)) * (constants.PLOT_HEIGHT + 115), left: (realIndex % 3) * (constants.PLOT_WIDTH + 130) }}>
+                    <div className='upper'>
+                        <div className='selected-parameters'>
+                            {this.props.FCSFile.FCSParameters[c[0]].label + ' · ' + this.props.FCSFile.FCSParameters[c[1]].label}
+                            <div className={'icon' + (this.props.workspace.invertedAxisPlots[x + '_' + y] ? ' active' : '')} onClick={this.props.api.invertPlotAxis.bind(null, this.props.workspace.id, c[0], c[1])}><i className='lnr lnr-sync'></i></div>
+                        </div>
+                        <Dropdown outerClasses='dark' ref={'homologyDropdown-' + c[0] + '-' + c[1]}>
+                            <div className='inner'>
+                                <div className='icon'><i className='lnr lnr-cog'></i></div>
+                                <div className='menu'>
+                                    <div className='menu-header'>Auto Gating</div>
+                                    <div className='menu-inner'>
+                                        <div className='item' onClick={this.calculateHomology.bind(this, c[0], c[1])}><div>Persistent Homology</div></div>
+                                        <div className='item' onClick={this.calculateHomology.bind(this, c[0], c[1])}><div>Persistent Homology (Recursive)</div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </Dropdown>
+                    </div>
+                    <div className='graph'>
+                        <BivariatePlot sampleId={this.props.sample.id} FCSFileId={this.props.FCSFile.id} selectedXParameterIndex={c[0]} selectedYParameterIndex={c[1]} selectedXScale={this.props.workspace.selectedXScale} selectedYScale={this.props.workspace.selectedYScale} />
+                    </div>
+                </div>
+            )
+        })
         return (
             <div className='panel sample' ref='panel'>
                 <div className={`loader-outer${this.props.sample.loading ? ' active' : ''}`}><div className='loader'></div><div className='text'>{this.props.sample.loadingMessage}</div></div>
@@ -407,8 +224,10 @@ export default class MultipleSampleView extends Component {
                         <input type='text' placeholder='Filter Plots...' value={this.state.filterPlotString} onChange={this.updateFilterPlotString.bind(this)} />
                         <div className={'hide-ungated' + (this.props.workspace.hideUngatedPlots ? ' active' : '')} onClick={this.props.api.updateWorkspace.bind(null, this.props.workspace.id, { hideUngatedPlots: !this.props.workspace.hideUngatedPlots })}><i className={'lnr ' + (this.props.workspace.hideUngatedPlots ? 'lnr-checkmark-circle' : 'lnr-circle-minus')} />Hide Ungated Plots</div>
                     </div>
-                    <div className='gates'>
-                        {this._renderAutoSizer({height})}
+                    <div className='gates' onScroll={(e) => { if (Math.abs(e.target.scrollTop - this.state.scrollTop) > (constants.PLOT_HEIGHT + 115) * 2) { this.setState({ scrollTop: e.target.scrollTop }) } } } ref="gates">
+                        <div className='gates-inner' style={{ position: 'relative', height: Math.floor((this.state.combinations.length / 3) * (constants.PLOT_HEIGHT + 115)) }}>
+                            {gates}
+                        </div>
                     </div>
                 </div>
             </div>
