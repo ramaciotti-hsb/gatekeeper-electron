@@ -68,6 +68,11 @@
                     padding: 0 10px;
                 }
             }
+
+            .gate-templates {
+                flex-direction: column;
+                position: relative;
+            }
         }
 
         .sidebar-gate-template {
