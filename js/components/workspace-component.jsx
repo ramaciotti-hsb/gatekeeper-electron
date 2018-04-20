@@ -42,16 +42,17 @@ export default class WorkspaceView extends Component {
             const totalEvents = childGateTemplates.reduce((accumulator, current) => { return accumulator + current.populationCount }, 0)
             return (
                 <div className='sidebar-gate-template-group' key={childGateTemplateGroup.id}>
-                    <div className={`loader-outer${childGateTemplateGroup.loading ? ' active' : ''}`}><div className='loader small'></div></div>
                     <div className='title'>
                         <div className='text'>{childGateTemplateGroup.title}</div>
                         <div className='remove-gate-template-group' onClick={this.removeGateTemplateGroup.bind(this, childGateTemplateGroup.id)}>
-                            <div className={`loader-outer${childGateTemplateGroup.loading ? ' active' : ''}`}><div className='loader'></div></div>
                             <i className='lnr lnr-cross'></i>
                         </div>
                         <div className='number' style={_.isNaN(totalEvents) ? { display: 'none'} : null}>{totalEvents} ({(totalEvents / gateTemplate.populationCount * 100).toFixed(1)}%)</div>
                     </div>
-                    {childrenRendered}
+                    <div style={{ position: 'relative' }}>
+                        <div className={`loader-outer${childGateTemplateGroup.loading ? ' active' : ''}`}><div className='loader small'></div></div>
+                        {childrenRendered}
+                    </div>
                 </div>
             )
         })
