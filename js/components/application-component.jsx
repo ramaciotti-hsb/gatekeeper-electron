@@ -272,7 +272,7 @@ export default class Application extends Component {
 
         return (
             <div className='container' onDrop={this.onDropFile.bind(this)}>
-                <div className={`loader-outer opaque${this.props.sessionLoading ? ' active' : ''}`}><div className='loader'></div><div className='text'>Loading session and starting workers...</div></div>
+                <div className={`loader-outer maxIndex opaque${this.props.sessionLoading ? ' active' : ''}`}><div className='loader'></div><div className='text'>Loading session and starting workers...</div></div>
                 <div className='tab-bar'>
                     {workspaceTabs}
                 </div>

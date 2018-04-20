@@ -50,7 +50,7 @@ export default class WorkspaceView extends Component {
                         <div className='number' style={_.isNaN(totalEvents) ? { display: 'none'} : null}>{totalEvents} ({(totalEvents / gateTemplate.populationCount * 100).toFixed(1)}%)</div>
                     </div>
                     <div className='gate-templates'>
-                        <div className={`loader-outer${childGateTemplateGroup.loading && this.props.selectedFCSFile ? ' active' : ''}`}><div className='loader small'></div></div>
+                        <div className={`loader-outer${childGateTemplateGroup.loading && this.props.workspace.selectedFCSFile ? ' active' : ''}`}><div className='loader small'></div></div>
                         {childrenRendered}
                     </div>
                 </div>

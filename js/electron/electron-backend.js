@@ -159,7 +159,7 @@ const getFCSMetadata = async (filePath) => {
     const jobId = uuidv4()
 
     const metadata = await new Promise((resolve, reject) => {
-        jobQueue.push({
+        priorityQueue.push({
             jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-fcs-metadata', payload: { filePath } } },
             callback: (data) => { resolve(data) }
         })
@@ -461,13 +461,17 @@ export const api = {
             if (templateGroup.creator === constants.GATE_CREATOR_PERSISTENT_HOMOLOGY) {
                 // If there hasn't been any gate templates generated for this sample, try generating them, otherwise leave them as they are
                 if (!_.find(currentState.gates, g => g.parentSampleId === sampleId && templateGroup.childGateTemplateIds.includes(g.gateTemplateId))) {
-                    await api.calculateHomology(sampleId, {
+                    const result = await api.calculateHomology(sampleId, {
                         selectedXParameterIndex: templateGroup.selectedXParameterIndex,
                         selectedYParameterIndex: templateGroup.selectedYParameterIndex,
                         selectedXScale: templateGroup.selectedXScale,
                         selectedYScale: templateGroup.selectedYScale,
                         machineType: templateGroup.machineType
                     })
+
+                    if (result === false) {
+                        return
+                    }
                 }
             }
         }
@@ -788,6 +792,16 @@ export const api = {
             })
         })
 
+        // If the sample or gate template group has been deleted while homology has been calculating, just do nothing
+        if (!_.find(currentState.samples, s => s.id === sampleId) || (gateTemplateGroup && !_.find(currentState.gateTemplateGroups, (group) => {
+            return group.parentGateTemplateId === sample.gateTemplateId 
+                && group.selectedXParameterIndex === options.selectedXParameterIndex
+                && group.selectedYParameterIndex === options.selectedYParameterIndex
+                && group.selectedXScale === options.selectedXScale
+                && group.selectedYScale === options.selectedYScale
+                && group.machineType === FCSFile.machineType
+        }))) { console.log('Error calculating homology, sample or gate template group has been deleted'); return false }
+
         clearInterval(intervalToken)
 
         // Offset the entire graph and add histograms if we're looking at cytof data
@@ -918,6 +932,8 @@ export const api = {
         const loadingFinishedAction = setSampleParametersLoading(sampleId, options.selectedXParameterIndex + '_' + options.selectedYParameterIndex, { loading: false, loadingMessage: null })
         currentState = applicationReducer(currentState, loadingFinishedAction)
         reduxStore.dispatch(loadingFinishedAction)
+
+        return true
     },
 
     recursiveHomology: async (sampleId) => {

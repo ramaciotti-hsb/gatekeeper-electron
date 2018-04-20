@@ -144,7 +144,7 @@ export default class MultipleSampleView extends Component {
 
     render () {
         if (!this.props.sample) {
-            return null
+            return <div className='panel sample'><div className='loader-outer active'><div className='loader'></div><div className='text'>Loading FCS File Metadata</div></div></div>
         }
 
         // Group gates into the 2d parameters that they use
@@ -199,8 +199,6 @@ export default class MultipleSampleView extends Component {
 
         const minIndex = Math.max(0, (Math.floor(this.state.scrollTop / (constants.PLOT_HEIGHT + 115)) - 3) * 3)
         const maxIndex = Math.min(this.state.combinations.length, (Math.floor(this.state.scrollTop / (constants.PLOT_HEIGHT + 115)) + 4) * 3)
-
-        console.log(minIndex, maxIndex)
 
         const gates = this.state.combinations.slice(minIndex, maxIndex).map((c, index) => {
             if (!this.props.FCSFile.FCSParameters || this.props.FCSFile.FCSParameters.length === 0 || index >= this.state.combinations.length) {

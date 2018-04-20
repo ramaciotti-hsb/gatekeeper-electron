@@ -18,7 +18,7 @@ const mapStateToProps = (state, ownProps) => {
         // If the workspace contains FCSFiles, find them and add them as complete objects
         if (newWorkspace.FCSFileIds) {
             for (let FCSFileId of newWorkspace.FCSFileIds) {
-                const FCSFile = _.find(state.FCSFiles, s => s.id === FCSFileId)
+                const FCSFile = _.find(state.FCSFiles, fcs => fcs.id === FCSFileId)
                 if (FCSFile) { newWorkspace.FCSFiles.push(FCSFile) }
             }
             newWorkspace.FCSFileIds = null
