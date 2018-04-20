@@ -76,10 +76,10 @@ export default class PersistentHomology {
     constructor (options) {
         this.options = _.merge({
             options: {
-                edgeDistance: constants.PLOT_WIDTH * 0.05,
-                minPeakHeight: constants.PLOT_WIDTH * 0.04,
+                edgeDistance: options.options.plotWidth * 0.05,
+                minPeakHeight: options.options.plotHeight * 0.04,
                 minPeakSize: 5000,
-                maxIterations: 10,//constants.PLOT_WIDTH * 0.02,
+                maxIterations: 10,
             }
         }, options)
 
@@ -93,16 +93,16 @@ export default class PersistentHomology {
 
     findIncludedEvents () {
         // Offset the entire graph and add histograms if we're looking at cytof data
-        let xOffset = this.options.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
-        let yOffset = this.options.FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+        let xOffset = this.options.FCSFile.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(this.options.options.plotWidth, this.options.options.plotHeight) * 0.07) : 0
+        let yOffset = this.options.FCSFile.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(this.options.options.plotWidth, this.options.options.plotHeight) * 0.07) : 0
         
         const scales = getScales({
             selectedXScale: this.options.options.selectedXScale,
             selectedYScale: this.options.options.selectedYScale,
             xRange: [ this.options.FCSFile.FCSParameters[this.options.options.selectedXParameterIndex].statistics.positiveMin, this.options.FCSFile.FCSParameters[this.options.options.selectedXParameterIndex].statistics.max ],
             yRange: [ this.options.FCSFile.FCSParameters[this.options.options.selectedYParameterIndex].statistics.positiveMin, this.options.FCSFile.FCSParameters[this.options.options.selectedYParameterIndex].statistics.max ],
-            width: constants.PLOT_WIDTH - xOffset,
-            height: constants.PLOT_HEIGHT - yOffset
+            width: this.options.options.plotWidth - xOffset,
+            height: this.options.options.plotHeight - yOffset
         })
 
         for (let peak of this.truePeaks) {
@@ -126,7 +126,7 @@ export default class PersistentHomology {
 
     expandToIncludeZeroes () {
         // If we're looking at cytof data, extend lower gates out towards zero if there is a peak there
-        const minPeakWidth = constants.PLOT_WIDTH * 0.05
+        const minPeakWidth = this.options.options.plotWidth * 0.05
         const inflectionWidth = 10
 
         let yPeaks = []
@@ -189,8 +189,8 @@ export default class PersistentHomology {
             for (let gate of this.truePeaks) {
                 const xBoundaries = getPolygonXBoundaries(gate.polygon)
                 const centerPoint = getPolygonCenter(gate.polygon)
-                if (peak >= xBoundaries[0] && peak <= xBoundaries[1] && (constants.PLOT_HEIGHT - centerPoint[1]) < closestDistance) {
-                    closestDistance = constants.PLOT_HEIGHT - centerPoint[1]
+                if (peak >= xBoundaries[0] && peak <= xBoundaries[1] && (this.options.options.plotHeight - centerPoint[1]) < closestDistance) {
+                    closestDistance = this.options.options.plotHeight - centerPoint[1]
                     closestGate = gate
                 }
             }
@@ -206,8 +206,8 @@ export default class PersistentHomology {
                 if (closestGate.includeYChannelZeroes) {
                     // Insert the new 0 edge points
                     const newGatePolygon = closestGate.polygon.concat([
-                        [yCutoffs[p][0], constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT],
-                        [yCutoffs[p][1], constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT]
+                        [yCutoffs[p][0], this.options.options.plotHeight - Math.round(Math.min(this.options.options.plotWidth, this.options.options.plotHeight) * 0.07)],
+                        [yCutoffs[p][1], this.options.options.plotHeight - Math.round(Math.min(this.options.options.plotWidth, this.options.options.plotHeight) * 0.07)]
                     ])
                     // Recalculate the polygon boundary
                     const grahamScan = new GrahamScan();
@@ -320,11 +320,11 @@ export default class PersistentHomology {
             // If a gate includes zeroes on both the x and y axis, add a special (0,0) point to the gate            
             if (gate.zeroX && gate.zeroY) {
                 // Insert the two new 0 edge points
-                const newGatePolygon = gate.polygon.concat([[0, constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT]])
+                const newGatePolygon = gate.polygon.concat([[0, this.options.options.plotHeight - Math.round(Math.min(this.options.options.plotWidth, this.options.options.plotHeight) * 0.07)]])
                 // Recalculate the polygon boundary
                 const grahamScan = new GrahamScan();
                 newGatePolygon.map(p => grahamScan.addPoint(p[0], p[1]))
-                gate.xCutoffs[1] = constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT
+                gate.xCutoffs[1] = this.options.options.plotHeight - Math.round(Math.min(this.options.options.plotWidth, this.options.options.plotHeight) * 0.07)
                 gate.yCutoffs[0] = 0
                 gate.polygon = grahamScan.getHull().map(p => [p.x, p.y])
             }
@@ -626,7 +626,7 @@ export default class PersistentHomology {
     }
 
     performHomologyIteration (height, gateTemplates)  {
-        for (let y = 0; y < constants.PLOT_HEIGHT; y++) {
+        for (let y = 0; y < this.options.options.plotHeight; y++) {
             const column = this.options.population.densityMap.densityMap[y]
             if (!column || column.length === 0) { continue }
 

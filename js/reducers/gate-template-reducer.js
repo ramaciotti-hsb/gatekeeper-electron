@@ -5,12 +5,7 @@
 import _ from 'lodash'
 import uuidv4 from 'uuid/v4'
 
-const initialState = [
-    {
-        id: uuidv4(),
-        title: 'New Template'
-    }
-]
+const initialState = []
 
 const gateTemplates = (state = initialState, action = {}) => {
     let newState = state.slice(0)

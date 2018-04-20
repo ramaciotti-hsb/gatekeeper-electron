@@ -63,6 +63,16 @@
                     }
                 }
 
+                &.jobs.disabled {
+                    @include backgroundHover($red-colour, 10%);
+                    @include backgroundClick($red-colour, 20%);
+                    color: #fff;
+
+                    i {
+                        font-size: 25px;
+                    }
+                }
+
                 &.delete {
                     margin-right: 15px;
                 }

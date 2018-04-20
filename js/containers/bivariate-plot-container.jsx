@@ -54,9 +54,22 @@ const mapStateToProps = (state, ownProps) => {
             newSample.parentTitle = parent.title
         }
 
-        return { api: state.api, workspace, sample: newSample, gates, gateTemplates, gateTemplateGroups, FCSFile, machineType: FCSFile.machineType }
+        return {
+            api: state.api,
+            workspace,
+            sample: newSample,
+            gates,
+            gateTemplates,
+            gateTemplateGroups,
+            FCSFile,
+            plotWidth: state.plotWidth,
+            plotHeight: state.plotHeight,
+            plotDisplayWidth: state.plotDisplayWidth,
+            plotDisplayHeight: state.plotDisplayHeight,
+            machineType: FCSFile.machineType
+        }
     } else {
-        return { api: state.api, gates: [], gateTemplates: [], workspace, FCSFile }
+        return { api: state.api, gates: [], gateTemplates: [], workspace, FCSFile, plotWidth: state.plotWidth, plotHeight: state.plotHeight }
     }
 }
 

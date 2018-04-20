@@ -46,8 +46,8 @@ export default async function getPopulationForSample (sample, FCSFile, options) 
         return
     }
 
-    let xOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
-    let yOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+    let xOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(options.plotWidth, options.plotHeight) * 0.07) : 0
+    let yOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(options.plotWidth, options.plotHeight) * 0.07) : 0
 
     if (!sample) { console.log('Error in getPopulationForSample(): no sample with id ', sampleId, 'was found'); return }
 
@@ -86,14 +86,14 @@ export default async function getPopulationForSample (sample, FCSFile, options) 
         selectedYScale: options.selectedYScale,
         xRange: [ FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.positiveMin, FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.max ],
         yRange: [ FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.positiveMin, FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.max ],
-        width: constants.PLOT_WIDTH - xOffset,
-        height: constants.PLOT_HEIGHT - yOffset
+        width: options.plotWidth - xOffset,
+        height: options.plotHeight - yOffset
     })
 
     // process.stdout.write(JSON.stringify({ data: 'Calculating density' }))
     // // Perform kernel density for each channel then combine for 2d density
-    // const densityX = kernelDensityEstimator(kernelEpanechnikov(constants.PLOT_WIDTH * 0.012), _.range(0, constants.PLOT_WIDTH - xOffset))(subPopulation.map(value => scales.xScale(value[0])))
-    // const densityY = kernelDensityEstimator(kernelEpanechnikov(constants.PLOT_HEIGHT * 0.012), _.range(0, constants.PLOT_HEIGHT - yOffset))(subPopulation.map(value => scales.yScale(value[1])))
+    // const densityX = kernelDensityEstimator(kernelEpanechnikov(options.plotWidth * 0.012), _.range(0, options.plotWidth - xOffset))(subPopulation.map(value => scales.xScale(value[0])))
+    // const densityY = kernelDensityEstimator(kernelEpanechnikov(options.plotHeight * 0.012), _.range(0, options.plotHeight - yOffset))(subPopulation.map(value => scales.yScale(value[1])))
 
     // let newMaxDensity = 0
     // for (let i = 0; i < densityX.length; i++) {
@@ -163,7 +163,7 @@ export default async function getPopulationForSample (sample, FCSFile, options) 
             if (!pointCache[y]) { continue }
             for (let x = 0; x < pointCache[y].length; x++) {
                 if (!pointCache[y][x]) { continue }
-                meanDensity += pointCache[y][x] / ((constants.PLOT_WIDTH - xOffset) * (constants.PLOT_HEIGHT - yOffset))
+                meanDensity += pointCache[y][x] / ((options.plotWidth - xOffset) * (options.plotHeight - yOffset))
             }   
         }
 
@@ -187,7 +187,7 @@ export default async function getPopulationForSample (sample, FCSFile, options) 
 
     process.stdout.write(JSON.stringify({ data: 'Calculating density' }))
 
-    const densityMap = calculateDensity(aboveZeroPopulation, scales, Math.floor((constants.PLOT_WIDTH + constants.PLOT_HEIGHT) * 0.009))
+    const densityMap = calculateDensity(aboveZeroPopulation, scales, Math.floor((options.plotWidth + options.plotHeight) * 0.009))
 
     let densityY
     let densityX
@@ -195,8 +195,8 @@ export default async function getPopulationForSample (sample, FCSFile, options) 
     let maxDensityX
 
     if (FCSFile.machineType === constants.MACHINE_CYTOF) {
-        densityY = kernelDensityEstimator(kernelEpanechnikov(constants.PLOT_WIDTH * 0.05), _.range(0, constants.PLOT_WIDTH - xOffset))(yChannelZeroes.map(value => scales.xScale(value)))
-        densityX = kernelDensityEstimator(kernelEpanechnikov(constants.PLOT_HEIGHT * 0.05), _.range(0, constants.PLOT_HEIGHT - yOffset))(xChannelZeroes.map(value => scales.yScale(value)))
+        densityY = kernelDensityEstimator(kernelEpanechnikov(options.plotWidth * 0.05), _.range(0, options.plotWidth - xOffset))(yChannelZeroes.map(value => scales.xScale(value)))
+        densityX = kernelDensityEstimator(kernelEpanechnikov(options.plotHeight * 0.05), _.range(0, options.plotHeight - yOffset))(xChannelZeroes.map(value => scales.yScale(value)))
 
         maxDensityY = densityY.reduce((acc, curr) => Math.max(acc, curr[1]), 0)
         maxDensityX = densityX.reduce((acc, curr) => Math.max(acc, curr[1]), 0)

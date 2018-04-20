@@ -68,7 +68,21 @@ const mapStateToProps = (state, ownProps) => {
 
         newSample.machineType = newSample.machineType || constants.MACHINE_FLORESCENT
 
-        return { api: state.api, workspace, FCSFile: newFCSFile, sample: newSample, gates, gateTemplates, gateTemplate, gateTemplateGroup, parentGateTitle }
+        return {
+            api: state.api,
+            workspace,
+            FCSFile: newFCSFile,
+            sample: newSample,
+            gates,
+            gateTemplates,
+            gateTemplate,
+            gateTemplateGroup,
+            parentGateTitle,
+            plotWidth: state.plotWidth,
+            plotHeight: state.plotHeight,
+            plotDisplayWidth: state.plotDisplayWidth,
+            plotDisplayHeight: state.plotDisplayHeight
+        }
     } else {
         return { api: state.api, gates: [], FCSFile: newFCSFile, gateTemplate: {}, workspace }
     }

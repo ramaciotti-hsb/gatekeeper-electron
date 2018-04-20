@@ -20,7 +20,7 @@ import pointInsidePolygon from 'point-in-polygon'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import isDev from 'electron-is-dev'
 import applicationReducer from '../reducers/application-reducer'
-import { setBackgroundJobsEnabled } from '../actions/application-actions'
+import { setBackgroundJobsEnabled, setPlotDimensions, setPlotDisplayDimensions } from '../actions/application-actions'
 import { updateSample, removeSample, setSamplePlotImage, setSampleParametersLoading } from '../actions/sample-actions'
 import { updateGateTemplate, removeGateTemplate } from '../actions/gate-template-actions'
 import { removeGateTemplateGroup } from '../actions/gate-template-group-actions'
@@ -138,14 +138,6 @@ const writeFile = (path, data, opts = 'utf8') => {
     })
 }
 
-// The default empty state of the application on first load
-const defaultState = {
-    samples: [],
-    workspaces: [],
-    gates: [],
-    selectedWorkspaceId: null
-}
-
 const filteredSampleAttributes = ['includeEventIds']
 
 // Cache the state after it's been read from disk, then write it back after every update
@@ -172,6 +164,9 @@ const getFCSMetadata = async (filePath) => {
 const getImageForPlot = async (sample, FCSFile, options, priority) => {
     options.directory = remote.app.getPath('userData')
     options.machineType = FCSFile.machineType
+    options.plotWidth = currentState.plotWidth
+    options.plotHeight = currentState.plotHeight
+    console.log(currentState)
     if (sample.plotImages[getPlotImageKey(options)]) { return sample.plotImages[getPlotImageKey(options)] }
 
     const jobId = uuidv4()
@@ -288,13 +283,14 @@ export const api = {
             // If there's no session file, create one
             if (error.code === 'ENOENT') {
                 try {
+                    const defaultState = reduxStore.getState()
                     writeFile(sessionFilePath, JSON.stringify(defaultState))
                     currentState = defaultState
                 } catch (error) {
-                    return { error: error }    
+                    console.log(error)
                 }
             } else {
-                return { error: error }
+                console.log(error)
             }
         }
 
@@ -314,11 +310,20 @@ export const api = {
         // After reading the session, if there's no workspace, create a default one
         if (currentState.workspaces.length === 0) {
             const workspaceId = await api.createWorkspace({ title: 'New Workspace', description: 'New Workspace' })
+            await api.selectWorkspace(workspaceId)
         }
     },
 
     setBackgroundJobsEnabled: async function (backgroundJobsEnabled) {
         const action = setBackgroundJobsEnabled(backgroundJobsEnabled)
+        currentState = applicationReducer(currentState, action)
+        reduxStore.dispatch(action)
+
+        await saveSessionToDisk()
+    },
+
+    setPlotDisplayDimensions: async function (plotWidth, plotHeight) {
+        const action = setPlotDisplayDimensions(plotWidth, plotHeight)
         currentState = applicationReducer(currentState, action)
         reduxStore.dispatch(action)
 
@@ -767,6 +772,8 @@ export const api = {
         if (gateTemplateGroup) {
             const gateTemplates = _.filter(currentState.gateTemplates, gt => gateTemplateGroup.childGateTemplateIds.includes(gt.id))
             homologyOptions.options = _.merge(homologyOptions.options, gateTemplateGroup.typeSpecificData)
+            homologyOptions.plotWidth = currentState.plotWidth
+            homologyOptions.plotHeight = currentState.plotHeight
             homologyOptions.gateTemplates = gateTemplates.map(g => _.clone(g))
         }
 
@@ -805,8 +812,8 @@ export const api = {
         clearInterval(intervalToken)
 
         // Offset the entire graph and add histograms if we're looking at cytof data
-        let xOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_WIDTH : 0
-        let yOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? constants.CYTOF_HISTOGRAM_HEIGHT : 0
+        let xOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(currentState.plotWidth, currentState.plotHeight) * 0.07) : 0
+        let yOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(currentState.plotWidth, currentState.plotHeight) * 0.07) : 0
 
         const xStats = FCSFile.FCSParameters[options.selectedXParameterIndex].statistics
         const yStats = FCSFile.FCSParameters[options.selectedYParameterIndex].statistics
@@ -815,8 +822,8 @@ export const api = {
             selectedYScale: options.selectedYScale,
             xRange: [ options.selectedXScale === constants.SCALE_LOG ? xStats.positiveMin : xStats.min, xStats.max ],
             yRange: [ options.selectedYScale === constants.SCALE_LOG ? yStats.positiveMin : yStats.min, yStats.max ],
-            width: constants.PLOT_WIDTH - xOffset,
-            height: constants.PLOT_HEIGHT - yOffset
+            width: currentState.plotWidth - xOffset,
+            height: currentState.plotHeight - yOffset
         })
 
         const gates = truePeaks.map((peak) => {
@@ -988,6 +995,8 @@ export const api = {
     },
 
     getPopulationDataForSample: async (sampleId, options) => {
+        options.plotWidth = currentState.plotWidth
+        options.plotHeight = currentState.plotHeight
         const key = `${sampleId}-${options.selectedXParameterIndex}_${options.selectedXScale}-${options.selectedYParameterIndex}_${options.selectedYScale}`
         if (populationDataCache[key]) {
             return populationDataCache[key]

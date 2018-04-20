@@ -19,20 +19,20 @@ export default class MultipleSampleView extends Component {
         super(props)
 
         this.state = {
-          filterPlotString: '',
-          combinations: [],
-          flippedCombinations: [],
-          scrollTop: 0,
-          containerWidth: 1000
+            plotWidthString: props.plotDisplayWidth,
+            plotHeightString: props.plotDisplayHeight,
+            filterPlotString: '',
+            combinations: [],
+            flippedCombinations: [],
+            scrollTop: 0,
+            containerWidth: 1000
         };
 
         this.state.combinations = this.filterPlots()
     }
 
     updateContainerSize () {
-        if (this.refs.panel) {
-            this.setState({ containerWidth: this.refs.panel.offsetWidth })            
-        }
+        this.setState({ containerWidth: this.refs.panel.offsetWidth })
     }
 
     componentDidMount () {
@@ -43,6 +43,31 @@ export default class MultipleSampleView extends Component {
 
     componentWillUnmount () {
         window.removeEventListener('resize', this.resizeFunction)
+    }
+
+    updatePlotDisplayWidth (event) {
+        this.setState({
+            plotWidthString: event.target.value
+        })
+    }
+
+    updatePlotDisplayHeight (event) {
+        this.setState({
+            plotHeightString: event.target.value
+        })
+    }
+
+    setPlotDimensions () {
+        const plotWidth = Math.max(Math.min(parseInt(this.state.plotWidthString, 10), 1000), 0)
+        const plotHeight = Math.max(Math.min(parseInt(this.state.plotHeightString, 10), 1000), 0)
+        if (!_.isNaN(plotWidth) && !_.isNaN(plotHeight)) {
+            this.props.api.setPlotDisplayDimensions(plotWidth, plotHeight).then(() => {
+                this.setState({
+                    plotWidthString: this.props.plotDisplayWidth,
+                    plotHeightString: this.props.plotDisplayHeight
+                })
+            })
+        }
     }
 
     calculateHomology (selectedXParameterIndex, selectedYParameterIndex) {
@@ -161,10 +186,10 @@ export default class MultipleSampleView extends Component {
 
     render () {
         if (!this.props.sample) {
-            return <div className='panel sample'><div className='loader-outer active'><div className='loader'></div><div className='text'>Loading FCS File Metadata</div></div></div>
+            return <div className='panel sample' ref='panel'><div className='loader-outer active'><div className='loader'></div><div className='text'>Loading FCS File Metadata</div></div></div>
         }
 
-        const plotsPerRow = Math.floor(this.state.containerWidth / (constants.PLOT_WIDTH + 130))
+        const plotsPerRow = Math.floor(this.state.containerWidth / (this.props.plotDisplayWidth + 130))
 
         // Group gates into the 2d parameters that they use
         const gateGroups = {}
@@ -216,8 +241,8 @@ export default class MultipleSampleView extends Component {
             upperTitle = <div className='upper'>Root Gate</div>
         }
 
-        const minIndex = Math.max(0, (Math.floor(this.state.scrollTop / (constants.PLOT_HEIGHT + 115)) - 3) * plotsPerRow)
-        const maxIndex = Math.min(this.state.combinations.length, (Math.floor(this.state.scrollTop / (constants.PLOT_HEIGHT + 115)) + 4) * plotsPerRow)
+        const minIndex = Math.max(0, (Math.floor(this.state.scrollTop / (this.props.plotDisplayHeight + 115)) - 3) * plotsPerRow)
+        const maxIndex = Math.min(this.state.combinations.length, (Math.floor(this.state.scrollTop / (this.props.plotDisplayHeight + 115)) + 4) * plotsPerRow)
 
         const gates = this.state.combinations.slice(minIndex, maxIndex).map((c, index) => {
             if (!this.props.FCSFile.FCSParameters || this.props.FCSFile.FCSParameters.length === 0 || index >= this.state.combinations.length) {
@@ -230,7 +255,7 @@ export default class MultipleSampleView extends Component {
             const y = Math.max(c[0], c[1])
 
             return (
-                <div className='gate-group' key={x + '_' + y} style={{ position: 'absolute', top: (Math.floor(realIndex / plotsPerRow)) * (constants.PLOT_HEIGHT + 115), left: (realIndex % plotsPerRow) * (constants.PLOT_WIDTH + 130) }}>
+                <div className='gate-group' key={x + '_' + y} style={{ position: 'absolute', top: (Math.floor(realIndex / plotsPerRow)) * (this.props.plotDisplayHeight + 115), left: (realIndex % plotsPerRow) * (this.props.plotDisplayWidth + 130) }}>
                     <div className='upper'>
                         <div className='selected-parameters'>
                             {this.props.FCSFile.FCSParameters[c[0]].label + ' · ' + this.props.FCSFile.FCSParameters[c[1]].label}
@@ -269,9 +294,14 @@ export default class MultipleSampleView extends Component {
                     <div className='filters'>
                         <input type='text' placeholder='Filter Plots...' value={this.state.filterPlotString} onChange={this.updateFilterPlotString.bind(this)} />
                         <div className={'hide-ungated' + (this.props.workspace.hideUngatedPlots ? ' active' : '')} onClick={this.props.api.updateWorkspace.bind(null, this.props.workspace.id, { hideUngatedPlots: !this.props.workspace.hideUngatedPlots })}><i className={'lnr ' + (this.props.workspace.hideUngatedPlots ? 'lnr-checkmark-circle' : 'lnr-circle-minus')} />Hide Ungated Plots</div>
+                        <div className='dimensions plot-width'>
+                            <div className='text'>Plot Dimensions: </div>
+                            <input type='text' value={this.state.plotWidthString || this.props.plotDisplayWidth} onChange={this.updatePlotDisplayWidth.bind(this)} onBlur={this.setPlotDimensions.bind(this)} onKeyPress={(event) => { event.key === 'Enter' && event.target.blur() }} />
+                            <input type='text' value={this.state.plotHeightString || this.props.plotDisplayHeight} onChange={this.updatePlotDisplayHeight.bind(this)} onBlur={this.setPlotDimensions.bind(this)} onKeyPress={(event) => { event.key === 'Enter' && event.target.blur() }} />
+                        </div>
                     </div>
-                    <div className='gates' onScroll={(e) => { if (Math.abs(e.target.scrollTop - this.state.scrollTop) > (constants.PLOT_HEIGHT + 115) * 2) { this.setState({ scrollTop: e.target.scrollTop }) } } } ref="gates">
-                        <div className='gates-inner' style={{ position: 'relative', height: Math.floor((this.state.combinations.length / plotsPerRow) * (constants.PLOT_HEIGHT + 115)) }}>
+                    <div className='gates' onScroll={(e) => { if (Math.abs(e.target.scrollTop - this.state.scrollTop) > (this.props.plotDisplayHeight + 115) * 2) { this.setState({ scrollTop: e.target.scrollTop }) } } } ref="gates">
+                        <div className='gates-inner' style={{ position: 'relative', height: Math.floor((this.state.combinations.length / plotsPerRow) * (this.props.plotDisplayHeight + 115)) }}>
                             {gates}
                         </div>
                     </div>

@@ -16,3 +16,17 @@ export const setBackgroundJobsEnabled = (backgroundJobsEnabled) => {
         payload: { backgroundJobsEnabled }
     }
 }
+
+export const setPlotDimensions = (plotWidth, plotHeight) => {
+    return {
+        type: 'SET_PLOT_DIMENSIONS',
+        payload: { plotWidth, plotHeight }
+    }
+}
+
+export const setPlotDisplayDimensions = (plotDisplayWidth, plotDisplayHeight) => {
+    return {
+        type: 'SET_PLOT_DISPLAY_DIMENSIONS',
+        payload: { plotDisplayWidth, plotDisplayHeight }
+    }
+}

@@ -31,6 +31,12 @@ let initialState = {
             selectedYParameterIndex: 1
         }
     },
+    // These values determine how large the plots generated on the backend are
+    plotWidth: 500,
+    plotHeight: 500,
+    // This value determines how large the plot should be displayed on the front end
+    plotDisplayWidth: 500,
+    plotDisplayHeight: 500,
     api: {}
 }
 
@@ -45,6 +51,10 @@ const applicationReducer = (state = initialState, action) => {
         selectedWorkspaceId: state.selectedWorkspaceId,
         sessionLoading: state.sessionLoading,
         backgroundJobsEnabled: state.backgroundJobsEnabled,
+        plotWidth: state.plotWidth,
+        plotHeight: state.plotHeight,
+        plotDisplayWidth: state.plotDisplayWidth,
+        plotDisplayHeight: state.plotDisplayHeight,
         modals: state.modals,
         api: state.api
     }
@@ -63,6 +73,10 @@ const applicationReducer = (state = initialState, action) => {
         newState.gateTemplateGroups = action.payload.gateTemplateGroups ? action.payload.gateTemplateGroups.slice(0) : []
         newState.selectedWorkspaceId = action.payload.selectedWorkspaceId
         newState.backgroundJobsEnabled = action.payload.backgroundJobsEnabled
+        newState.plotWidth = action.payload.plotWidth || newState.plotWidth
+        newState.plotHeight = action.payload.plotHeight || newState.plotHeight
+        newState.plotDisplayWidth = action.payload.plotDisplayWidth || newState.plotDisplayWidth
+        newState.plotDisplayHeight = action.payload.plotDisplayHeight || newState.plotDisplayHeight
     }
     // --------------------------------------------------
     // Selects which "API" object to use. This changes from
@@ -85,10 +99,24 @@ const applicationReducer = (state = initialState, action) => {
         newState.modals[action.payload.modalKey] = _.merge(newState.modals[action.payload.modalKey], action.payload.parameters)
     }
     // --------------------------------------------------
-    // Updates parameters for modals
+    // Disables and re enabled background jobs
     // --------------------------------------------------
     else if (action.type === 'SET_BACKGROUND_JOBS_ENABLED') {
         newState.backgroundJobsEnabled = action.payload.backgroundJobsEnabled
+    }
+    // --------------------------------------------------
+    // Sets plot width and height
+    // --------------------------------------------------
+    else if (action.type === 'SET_PLOT_DIMENSIONS') {
+        newState.plotWidth = action.payload.plotWidth
+        newState.plotHeight = action.payload.plotHeight
+    }
+    // --------------------------------------------------
+    // Sets plot width and height
+    // --------------------------------------------------
+    else if (action.type === 'SET_PLOT_DISPLAY_DIMENSIONS') {
+        newState.plotDisplayWidth = action.payload.plotDisplayWidth
+        newState.plotDisplayHeight = action.payload.plotDisplayHeight
     }
     // --------------------------------------------------
     // Create a new workspace and select it

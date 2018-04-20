@@ -14,7 +14,15 @@ const mapStateToProps = (state, ownProps) => {
     const selectedSample = _.find(state.samples, s => s.gateTemplateId === selectedGateTemplate.id && s.FCSFileId === selectedFCSFile.id) || {}
 
     return {
-        api: state.api, selectedWorkspace, selectedFCSFile, selectedGateTemplate, selectedSample, modalOptions: state.modals.homology, modalVisible: state.modals.homology.visible
+        api: state.api,
+        selectedWorkspace,
+        selectedFCSFile,
+        selectedGateTemplate,
+        selectedSample,
+        plotWidth: state.plotWidth,
+        plotHeight: state.plotHeight,
+        modalOptions: state.modals.homology,
+        modalVisible: state.modals.homology.visible
     }
 }
 

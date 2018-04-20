@@ -7,23 +7,7 @@ import _ from 'lodash'
 import constants from '../lib/constants'
 
 // Make sure there is at least one workspace
-const initialState = [
-    {
-        id: uuidv4(),
-        title: 'New Workspace',
-        description: 'Empty Workspace',
-        FCSFileIds: [],
-        sampleIds: [],
-        gateTemplateIds: [],
-        gateTemplateGroupIds: [],
-        selectedXParameterIndex: 0,
-        selectedYParameterIndex: 1,
-        selectedXScale: constants.SCALE_LINEAR,
-        selectedYScale: constants.SCALE_LINEAR,
-        hideUngatedPlots: false,
-        invertedAxisPlots: {}
-    }
-]
+const initialState = []
 
 const workspaces = (state = initialState, action = {}) => {
     let newState = state.slice(0)
