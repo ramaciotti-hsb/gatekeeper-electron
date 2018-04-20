@@ -1,7 +1,7 @@
-const PLOT_WIDTH = 500
-const PLOT_HEIGHT = 500
-const CYTOF_HISTOGRAM_WIDTH = Math.min(PLOT_WIDTH, PLOT_HEIGHT) * 0.07
-const CYTOF_HISTOGRAM_HEIGHT = Math.min(PLOT_WIDTH, PLOT_HEIGHT) * 0.07
+const PLOT_WIDTH = 300
+const PLOT_HEIGHT = 300
+const CYTOF_HISTOGRAM_WIDTH = Math.round(Math.min(PLOT_WIDTH, PLOT_HEIGHT) * 0.07)
+const CYTOF_HISTOGRAM_HEIGHT = Math.round(Math.min(PLOT_WIDTH, PLOT_HEIGHT) * 0.07)
 
 export default {
     // Scales

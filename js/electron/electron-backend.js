@@ -871,7 +871,7 @@ export const api = {
             const newGateTemplates = gates.map((gate, index) => {
                 const gateTemplate = {
                     id: uuidv4(),
-                    title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + (truePeaks[index].xGroup === 0 ? ' (LOW) ' : ' (HIGH) ') + FCSFile.FCSParameters[options.selectedYParameterIndex].label + (truePeaks[index].yGroup === 1 ? ' (LOW)' : ' (HIGH)'),
+                    title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + (truePeaks[index].xGroup === 0 ? ' (LOW) · ' : ' (HIGH) · ') + FCSFile.FCSParameters[options.selectedYParameterIndex].label + (truePeaks[index].yGroup === 1 ? ' (LOW)' : ' (HIGH)'),
                     creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
                     xGroup: truePeaks[index].xGroup,
                     yGroup: truePeaks[index].yGroup,

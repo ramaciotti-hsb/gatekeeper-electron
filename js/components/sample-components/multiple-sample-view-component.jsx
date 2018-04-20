@@ -22,10 +22,27 @@ export default class MultipleSampleView extends Component {
           filterPlotString: '',
           combinations: [],
           flippedCombinations: [],
-          scrollTop: 0
+          scrollTop: 0,
+          containerWidth: 1000
         };
 
         this.state.combinations = this.filterPlots()
+    }
+
+    updateContainerSize () {
+        if (this.refs.panel) {
+            this.setState({ containerWidth: this.refs.panel.offsetWidth })            
+        }
+    }
+
+    componentDidMount () {
+        this.updateContainerSize()
+        this.resizeFunction = _.debounce(this.updateContainerSize.bind(this), 100)
+        window.addEventListener('resize', this.resizeFunction)
+    }
+
+    componentWillUnmount () {
+        window.removeEventListener('resize', this.resizeFunction)
     }
 
     calculateHomology (selectedXParameterIndex, selectedYParameterIndex) {
@@ -147,6 +164,8 @@ export default class MultipleSampleView extends Component {
             return <div className='panel sample'><div className='loader-outer active'><div className='loader'></div><div className='text'>Loading FCS File Metadata</div></div></div>
         }
 
+        const plotsPerRow = Math.floor(this.state.containerWidth / (constants.PLOT_WIDTH + 130))
+
         // Group gates into the 2d parameters that they use
         const gateGroups = {}
         let plots = []
@@ -197,8 +216,8 @@ export default class MultipleSampleView extends Component {
             upperTitle = <div className='upper'>Root Gate</div>
         }
 
-        const minIndex = Math.max(0, (Math.floor(this.state.scrollTop / (constants.PLOT_HEIGHT + 115)) - 3) * 3)
-        const maxIndex = Math.min(this.state.combinations.length, (Math.floor(this.state.scrollTop / (constants.PLOT_HEIGHT + 115)) + 4) * 3)
+        const minIndex = Math.max(0, (Math.floor(this.state.scrollTop / (constants.PLOT_HEIGHT + 115)) - 3) * plotsPerRow)
+        const maxIndex = Math.min(this.state.combinations.length, (Math.floor(this.state.scrollTop / (constants.PLOT_HEIGHT + 115)) + 4) * plotsPerRow)
 
         const gates = this.state.combinations.slice(minIndex, maxIndex).map((c, index) => {
             if (!this.props.FCSFile.FCSParameters || this.props.FCSFile.FCSParameters.length === 0 || index >= this.state.combinations.length) {
@@ -211,7 +230,7 @@ export default class MultipleSampleView extends Component {
             const y = Math.max(c[0], c[1])
 
             return (
-                <div className='gate-group' key={x + '_' + y} style={{ position: 'absolute', top: (Math.floor(realIndex / 3)) * (constants.PLOT_HEIGHT + 115), left: (realIndex % 3) * (constants.PLOT_WIDTH + 130) }}>
+                <div className='gate-group' key={x + '_' + y} style={{ position: 'absolute', top: (Math.floor(realIndex / plotsPerRow)) * (constants.PLOT_HEIGHT + 115), left: (realIndex % plotsPerRow) * (constants.PLOT_WIDTH + 130) }}>
                     <div className='upper'>
                         <div className='selected-parameters'>
                             {this.props.FCSFile.FCSParameters[c[0]].label + ' · ' + this.props.FCSFile.FCSParameters[c[1]].label}
@@ -252,7 +271,7 @@ export default class MultipleSampleView extends Component {
                         <div className={'hide-ungated' + (this.props.workspace.hideUngatedPlots ? ' active' : '')} onClick={this.props.api.updateWorkspace.bind(null, this.props.workspace.id, { hideUngatedPlots: !this.props.workspace.hideUngatedPlots })}><i className={'lnr ' + (this.props.workspace.hideUngatedPlots ? 'lnr-checkmark-circle' : 'lnr-circle-minus')} />Hide Ungated Plots</div>
                     </div>
                     <div className='gates' onScroll={(e) => { if (Math.abs(e.target.scrollTop - this.state.scrollTop) > (constants.PLOT_HEIGHT + 115) * 2) { this.setState({ scrollTop: e.target.scrollTop }) } } } ref="gates">
-                        <div className='gates-inner' style={{ position: 'relative', height: Math.floor((this.state.combinations.length / 3) * (constants.PLOT_HEIGHT + 115)) }}>
+                        <div className='gates-inner' style={{ position: 'relative', height: Math.floor((this.state.combinations.length / plotsPerRow) * (constants.PLOT_HEIGHT + 115)) }}>
                             {gates}
                         </div>
                     </div>

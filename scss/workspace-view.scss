@@ -11,7 +11,7 @@
     .sidebar {
         flex-basis: 20%;
         flex-direction: column;
-        align-items: stretch;
+        align-items: flex-start;
         border-right: 1px solid #eee;
         overflow: auto;
         flex-shrink: 0;
@@ -25,6 +25,10 @@
             margin-bottom: 10px;
             white-space: nowrap;
             position: relative;
+
+            .title .text {
+                margin-right: 20px;
+            }
 
             & > .title {
                 font-size: 12px;
@@ -82,16 +86,17 @@
             align-items: stretch;
             cursor: pointer;
             border-bottom: 1px solid #eee;
-
-            &.selected > .body {
-                @include backgroundHover(#fafafa);
-                @include backgroundClick(#fafafa);    
-                border-right: 5px solid $highlight-colour;
-            }
+            min-width: 100%;
 
             &.highlighted > .body {
                 @include backgroundHover(lighten(#A7DBD8, 20%));
                 @include backgroundClick(lighten(#A7DBD8, 20%));    
+            }
+
+            &.selected > .body {
+                @include backgroundHover(lighten($highlight-colour, 25%));
+                @include backgroundClick(lighten($highlight-colour, 25%));
+                color: #fff;
             }
 
             & > .body {
@@ -102,7 +107,6 @@
                 font-size: 12px;
                 flex-grow: 1;
                 align-items: center;
-                border-right: 5px solid transparent;
                 box-sizing: border-box;
     
                 & > .title {

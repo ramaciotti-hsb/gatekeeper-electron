@@ -37,9 +37,30 @@
                 @include backgroundHover(#eee);
                 @include backgroundClick(#eee);
 
-                &.delete, &.jobs.disabled {
+                &.compact {
+
+                    .text {
+                        display: none;
+                    }
+
+                    i {
+                        margin: 0;
+                    }
+                }
+
+                &.delete {
                     @include foregroundHover($red-colour);
                     @include foregroundClick($red-colour);
+                }
+
+                &.jobs.enabled {
+                    @include backgroundHover(darken($highlight-colour, 10%), 10%);
+                    @include backgroundClick(darken($highlight-colour, 10%), 20%);
+                    color: #fff;
+
+                    i {
+                        font-size: 25px;
+                    }
                 }
 
                 &.delete {

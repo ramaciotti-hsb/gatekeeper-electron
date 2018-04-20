@@ -600,13 +600,13 @@ export default class PersistentHomology {
                 peak.includeYChannelZeroes = true
             }
 
+            this.fixOverlappingPolygonsUsingZipper()
+
             if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF && !dontIncludeZeroes) {
                 this.expandToIncludeZeroes()
             }
 
             // this.breakLongLinesIntoPoints()
-
-            this.fixOverlappingPolygonsUsingZipper()
 
             this.findIncludedEvents()
 

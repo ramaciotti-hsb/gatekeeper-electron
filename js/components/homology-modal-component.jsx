@@ -93,7 +93,7 @@ export default class FCSFileSelector extends Component {
 
         return (
             <div className={'homology-modal-outer' + (this.props.modalVisible === true ? ' active' : '')} onClick={this.modalOuterClicked.bind(this)}>
-                <div className='homology-modal-inner' onClick={this.modalInnerClicked} >
+                <div className='homology-modal-inner' onClick={this.modalInnerClicked} style={{ height: constants.PLOT_HEIGHT + 100 }}>
                     <div className='upper'>
                         <div className='title'>Automated gating using Persistent Homology</div>
                     </div>
