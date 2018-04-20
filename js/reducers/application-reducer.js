@@ -37,6 +37,7 @@ let initialState = {
     // This value determines how large the plot should be displayed on the front end
     plotDisplayWidth: 500,
     plotDisplayHeight: 500,
+    sessionBroken: false,
     api: {}
 }
 
@@ -55,16 +56,25 @@ const applicationReducer = (state = initialState, action) => {
         plotHeight: state.plotHeight,
         plotDisplayWidth: state.plotDisplayWidth,
         plotDisplayHeight: state.plotDisplayHeight,
+        sessionBroken: state.sessionBroken,
         modals: state.modals,
         api: state.api
     }
 
     // --------------------------------------------------
+    // Sometimes the session gets irrevocably broken during an
+    // update or bad disk write. In this case, we need to give the user the option
+    // to start again from scratch.
+    // --------------------------------------------------
+    if (action.type === 'SET_SESSION_BROKEN') {
+        newState.sessionBroken = action.payload.sessionBroken
+    }
+    // --------------------------------------------------
     // Override the whole local session with new data.
     // Usually used when first bootstrapping from DB or 
     // filesystem.
     // --------------------------------------------------
-    if (action.type === 'SET_SESSION_STATE') {
+    else if (action.type === 'SET_SESSION_STATE') {
         newState.FCSFiles = action.payload.FCSFiles ? action.payload.FCSFiles.slice(0) : []
         newState.samples = action.payload.samples ? action.payload.samples.slice(0) : []
         newState.workspaces = action.payload.workspaces ? action.payload.workspaces.slice(0) : []

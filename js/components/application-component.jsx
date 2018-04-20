@@ -245,6 +245,18 @@ export default class Application extends Component {
     }
 
     render () {
+        if (this.props.sessionBroken) {
+            return (
+                <div className='container' onDrop={this.onDropFile.bind(this)}>
+                    <div className='broken-message'>
+                        <div className='text'>There was an error trying to load your previous session. This could have been caused by a version upgrade.</div>
+                        <div className='text'>We apologise for any inconvenience. If you find time, please report this bug on our Trello board.</div>
+                        <div className='button' onClick={this.props.api.resetSession}><i className='lnr lnr-cross-circle' />Click here to reset your session</div>
+                    </div>
+                </div>
+            )
+        }
+
         let workspace = _.find(this.props.workspaces, workspace => workspace.id === this.props.selectedWorkspaceId)
 
         const workspaceTabs = this.props.workspaces.map((workspace) => {

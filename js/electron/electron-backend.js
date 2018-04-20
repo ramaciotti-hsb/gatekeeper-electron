@@ -84,7 +84,7 @@ for (let i = 0; i < Math.max(os.cpus().length - 2, 1); i++) {
 }
 
 workerFork.stdout.on('data', (result) => {
-    if (reduxStore.getState().sessionLoading) {
+    if (reduxStore.getState().sessionLoading && !reduxStore.getState().sessionBroken) {
         const action = {
             type: 'SET_SESSION_LOADING',
             payload: {
@@ -166,7 +166,6 @@ const getImageForPlot = async (sample, FCSFile, options, priority) => {
     options.machineType = FCSFile.machineType
     options.plotWidth = currentState.plotWidth
     options.plotHeight = currentState.plotHeight
-    console.log(currentState)
     if (sample.plotImages[getPlotImageKey(options)]) { return sample.plotImages[getPlotImageKey(options)] }
 
     const jobId = uuidv4()
@@ -259,6 +258,8 @@ function kernelEpanechnikov(k) {
   };
 }
 
+const sessionFilePath = path.join(remote.app.getPath('userData'), 'session.json')
+
 // -------------------------------------------------------------
 // Exported functions below
 // -------------------------------------------------------------
@@ -269,14 +270,18 @@ export const setStore = (store) => { reduxStore = store }
 // Write the whole session to the disk
 export const saveSessionToDisk = async function () {
     // Save the new state to the disk
-    const sessionFilePath = path.join(remote.app.getPath('userData'), 'session2.json')
     fs.writeFile(sessionFilePath, JSON.stringify(currentState), () => {})
 }
 
 // Load the workspaces and samples the user last had open when the app was used
 export const api = {
+    // Reset the session by deleting the session file off the disk
+    resetSession: async function () {
+        fs.unlinkSync(sessionFilePath)
+        await api.getSession()
+    },
+
     getSession: async function () {
-        const sessionFilePath = path.join(remote.app.getPath('userData'), 'session2.json')
         try {
             currentState = JSON.parse(await readFile(sessionFilePath))
         } catch (error) {
@@ -305,7 +310,12 @@ export const api = {
             }
         }
 
-        reduxStore.dispatch({ type: 'SET_SESSION_STATE', payload: uiState })
+        try {
+            reduxStore.dispatch({ type: 'SET_SESSION_BROKEN', payload: { sessionBroken: false } })
+            reduxStore.dispatch({ type: 'SET_SESSION_STATE', payload: uiState })
+        } catch (error) {
+            reduxStore.dispatch({ type: 'SET_SESSION_BROKEN', payload: { sessionBroken: true } })
+        }
 
         // After reading the session, if there's no workspace, create a default one
         if (currentState.workspaces.length === 0) {
