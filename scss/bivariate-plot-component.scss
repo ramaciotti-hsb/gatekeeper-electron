@@ -138,18 +138,6 @@
             }
 
             .width {
-                align-items: center;
-
-                .text {
-                    flex-grow: 1;
-                }
-
-                .value {
-                    margin-right: 5px;
-                    font-size: 18px;
-                    color: #aaa;
-                }
-
                 i {
                     font-size: 18px;
                     margin-right: 5px;
@@ -161,6 +149,49 @@
 
                     &:active {
                         color: $highlight-colour;
+                    }
+                }
+            }
+
+            .parameter {
+                align-items: center;
+
+                .text {
+                    flex-grow: 1;
+                }
+
+                .value {
+                    margin-right: 5px;
+                    font-size: 18px;
+                    color: #aaa;
+                }
+            }
+
+            .cytof-options {
+                margin-top: 10px;
+                padding-top: 5px;
+                border-top: 1px solid #ddd;
+                flex-direction: column;
+
+                .title {
+                    margin-bottom: 10px;
+                }
+
+                .parameter {
+                    cursor: point;
+                    margin-bottom: 10px;
+                    cursor: pointer;
+                    @include foregroundHover(#555)
+                    @include foregroundClick(#555)
+
+                    &.active {
+                        @include foregroundHover($highlight-colour)
+                        @include foregroundClick($highlight-colour)
+                    }
+
+                    i {
+                        font-size: 18px;
+                        margin-right: 5px;
                     }
                 }
             }

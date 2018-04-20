@@ -378,8 +378,8 @@ export default class BivariatePlot extends Component {
         }
     }
 
-    updateBonusIterations (gateTemplate, iterations) {
-        this.props.api.updateGateTemplateAndRecalculate(gateTemplate.id, { typeSpecificData: _.merge(gateTemplate.typeSpecificData, { bonusIterations: iterations }) })
+    updateTypeSpecificData (gateTemplate, data) {
+        this.props.api.updateGateTemplateAndRecalculate(gateTemplate.id, { typeSpecificData: _.merge(gateTemplate.typeSpecificData, data) })
     }
 
     showGateTooltip (gateId, event) {
@@ -471,7 +471,27 @@ export default class BivariatePlot extends Component {
             if (this.state.visibleGateTooltipId === gate.id) {
                 const polygonCenter = getPolygonCenter(scaledPoints)
                 const tooltipWidth = 250
-                const tooltipHeight = 100
+                let tooltipHeight = 100
+
+                let cytofOptions
+                if (this.props.FCSFile.machineType === constants.MACHINE_CYTOF) {
+                    cytofOptions = (
+                        <div className='cytof-options'>
+                            <div className='title'>Mass Cytometry Options</div>
+                            <div className={'parameter checkbox include-x-zeroes' + (gateTemplate.typeSpecificData.includeXChannelZeroes ? ' active' : '')} onClick={this.updateTypeSpecificData.bind(this, gateTemplate, { includeXChannelZeroes: !gateTemplate.typeSpecificData.includeXChannelZeroes }) }>
+                                <i className={'lnr ' + (gateTemplate.typeSpecificData.includeXChannelZeroes ? 'lnr-checkmark-circle' : 'lnr-circle-minus')} />
+                                <div className='text'>Include events with 0 X value</div>
+                            </div>
+                            <div className={'parameter checkbox include-y-zeroes' + (gateTemplate.typeSpecificData.includeYChannelZeroes ? ' active' : '')} onClick={this.updateTypeSpecificData.bind(this, gateTemplate, { includeYChannelZeroes: !gateTemplate.typeSpecificData.includeYChannelZeroes }) }>
+                                <i className={'lnr ' + (gateTemplate.typeSpecificData.includeYChannelZeroes ? 'lnr-checkmark-circle' : 'lnr-circle-minus')} />
+                                <div className='text'>Include events with 0 Y value</div>
+                            </div>
+                        </div>
+                    )
+
+                    tooltipHeight = 200
+                }
+
                 tooltip = (
                     <div className="tooltip" style={{width: tooltipWidth, height: tooltipHeight, left: (polygonCenter[0] - tooltipWidth / 2) + this.state.graphMargin.left, top: (polygonCenter[1] - tooltipHeight * 1.5) + this.state.graphMargin.top}}
                         onClick={(event) => { event.stopPropagation() }}>
@@ -482,9 +502,10 @@ export default class BivariatePlot extends Component {
                             <div className='parameter width'>
                                 <div className='text'>Additional Width:</div>
                                 <div className='value'>{gateTemplate.typeSpecificData.bonusIterations}</div>
-                                <i className='lnr lnr-plus-circle' onClick={this.updateBonusIterations.bind(this, gateTemplate, gateTemplate.typeSpecificData.bonusIterations + 10)} />
-                                <i className='lnr lnr-circle-minus' onClick={this.updateBonusIterations.bind(this, gateTemplate, gateTemplate.typeSpecificData.bonusIterations - 10)} />
+                                <i className='lnr lnr-plus-circle' onClick={this.updateTypeSpecificData.bind(this, gateTemplate, { bonusIterations: gateTemplate.typeSpecificData.bonusIterations + 10 }) } />
+                                <i className='lnr lnr-circle-minus' onClick={this.updateTypeSpecificData.bind(this, gateTemplate, { bonusIterations: gateTemplate.typeSpecificData.bonusIterations - 10 }) } />
                             </div>
+                            {cytofOptions}
                         </div>
                     </div>
                 )

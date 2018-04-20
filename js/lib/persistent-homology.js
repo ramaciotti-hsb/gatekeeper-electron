@@ -181,6 +181,46 @@ export default class PersistentHomology {
             }
         }
 
+        for (let p = 0; p < yPeaks.length; p++) {
+            const peak = yPeaks[p]
+            // Find the closest gate which matches this peak
+            let closestGate
+            let closestDistance = Infinity
+            for (let gate of this.truePeaks) {
+                const xBoundaries = getPolygonXBoundaries(gate.polygon)
+                const centerPoint = getPolygonCenter(gate.polygon)
+                if (peak >= xBoundaries[0] && peak <= xBoundaries[1] && (constants.PLOT_HEIGHT - centerPoint[1]) < closestDistance) {
+                    closestDistance = constants.PLOT_HEIGHT - centerPoint[1]
+                    closestGate = gate
+                }
+            }
+
+            if (!closestGate) {
+                console.log('Error: no close peak found for y = 0 peak with x value', peak)
+                yPeaks.splice(p, 1)
+                yCutoffs.splice(p, 1)
+                p--
+            } else {
+                console.log(closestGate)
+                // Don't expand to include events if expansion has been explicitly disabled by the user
+                if (closestGate.includeYChannelZeroes) {
+                    // Insert the new 0 edge points
+                    const newGatePolygon = closestGate.polygon.concat([
+                        [yCutoffs[p][0], constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT],
+                        [yCutoffs[p][1], constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT]
+                    ])
+                    // Recalculate the polygon boundary
+                    const grahamScan = new GrahamScan();
+                    newGatePolygon.map(p => grahamScan.addPoint(p[0], p[1]))
+                    closestGate.polygon = grahamScan.getHull().map(p => [p.x, p.y])
+                    closestGate.yCutoffs = yCutoffs[p]
+                    closestGate.zeroY = true
+                } else {
+                    console.log('Warning: peak was not expanded to include events where Y channel is zero because of user options')
+                }
+            }
+        }
+
         let xPeaks = []
         // Find peaks in the 1d data where one of the channels is zero
         for (let i = 0; i < this.options.population.zeroDensityX.densityMap.length; i++) {
@@ -233,45 +273,9 @@ export default class PersistentHomology {
             }
         }
 
-        for (let p = 0; p < yPeaks.length; p++) {
-            const peak = yPeaks[p]
-            // Find the closest gate which matches this peak
-            let closestGate
-            let closestDistance = Infinity
-            for (let gate of this.truePeaks) {
-                const xBoundaries = getPolygonXBoundaries(gate.polygon)
-                const centerPoint = getPolygonCenter(gate.polygon)
-                if (peak >= xBoundaries[0] && peak <= xBoundaries[1] && (constants.PLOT_HEIGHT - centerPoint[1]) < closestDistance) {
-                    closestDistance = constants.PLOT_HEIGHT - centerPoint[1]
-                    closestGate = gate
-                }
-            }
-
-            if (!closestGate) {
-                console.log('Error: no close peak found for y = 0 peak with x value', peak)
-                yPeaks.splice(p, 1)
-                yCutoffs.splice(p, 1)
-                p--
-            } else {
-                // Insert the new 0 edge points
-                const newGatePolygon = closestGate.polygon.concat([
-                    [yCutoffs[p][0], constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT],
-                    [yCutoffs[p][1], constants.PLOT_HEIGHT - constants.CYTOF_HISTOGRAM_HEIGHT]
-                ])
-                // Recalculate the polygon boundary
-                const grahamScan = new GrahamScan();
-                newGatePolygon.map(p => grahamScan.addPoint(p[0], p[1]))
-                closestGate.polygon = grahamScan.getHull().map(p => [p.x, p.y])
-                closestGate.yCutoffs = yCutoffs[p]
-                closestGate.zeroY = true
-            }
-        }
-
-        console.log(xPeaks)
 
         for (let p = 0; p < xPeaks.length; p++) {
             const peak = xPeaks[p]
-            console.log('index', p, 'peak', peak)
             // Find the closest gate
             let closestGate
             let closestDistance = Infinity
@@ -292,20 +296,23 @@ export default class PersistentHomology {
                 p = p - 1
                 console.log(xPeaks, p)
             } else {
-                console.log('closestGate', getPolygonCenter(closestGate.polygon))
+                // Don't expand to include events if expansion has been explicitly disabled by the user
+                if (closestGate.includeXChannelZeroes) {
+                    // Insert the 0 edge points
+                    const newGatePolygon = closestGate.polygon.concat([
+                        [0, xCutoffs[p][0]],
+                        [0, xCutoffs[p][1]],
+                    ])
 
-                // Insert the 0 edge points
-                const newGatePolygon = closestGate.polygon.concat([
-                    [0, xCutoffs[p][0]],
-                    [0, xCutoffs[p][1]],
-                ])
-
-                // Recalculate the polygon boundary
-                const grahamScan = new GrahamScan();
-                newGatePolygon.map(p => grahamScan.addPoint(p[0], p[1]))
-                closestGate.polygon = grahamScan.getHull().map(p => [p.x, p.y])
-                closestGate.xCutoffs = xCutoffs[p]
-                closestGate.zeroX = true
+                    // Recalculate the polygon boundary
+                    const grahamScan = new GrahamScan();
+                    newGatePolygon.map(p => grahamScan.addPoint(p[0], p[1]))
+                    closestGate.polygon = grahamScan.getHull().map(p => [p.x, p.y])
+                    closestGate.xCutoffs = xCutoffs[p]
+                    closestGate.zeroX = true
+                } else {
+                    console.log('Warning: peak was not expanded to include events where X channel is zero because of user options')
+                }
             }
         }
 
@@ -533,11 +540,7 @@ export default class PersistentHomology {
                 // Include any large peaks that didn't reach their max iterations
                 for (let peak of this.homologyPeaks) {
                     if (peak.truePeak && !_.find(this.truePeaks, p => p.id === peak.id)) {
-                        const truePeak = _.cloneDeep(peak)
-                        truePeak.homologyParameters = {
-                            bonusIterations: peak.maxIterations
-                        }
-                        this.truePeaks.push(truePeak)
+                        this.truePeaks.push(_.cloneDeep(peak))
                     }
                 }
 
@@ -545,7 +548,20 @@ export default class PersistentHomology {
                     this.expandToIncludeZeroes()
                 }
 
+                this.fixOverlappingPolygonsUsingZipper()
+
                 this.findIncludedEvents()
+
+                // Add homology parameters so they can be reused later
+                for (let peak of this.truePeaks) {
+                    peak.homologyParameters = {
+                        bonusIterations: peak.maxIterations
+                    }
+                    if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF) {
+                        peak.homologyParameters.includeXChannelZeroes = true
+                        peak.homologyParameters.includeYChannelZeroes = true
+                    }
+                }
 
                 return this.truePeaks
             }
@@ -575,6 +591,15 @@ export default class PersistentHomology {
                 }
             }
 
+            const groups = this.getAxisGroups(this.truePeaks)
+            // console.log(groups)
+            for (let peak of this.truePeaks) {
+                peak.xGroup = _.findIndex(groups.xGroups, g => g.peaks.includes(peak.id))
+                peak.yGroup = _.findIndex(groups.yGroups, g => g.peaks.includes(peak.id))
+                peak.includeXChannelZeroes = true
+                peak.includeYChannelZeroes = true
+            }
+
             if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF && !dontIncludeZeroes) {
                 this.expandToIncludeZeroes()
             }
@@ -585,12 +610,17 @@ export default class PersistentHomology {
 
             this.findIncludedEvents()
 
-            const groups = this.getAxisGroups(this.truePeaks)
-            // console.log(groups)
+            // Add homology parameters so they can be reused later
             for (let peak of this.truePeaks) {
-                peak.xGroup = _.findIndex(groups.xGroups, g => g.peaks.includes(peak.id))
-                peak.yGroup = _.findIndex(groups.yGroups, g => g.peaks.includes(peak.id))
+                peak.homologyParameters = {
+                    bonusIterations: peak.maxIterations
+                }
+                if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF) {
+                    peak.homologyParameters.includeXChannelZeroes = true
+                    peak.homologyParameters.includeYChannelZeroes = true
+                }
             }
+
             return this.truePeaks
         }
     }
@@ -717,6 +747,10 @@ export default class PersistentHomology {
                                 this.homologyPeaks[i].maxIterations = template.typeSpecificData.bonusIterations
                                 this.homologyPeaks[i].xGroup = template.xGroup
                                 this.homologyPeaks[i].yGroup = template.yGroup
+                                if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF) {
+                                    this.homologyPeaks[i].includeXChannelZeroes = template.typeSpecificData.includeXChannelZeroes
+                                    this.homologyPeaks[i].includeYChannelZeroes = template.typeSpecificData.includeYChannelZeroes
+                                }
                             }
                         }
                     }
@@ -731,11 +765,7 @@ export default class PersistentHomology {
                 // If a peak has reached it's bonus iterations count, clone it into true peaks
                 // console.log(peak.maxIterations)
                 if (peak.bonusIterations >= peak.maxIterations) {
-                    const truePeak = _.cloneDeep(peak)
-                    truePeak.homologyParameters = {
-                        bonusIterations: peak.maxIterations
-                    }
-                    this.truePeaks.push(truePeak)
+                    this.truePeaks.push(_.cloneDeep(peak))
                 } else if (peak.truePeak) {
                     peak.bonusIterations++
                 }
