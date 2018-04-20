@@ -778,12 +778,13 @@ export const api = {
 
         let homologyOptions = { sample, FCSFile, options }
 
+        homologyOptions.options.plotWidth = currentState.plotWidth
+        homologyOptions.options.plotHeight = currentState.plotHeight
+
         // If there are already gating templates defined for this parameter combination
         if (gateTemplateGroup) {
             const gateTemplates = _.filter(currentState.gateTemplates, gt => gateTemplateGroup.childGateTemplateIds.includes(gt.id))
             homologyOptions.options = _.merge(homologyOptions.options, gateTemplateGroup.typeSpecificData)
-            homologyOptions.plotWidth = currentState.plotWidth
-            homologyOptions.plotHeight = currentState.plotHeight
             homologyOptions.gateTemplates = gateTemplates.map(g => _.clone(g))
         }
 

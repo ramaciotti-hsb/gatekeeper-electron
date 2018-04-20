@@ -621,6 +621,8 @@ export default class PersistentHomology {
                 }
             }
 
+            console.log(this.truePeaks)
+
             return this.truePeaks
         }
     }
