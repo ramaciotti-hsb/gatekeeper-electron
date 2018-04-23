@@ -19,6 +19,7 @@
         & > .header {
             padding: 10px;
             font-size: 14px;
+            flex-shrink: 0;
             border-bottom: 1px solid #ddd;
 
             .dropdown-inline {
@@ -84,8 +85,12 @@
             }
         }
 
-        .panel.fcs-file {
-            flex-grow: 1;
+        .container-horizontal {
+            flex-direction: row;
+
+            .panel.fcs-file {
+                flex-grow: 1;
+            }
         }
     }
 }

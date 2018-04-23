@@ -108,8 +108,12 @@ export default class MultipleSampleView extends Component {
 
     filterPlots () {
         const combinations = []
-        for (let x = 2; x < this.props.FCSFile.FCSParameters.length; x++) {
+        for (let x = 0; x < this.props.FCSFile.FCSParameters.length; x++) {
+            // Don't bother displaying the plot if the parameter is disabled
+            if (this.props.workspace.disabledParameters[this.props.FCSFile.FCSParameters[x].key]) { continue }
             for (let y = x + 1; y < this.props.FCSFile.FCSParameters.length; y++) {
+                if (this.props.workspace.disabledParameters[this.props.FCSFile.FCSParameters[y].key]) { continue }
+
                 if (this.matchLabels(this.props.FCSFile.FCSParameters[x].label, this.props.FCSFile.FCSParameters[y].label, this.state.filterPlotString)) {
 
                     let shouldAdd = true
@@ -175,6 +179,13 @@ export default class MultipleSampleView extends Component {
             shouldReset = true
         } else if (this.props.workspace.selectedYParameterIndex != prevProps.workspace.selectedYParameterIndex) {
             shouldReset = true
+        }
+
+        const oldDisabledParamsLength = prevProps.workspace.disabledParameters ? _.keys(prevProps.workspace.disabledParameters).length : 0
+        const disabledParamsLength = this.props.workspace.disabledParameters ? _.keys(this.props.workspace.disabledParameters).length : 0
+
+        if (oldDisabledParamsLength !== disabledParamsLength) {
+            shouldReset = true;
         }
 
         if (shouldReset) {

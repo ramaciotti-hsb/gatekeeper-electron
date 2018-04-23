@@ -24,6 +24,7 @@ let initialState = {
     selectedWorkspaceId: null,
     sessionLoading: true, // Display a global loading spinner while the session loads
     backgroundJobsEnabled: true,
+    showDisabledParameters: true,
     modals: {
         homology: {
             visible: false,
@@ -52,6 +53,7 @@ const applicationReducer = (state = initialState, action) => {
         selectedWorkspaceId: state.selectedWorkspaceId,
         sessionLoading: state.sessionLoading,
         backgroundJobsEnabled: state.backgroundJobsEnabled,
+        showDisabledParameters: state.showDisabledParameters,
         plotWidth: state.plotWidth,
         plotHeight: state.plotHeight,
         plotDisplayWidth: state.plotDisplayWidth,
@@ -115,6 +117,12 @@ const applicationReducer = (state = initialState, action) => {
         newState.backgroundJobsEnabled = action.payload.backgroundJobsEnabled
     }
     // --------------------------------------------------
+    // Toggles display of the parameter enable / disable sidebar
+    // --------------------------------------------------
+    else if (action.type === 'TOGGLE_SHOW_DISABLED_PARAMETERS') {
+        newState.showDisabledParameters = !newState.showDisabledParameters
+    }
+    // --------------------------------------------------
     // Sets plot width and height
     // --------------------------------------------------
     else if (action.type === 'SET_PLOT_DIMENSIONS') {
@@ -122,7 +130,7 @@ const applicationReducer = (state = initialState, action) => {
         newState.plotHeight = action.payload.plotHeight
     }
     // --------------------------------------------------
-    // Sets plot width and height
+    // Sets plot display width and height
     // --------------------------------------------------
     else if (action.type === 'SET_PLOT_DISPLAY_DIMENSIONS') {
         newState.plotDisplayWidth = action.payload.plotDisplayWidth

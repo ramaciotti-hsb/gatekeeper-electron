@@ -30,3 +30,10 @@ export const setPlotDisplayDimensions = (plotDisplayWidth, plotDisplayHeight) =>
         payload: { plotDisplayWidth, plotDisplayHeight }
     }
 }
+
+
+export const toggleShowDisabledParameters = () => {
+    return {
+        type: 'TOGGLE_SHOW_DISABLED_PARAMETERS'
+    }
+}

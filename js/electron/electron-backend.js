@@ -20,7 +20,7 @@ import pointInsidePolygon from 'point-in-polygon'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import isDev from 'electron-is-dev'
 import applicationReducer from '../reducers/application-reducer'
-import { setBackgroundJobsEnabled, setPlotDimensions, setPlotDisplayDimensions } from '../actions/application-actions'
+import { setBackgroundJobsEnabled, setPlotDimensions, setPlotDisplayDimensions, toggleShowDisabledParameters } from '../actions/application-actions'
 import { updateSample, removeSample, setSamplePlotImage, setSampleParametersLoading } from '../actions/sample-actions'
 import { updateGateTemplate, removeGateTemplate } from '../actions/gate-template-actions'
 import { removeGateTemplateGroup } from '../actions/gate-template-group-actions'
@@ -29,7 +29,7 @@ import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace,
     createFCSFileAndAddToWorkspace, selectFCSFile,
     createSampleAndAddToWorkspace, createSubSampleAndAddToWorkspace, selectSample, invertPlotAxis,
     createGateTemplateAndAddToWorkspace, selectGateTemplate,
-    createGateTemplateGroupAndAddToWorkspace } from '../actions/workspace-actions'
+    createGateTemplateGroupAndAddToWorkspace, toggleFCSParameterEnabled } from '../actions/workspace-actions'
 
 window.d3 = d3
 
@@ -223,13 +223,18 @@ const getAllPlotImages = async (sample, scales) => {
                 })
             }
 
-            // Generate the cached images
-            const imageForPlot = await getImageForPlot(sample, FCSFile, options)                
-            const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
-            currentState = applicationReducer(currentState, imageAction)
-            reduxStore.dispatch(imageAction)
+            // If this parameter was disabled, don't bother calculating the image
+            if (!workspace.disabledParameters[FCSFile.FCSParameters[options.selectedXParameterIndex].key]
+                && !workspace.disabledParameters[FCSFile.FCSParameters[options.selectedYParameterIndex].key]) {
+                
+                // Generate the cached images
+                const imageForPlot = await getImageForPlot(sample, FCSFile, options)                
+                const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
+                currentState = applicationReducer(currentState, imageAction)
+                reduxStore.dispatch(imageAction)
 
-            await saveSessionToDisk()
+                await saveSessionToDisk()
+            }
 
             // Samples can be deleted while in the middle of calculating images, we should abort if this happens
             if (_.find(currentState.samples, s => s.id === sample.id)) {
@@ -315,6 +320,7 @@ export const api = {
             reduxStore.dispatch({ type: 'SET_SESSION_STATE', payload: uiState })
         } catch (error) {
             reduxStore.dispatch({ type: 'SET_SESSION_BROKEN', payload: { sessionBroken: true } })
+            console.log(error)
         }
 
         // After reading the session, if there's no workspace, create a default one
@@ -340,6 +346,14 @@ export const api = {
         await saveSessionToDisk()
     },
 
+    toggleShowDisabledParameters: async function () {
+        const action = toggleShowDisabledParameters()
+        currentState = applicationReducer(currentState, action)
+        reduxStore.dispatch(action)
+
+        await saveSessionToDisk()
+    },
+
     createWorkspace: async function (parameters) {
         const workspaceId = uuidv4()
 
@@ -353,6 +367,7 @@ export const api = {
             sampleIds: [],
             gateTemplateIds: [],
             gateTemplateGroupIds: [],
+            disabledParameters: {},
             hideUngatedPlots: false,
             invertedAxisPlots: {}
         }
@@ -741,6 +756,14 @@ export const api = {
                 await saveSessionToDisk()
             }
         }
+    },
+
+    toggleFCSParameterEnabled: async function (workspaceId, key) {
+        const toggleAction = toggleFCSParameterEnabled(workspaceId, key)
+        currentState = applicationReducer(currentState, toggleAction)
+        reduxStore.dispatch(toggleAction)
+
+        saveSessionToDisk()
     },
 
     // Performs persistent homology calculation to automatically create gates on a sample

@@ -102,3 +102,11 @@ export const invertPlotAxis = (workspaceId, selectedXParameterIndex, selectedYPa
         payload: { workspaceId, selectedXParameterIndex, selectedYParameterIndex }
     }
 }
+
+// Toggles FCS parameters between enabled / disabled
+export const toggleFCSParameterEnabled = (workspaceId, key) => {
+    return {
+        type: 'TOGGLE_FCS_PARAMETER_ENABLED',
+        payload: { workspaceId, key }
+    }
+}

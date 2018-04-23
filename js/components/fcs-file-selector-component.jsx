@@ -3,6 +3,7 @@ import { Component } from 'react'
 import _ from 'lodash'
 import Dropdown from '../lib/dropdown-inline.jsx'
 import constants from '../lib/constants'
+import FCSParameterSelector from '../containers/fcs-parameter-selector-container.jsx'
 import MultipleSampleView from '../containers/multiple-sample-view-container.jsx'
 
 export default class FCSFileSelector extends Component {
@@ -94,7 +95,10 @@ export default class FCSFileSelector extends Component {
                             <div className='text'>Background Jobs {this.props.backgroundJobsEnabled ? 'Enabled' : 'Disabled'}</div>
                         </div>
                     </div>
-                    {multipleSampleView}
+                    <div className='container-horizontal'>
+                        <FCSParameterSelector />
+                        {multipleSampleView}
+                    </div>
                 </div>
             )
         } else {
