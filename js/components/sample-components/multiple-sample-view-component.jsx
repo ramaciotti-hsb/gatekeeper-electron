@@ -179,13 +179,8 @@ export default class MultipleSampleView extends Component {
             shouldReset = true
         } else if (this.props.workspace.selectedYParameterIndex != prevProps.workspace.selectedYParameterIndex) {
             shouldReset = true
-        }
-
-        const oldDisabledParamsLength = prevProps.workspace.disabledParameters ? _.keys(prevProps.workspace.disabledParameters).length : 0
-        const disabledParamsLength = this.props.workspace.disabledParameters ? _.keys(this.props.workspace.disabledParameters).length : 0
-
-        if (oldDisabledParamsLength !== disabledParamsLength) {
-            shouldReset = true;
+        } else if (!_.isEqual(prevProps.workspace.disabledParameters, this.props.workspace.disabledParameters)) {
+            shouldReset = true
         }
 
         if (shouldReset) {

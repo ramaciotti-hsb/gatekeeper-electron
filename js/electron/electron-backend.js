@@ -29,7 +29,7 @@ import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace,
     createFCSFileAndAddToWorkspace, selectFCSFile,
     createSampleAndAddToWorkspace, createSubSampleAndAddToWorkspace, selectSample, invertPlotAxis,
     createGateTemplateAndAddToWorkspace, selectGateTemplate,
-    createGateTemplateGroupAndAddToWorkspace, toggleFCSParameterEnabled } from '../actions/workspace-actions'
+    createGateTemplateGroupAndAddToWorkspace, setFCSParametersDisabled } from '../actions/workspace-actions'
 
 window.d3 = d3
 
@@ -186,7 +186,7 @@ const getAllPlotImages = async (sample, scales) => {
     const FCSFile = _.find(currentState.FCSFiles, fcs => sample.FCSFileId === fcs.id)
     let combinations = []
 
-    for (let x = 2; x < FCSFile.FCSParameters.length; x++) {
+    for (let x = 0; x < FCSFile.FCSParameters.length; x++) {
         for (let y = x + 1; y < FCSFile.FCSParameters.length; y++) {
             const options = {
                 selectedXParameterIndex: workspace.invertedAxisPlots[x + '_' + y] ? y : x,
@@ -202,6 +202,9 @@ const getAllPlotImages = async (sample, scales) => {
     }
 
     const createImage = async () => {
+        const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sample.id))
+        const FCSFile = _.find(currentState.FCSFiles, fcs => sample.FCSFileId === fcs.id)
+        
         if (combinations.length > 0) {
             const options = combinations.splice(0, 1)[0]
             let FCSFileUpdated = _.find(currentState.FCSFiles, fcs => sample.FCSFileId === fcs.id)
@@ -226,7 +229,7 @@ const getAllPlotImages = async (sample, scales) => {
             // If this parameter was disabled, don't bother calculating the image
             if (!workspace.disabledParameters[FCSFile.FCSParameters[options.selectedXParameterIndex].key]
                 && !workspace.disabledParameters[FCSFile.FCSParameters[options.selectedYParameterIndex].key]) {
-                
+                console.log('creating image', workspace.disabledParameters[FCSFile.FCSParameters[options.selectedXParameterIndex].key], workspace.disabledParameters[FCSFile.FCSParameters[options.selectedYParameterIndex].key])
                 // Generate the cached images
                 const imageForPlot = await getImageForPlot(sample, FCSFile, options)                
                 const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
@@ -758,10 +761,16 @@ export const api = {
         }
     },
 
-    toggleFCSParameterEnabled: async function (workspaceId, key) {
-        const toggleAction = toggleFCSParameterEnabled(workspaceId, key)
-        currentState = applicationReducer(currentState, toggleAction)
-        reduxStore.dispatch(toggleAction)
+    setFCSParametersDisabled: async function (workspaceId, parameters) {
+        const workspace = _.find(currentState.workspaces, w => w.id === workspaceId)
+
+        const setAction = setFCSParametersDisabled(workspaceId, parameters)
+        currentState = applicationReducer(currentState, setAction)
+        reduxStore.dispatch(setAction)
+
+        for (let sample of currentState.samples) {
+            getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
+        }
 
         saveSessionToDisk()
     },

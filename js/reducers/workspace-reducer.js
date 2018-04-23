@@ -221,7 +221,7 @@ const workspaces = (state = initialState, action = {}) => {
     // --------------------------------------------------
     // Toggle FCS parameters betweeen enabled / disabled
     // --------------------------------------------------
-    } else if (action.type === 'TOGGLE_FCS_PARAMETER_ENABLED') {
+    } else if (action.type === 'SET_FCS_PARAMETERS_DISABLED') {
         const workspaceIndex = _.findIndex(state, s => s.id === action.payload.workspaceId)
 
         if (workspaceIndex > -1) {
@@ -230,7 +230,7 @@ const workspaces = (state = initialState, action = {}) => {
             if (!newWorkspace.disabledParameters) {
                 newWorkspace.disabledParameters = {}
             }
-            newWorkspace.disabledParameters[action.payload.key] = !newWorkspace.disabledParameters[action.payload.key]
+            newWorkspace.disabledParameters = _.merge(newWorkspace.disabledParameters, action.payload.parameters)
             newState = newState.slice(0, workspaceIndex).concat([ newWorkspace ]).concat(newState.slice(workspaceIndex + 1))
         }
     }

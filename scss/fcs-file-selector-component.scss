@@ -87,6 +87,7 @@
 
         .container-horizontal {
             flex-direction: row;
+            flex-grow: 1;
 
             .panel.fcs-file {
                 flex-grow: 1;

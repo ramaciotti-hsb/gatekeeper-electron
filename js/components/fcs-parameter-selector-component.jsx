@@ -15,24 +15,33 @@ export default class FCSParameterSelector extends Component {
         super(props)
     }
 
-    toggleParameter (key) {
-        this.props.api.toggleFCSParameterEnabled(this.props.selectedWorkspace.id, key)
-    }
-
     render () {
         const parameters = this.props.selectedFCSFile.FCSParameters.map((parameter) => {
             const disabled = this.props.selectedWorkspace.disabledParameters && this.props.selectedWorkspace.disabledParameters[parameter.key]
             return (
-                <div className={'parameter-row ' + (disabled ? 'disabled' : 'enabled')} key={parameter.key} onClick={this.toggleParameter.bind(this, parameter.key)}>
+                <div className={'parameter-row ' + (disabled ? 'disabled' : 'enabled')} key={parameter.key} onClick={this.props.api.setFCSParametersDisabled.bind(null, this.props.selectedWorkspace.id, { [parameter.key]: !disabled })}>
                     <i className={'lnr ' + (disabled ? 'lnr-circle-minus' : 'lnr-checkmark-circle')} />
                     <div className='text'>{parameter.label}</div>
                 </div>
             )
         })
+
+        const values = _.values(this.props.selectedWorkspace.disabledParameters)
+        let someDisabled
+        if (values.length > 0) {
+            someDisabled = values.reduce((current, accumulator) => { return current || accumulator })
+        }
+
         return (
             <div className='parameter-selector-outer' style={{ width: this.props.showDisabledParameters ? 'auto' : 0 }}>
                 <div className='header'>Toggle Parameters</div>
                 <div className='parameter-selector-inner'>
+                    <div className='parameter-row toggle-all' onClick={someDisabled ?
+                        this.props.api.setFCSParametersDisabled.bind(null, this.props.selectedWorkspace.id, _.zipObject(this.props.selectedFCSFile.FCSParameters.map(p => p.key), this.props.selectedFCSFile.FCSParameters.map(p => false))) :
+                        this.props.api.setFCSParametersDisabled.bind(null, this.props.selectedWorkspace.id, _.zipObject(this.props.selectedFCSFile.FCSParameters.map(p => p.key), this.props.selectedFCSFile.FCSParameters.map(p => true))) }>
+                        <i className={'lnr lnr-menu-circle'} />
+                        <div className='text'>{someDisabled ? 'Enable All' : 'Disable All'}</div>
+                    </div>
                     {parameters}
                 </div>
                 <div className='close-tab' onClick={this.props.api.toggleShowDisabledParameters} >
