@@ -76,6 +76,7 @@ $tab-width: 15px;
     .parameter-selector-inner {
         flex-direction: column;
         overflow-y: scroll;
+        flex-grow: 1;
         background: darken($menu-colour, 0%);
 
         .parameter-row {

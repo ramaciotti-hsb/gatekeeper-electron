@@ -188,6 +188,10 @@ export default class MultipleSampleView extends Component {
                 combinations: this.filterPlots()
             })
         }
+
+        if (prevProps.showDisabledParameters !== this.props.showDisabledParameters) {
+            this.updateContainerSize()
+        }
     }
 
     render () {

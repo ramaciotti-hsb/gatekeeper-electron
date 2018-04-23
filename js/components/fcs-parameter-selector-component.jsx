@@ -33,7 +33,7 @@ export default class FCSParameterSelector extends Component {
         }
 
         return (
-            <div className='parameter-selector-outer' style={{ width: this.props.showDisabledParameters ? 'auto' : 0 }}>
+            <div className='parameter-selector-outer' style={{ width: this.props.showDisabledParameters ? 'auto' : 0, minWidth: this.props.showDisabledParameters ? 200 : 0 }}>
                 <div className='header'>Toggle Parameters</div>
                 <div className='parameter-selector-inner'>
                     <div className='parameter-row toggle-all' onClick={someDisabled ?

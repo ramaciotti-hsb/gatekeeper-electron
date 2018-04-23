@@ -81,7 +81,8 @@ const mapStateToProps = (state, ownProps) => {
             plotWidth: state.plotWidth,
             plotHeight: state.plotHeight,
             plotDisplayWidth: state.plotDisplayWidth,
-            plotDisplayHeight: state.plotDisplayHeight
+            plotDisplayHeight: state.plotDisplayHeight,
+            showDisabledParameters: state.showDisabledParameters
         }
     } else {
         return { api: state.api, gates: [], FCSFile: newFCSFile, gateTemplate: {}, workspace }

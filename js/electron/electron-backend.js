@@ -229,7 +229,6 @@ const getAllPlotImages = async (sample, scales) => {
             // If this parameter was disabled, don't bother calculating the image
             if (!workspace.disabledParameters[FCSFile.FCSParameters[options.selectedXParameterIndex].key]
                 && !workspace.disabledParameters[FCSFile.FCSParameters[options.selectedYParameterIndex].key]) {
-                console.log('creating image', workspace.disabledParameters[FCSFile.FCSParameters[options.selectedXParameterIndex].key], workspace.disabledParameters[FCSFile.FCSParameters[options.selectedYParameterIndex].key])
                 // Generate the cached images
                 const imageForPlot = await getImageForPlot(sample, FCSFile, options)                
                 const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)

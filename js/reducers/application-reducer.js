@@ -89,6 +89,7 @@ const applicationReducer = (state = initialState, action) => {
         newState.plotHeight = action.payload.plotHeight || newState.plotHeight
         newState.plotDisplayWidth = action.payload.plotDisplayWidth || newState.plotDisplayWidth
         newState.plotDisplayHeight = action.payload.plotDisplayHeight || newState.plotDisplayHeight
+        newState.showDisabledParameters = action.payload.showDisabledParameters
     }
     // --------------------------------------------------
     // Selects which "API" object to use. This changes from
