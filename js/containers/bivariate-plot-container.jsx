@@ -66,10 +66,11 @@ const mapStateToProps = (state, ownProps) => {
             plotHeight: state.plotHeight,
             plotDisplayWidth: state.plotDisplayWidth,
             plotDisplayHeight: state.plotDisplayHeight,
-            machineType: FCSFile.machineType
+            machineType: FCSFile.machineType,
+            backgroundJobsEnabled: state.backgroundJobsEnabled 
         }
     } else {
-        return { api: state.api, gates: [], gateTemplates: [], workspace, FCSFile, plotWidth: state.plotWidth, plotHeight: state.plotHeight }
+        return { api: state.api, gates: [], gateTemplates: [], workspace, FCSFile, plotWidth: state.plotWidth, plotHeight: state.plotHeight, backgroundJobsEnabled: state.backgroundJobsEnabled }
     }
 }
 

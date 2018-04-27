@@ -532,7 +532,11 @@ export default class BivariatePlot extends Component {
             loadingMessage = this.props.sample.parametersLoading[this.props.selectedXParameterIndex + '_' + this.props.selectedYParameterIndex] && this.props.sample.parametersLoading[this.props.selectedXParameterIndex + '_' + this.props.selectedYParameterIndex].loadingMessage
         } else if (!this.props.sample.plotImages[getPlotImageKey(this.props)]) {
             isLoading = true
-            loadingMessage = 'Generating image for plot...'
+            if (this.props.backgroundJobsEnabled) {
+                loadingMessage = 'Generating image for plot...'                
+            } else {
+                loadingMessage = 'Background jobs are disabled.'
+            }
         }
 
         return (
