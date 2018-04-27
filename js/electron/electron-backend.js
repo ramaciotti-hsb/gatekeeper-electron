@@ -35,6 +35,10 @@ window.d3 = d3
 
 import request from 'request'
 
+let currentState = {}
+
+let reduxStore = {}
+
 // Debug imports below
 // import getImageForPlotBackend from '../lib/get-image-for-plot'
 
@@ -46,17 +50,48 @@ if (isDev) {
     workerFork = fork(__dirname + '/webpack-build/fork.bundle.js', [], { silent: true })
 }
 
-const jobQueue = []
-const priorityQueue = []
+const jobQueue = {}
+const priorityQueue = {}
+
+window.jobQueue = jobQueue
+window.priorityQueue = priorityQueue
+
+const pushToQueue = async function (job, priority) {
+    let queueToPush = priority ? priorityQueue : jobQueue
+    if (!queueToPush[job.jobKey]) {
+        queueToPush[job.jobKey] = job
+    } else {
+        console.log("Job rejected as a duplicate is already in the queue")
+    }
+}
 
 const processJob = async function () {
-    const currentJob = priorityQueue.length > 0 ? priorityQueue.splice(0, 1) : jobQueue.splice(0, 1)
-    if (currentJob.length === 0) {
+    if (!currentState.backgroundJobsEnabled) {
         return false
+    }
+
+    if (reduxStore.getState().sessionLoading) {
+        return false
+    }
+
+    const priorityKeys = _.keys(priorityQueue)
+    const jobKeys = _.keys(jobQueue)
+    let currentJob
+    if (priorityKeys.length > 0) {
+        currentJob = priorityQueue[priorityKeys[0]]
+        delete priorityQueue[priorityKeys[0]]
+    } else if (jobKeys.length > 0) {
+        currentJob = jobQueue[jobKeys[0]]
+        delete jobQueue[jobKeys[0]]
+    }
+
+    if (!currentJob) {
+        return false
+    } else if (!currentJob.checkValidity()) {
+        return true
     } else {
-        console.log('current job', )
         const result = await new Promise((resolve, reject) => {
-            request.post(currentJob[0].jobParameters, function (error, response, body) {
+            request.post(currentJob.jobParameters, function (error, response, body) {
                 if (error) {
                     reject(error)
                 }
@@ -65,7 +100,7 @@ const processJob = async function () {
         })
 
         if (result) {
-            currentJob[0].callback(result)
+            currentJob.callback(result)
         }
     }
 }
@@ -140,21 +175,18 @@ const writeFile = (path, data, opts = 'utf8') => {
 
 const filteredSampleAttributes = ['includeEventIds']
 
-// Cache the state after it's been read from disk, then write it back after every update
-let currentState = {}
-
-let reduxStore = {}
-
 const populationDataCache = {}
 
 const getFCSMetadata = async (filePath) => {
     const jobId = uuidv4()
 
     const metadata = await new Promise((resolve, reject) => {
-        priorityQueue.push({
+        pushToQueue({
             jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-fcs-metadata', payload: { filePath } } },
+            jobKey: uuidv4(),
+            checkValidity: () => { return true },
             callback: (data) => { resolve(data) }
-        })
+        }, true)
     })
 
     return metadata
@@ -166,17 +198,38 @@ const getImageForPlot = async (sample, FCSFile, options, priority) => {
     options.machineType = FCSFile.machineType
     options.plotWidth = currentState.plotWidth
     options.plotHeight = currentState.plotHeight
+    const FCSFileId = sample.FCSFileId
+    const sampleId = sample.id
+
     if (sample.plotImages[getPlotImageKey(options)]) { return sample.plotImages[getPlotImageKey(options)] }
 
     const jobId = uuidv4()
 
     const imagePath = await new Promise((resolve, reject) => {
-        const queueToPush = priority ? priorityQueue : jobQueue
-        queueToPush.push({
+        pushToQueue({
             jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-image-for-plot', payload: { sample, FCSFile, options } } },
+            jobKey: 'image_' + sample.id + '_' + _.values(options).reduce((curr, acc) => { return acc + '_' + curr }, ''),
+            checkValidity: () => {
+                let FCSFileUpdated = _.find(currentState.FCSFiles, fcs => FCSFileId === fcs.id)
+                const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sampleId))
+                if (options.machineType !== FCSFileUpdated.machineType) {
+                    return false
+                }
+
+                if (workspace.disabledParameters[FCSFile.FCSParameters[options.selectedXParameterIndex].key]
+                    || workspace.disabledParameters[FCSFile.FCSParameters[options.selectedYParameterIndex].key]) {
+                    return false
+                }
+                return true
+            },
             callback: (data) => { resolve(data) }
-        })
+        }, priority)
     })
+
+    // Save the image path
+    const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imagePath)
+    currentState = applicationReducer(currentState, imageAction)
+    reduxStore.dispatch(imageAction)
 
     return imagePath
 }
@@ -187,7 +240,9 @@ const getAllPlotImages = async (sample, scales) => {
     let combinations = []
 
     for (let x = 0; x < FCSFile.FCSParameters.length; x++) {
+        if (workspace.disabledParameters[FCSFile.FCSParameters[x].key]) { continue }
         for (let y = x + 1; y < FCSFile.FCSParameters.length; y++) {
+            if (workspace.disabledParameters[FCSFile.FCSParameters[y].key]) { continue }
             const options = {
                 selectedXParameterIndex: workspace.invertedAxisPlots[x + '_' + y] ? y : x,
                 selectedYParameterIndex: workspace.invertedAxisPlots[x + '_' + y] ? x : y,
@@ -195,58 +250,10 @@ const getAllPlotImages = async (sample, scales) => {
                 selectedYScale: scales.selectedYScale,
                 machineType: FCSFile.machineType
             }
-            if (!sample.plotImages[getPlotImageKey(options)]) {
-                combinations.push(options)
-            }
+            getImageForPlot(sample, FCSFile, options)
+            // Add a short delay to prevent blocking the interface
+            await new Promise((resolve, reject) => { setTimeout(() => { resolve() }, 1) })
         }
-    }
-
-    const createImage = async () => {
-        const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sample.id))
-        const FCSFile = _.find(currentState.FCSFiles, fcs => sample.FCSFileId === fcs.id)
-        
-        if (combinations.length > 0) {
-            const options = combinations.splice(0, 1)[0]
-            let FCSFileUpdated = _.find(currentState.FCSFiles, fcs => sample.FCSFileId === fcs.id)
-            // If the machine type has changed, cancel the calculation of the plot images
-            if (options.machineType !== FCSFileUpdated.machineType) {
-                console.log('Changed machine type, abandoning image generation')
-                return
-            }
-
-            // If background jobs get disabled, just wait here until they get enabled again
-            if (!currentState.backgroundJobsEnabled) {
-                await new Promise((resolve, reject) => {
-                    const intervalToken = setInterval(() => {
-                        if (currentState.backgroundJobsEnabled) {
-                            resolve()
-                            clearInterval(intervalToken)
-                        }
-                    }, 1000)
-                })
-            }
-
-            // If this parameter was disabled, don't bother calculating the image
-            if (!workspace.disabledParameters[FCSFile.FCSParameters[options.selectedXParameterIndex].key]
-                && !workspace.disabledParameters[FCSFile.FCSParameters[options.selectedYParameterIndex].key]) {
-                // Generate the cached images
-                const imageForPlot = await getImageForPlot(sample, FCSFile, options)                
-                const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
-                currentState = applicationReducer(currentState, imageAction)
-                reduxStore.dispatch(imageAction)
-
-                await saveSessionToDisk()
-            }
-
-            // Samples can be deleted while in the middle of calculating images, we should abort if this happens
-            if (_.find(currentState.samples, s => s.id === sample.id)) {
-                createImage()
-            }
-        }
-    }
-
-    for (let i = 0; i < Math.max(os.cpus().length - 2, 1); i++) {
-        createImage(i)
     }
 }
 
@@ -478,18 +485,6 @@ export const api = {
         // Find all template groups that apply to this sample
         const templateGroups = _.filter(currentState.gateTemplateGroups, g => g.parentGateTemplateId === sample.gateTemplateId)
         for (let templateGroup of templateGroups) {
-            // If background jobs get disabled, just wait here until they get enabled again
-            if (!currentState.backgroundJobsEnabled) {
-                await new Promise((resolve, reject) => {
-                    const intervalToken = setInterval(() => {
-                        if (currentState.backgroundJobsEnabled) {
-                            resolve()
-                            clearInterval(intervalToken)
-                        }
-                    }, 1000)
-                })
-            }
-
             if (templateGroup.creator === constants.GATE_CREATOR_PERSISTENT_HOMOLOGY) {
                 // If there hasn't been any gate templates generated for this sample, try generating them, otherwise leave them as they are
                 if (!_.find(currentState.gates, g => g.parentSampleId === sampleId && templateGroup.childGateTemplateIds.includes(g.gateTemplateId))) {
@@ -727,14 +722,9 @@ export const api = {
     },
 
     getImageForPlot: async function (sampleId, options, priority) {
-        const sample = _.find(currentState.samples, s => s.id === sampleId)
-        const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
-        const imageForPlot = await getImageForPlot(sample, FCSFile, options, priority)
-        const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(_.merge(options, FCSFile)), imageForPlot)
-        currentState = applicationReducer(currentState, imageAction)
-        reduxStore.dispatch(imageAction)
-
-        await saveSessionToDisk()
+        const sample = _.find(currentState.samples, w => w.id === sampleId)
+        const FCSFile = _.find(currentState.FCSFiles, fcs => sample.FCSFileId === fcs.id)
+        getImageForPlot(sample, FCSFile, options, priority)
     },
 
     // Toggle inversion of parameters for display of a particular plot
@@ -750,12 +740,7 @@ export const api = {
             for (let sample of currentState.samples) {
                 const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
                 const options = { selectedXParameterIndex: selectedYParameterIndex, selectedYParameterIndex: selectedXParameterIndex, selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale, machineType: FCSFile.machineType }
-                const imageForPlot = await getImageForPlot(sample, FCSFile, options)
-                const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
-                currentState = applicationReducer(currentState, imageAction)
-                reduxStore.dispatch(imageAction)
-
-                await saveSessionToDisk()
+                getImageForPlot(sample, FCSFile, options)
             }
         }
     },
@@ -835,10 +820,12 @@ export const api = {
         }
 
         const truePeaks = await new Promise((resolve, reject) => {
-            priorityQueue.push({
+            pushToQueue({
                 jobParameters: { url: 'http://127.0.0.1:3145', json: postBody },
+                jobKey: uuidv4(),
+                checkValidity: () => { return true },
                 callback: (data) => { resolve(data) }
-            })
+            }, true)
         })
 
         // If the sample or gate template group has been deleted while homology has been calculating, just do nothing
@@ -1019,10 +1006,7 @@ export const api = {
                 const population = await api.getPopulationDataForSample(sampleId, options)
                 // Generate the cached images
                 console.log('trying image', workerIndex)
-                const imageForPlot = await getImageForPlot(sample, options)
-                const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imageForPlot)
-                currentState = applicationReducer(currentState, imageAction)
-                reduxStore.dispatch(imageAction)
+                getImageForPlot(sample, options)
 
                 console.log('trying homology', workerIndex)
                 await api.calculateHomology(sample.id, options)
