@@ -40,7 +40,8 @@ if (cluster.isMaster) {
   }
 
   cluster.on('exit', (worker, code, signal) => {
-    console.log(`worker ${worker.process.pid} died`);
+    console.log(`worker ${worker.process.pid} died, starting a new worker`);
+    cluster.fork();
   });
 } else {
     console.log(`Child ${process.pid} is running`);

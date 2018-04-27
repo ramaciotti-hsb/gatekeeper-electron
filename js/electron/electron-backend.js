@@ -44,11 +44,17 @@ let reduxStore = {}
 
 // Fork a new node process for doing CPU intensive jobs
 let workerFork
-if (isDev) {
-    workerFork = fork(__dirname + '/js/electron/subprocess-wrapper-dev.js', [], { silent: true })
-} else {
-    workerFork = fork(__dirname + '/webpack-build/fork.bundle.js', [], { silent: true })
+
+const createFork = function () {
+    console.log('starting fork')
+    if (isDev) {
+        workerFork = fork(__dirname + '/js/electron/subprocess-wrapper-dev.js', [], { silent: true })
+    } else {
+        workerFork = fork(__dirname + '/webpack-build/fork.bundle.js', [], { silent: true })
+    }
 }
+
+createFork()
 
 const jobQueue = {}
 const priorityQueue = {}
@@ -90,14 +96,26 @@ const processJob = async function () {
     } else if (!currentJob.checkValidity()) {
         return true
     } else {
-        const result = await new Promise((resolve, reject) => {
+        let result
+        let requestFunction = (resolve, reject) => {
             request.post(currentJob.jobParameters, function (error, response, body) {
                 if (error) {
                     reject(error)
                 }
                 resolve(body)
             });
-        })
+        }
+        try {
+            result = await new Promise(requestFunction)
+        } catch (error) {
+            console.log("Error in worker job, trying again")
+            // Try a second time
+            try {
+                result = await new Promise(requestFunction)
+            } catch (error) {
+                console.log("error after two attempts")
+            }
+        }
 
         if (result) {
             currentJob.callback(result)
@@ -143,6 +161,9 @@ workerFork.stdout.on('data', (result) => {
 workerFork.stderr.on('data', (result) => {
     console.log(result.toString('utf8'))
 })
+
+workerFork.on('close', createFork);
+workerFork.on('error', createFork);
 
 // Wrap the read and write file functions from FS in promises
 const readFile = (path, opts = 'utf8') => {
