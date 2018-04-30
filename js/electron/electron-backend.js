@@ -886,6 +886,8 @@ export const api = {
             height: currentState.plotHeight - yOffset
         })
 
+        let excludedEventIds = []
+
         const gates = truePeaks.map((peak) => {
             // Convert the gate polygon back into real space
             for (let i = 0; i < peak.polygon.length; i++) {
@@ -905,6 +907,8 @@ export const api = {
                 includeEventIds: peak.includeEventIds
             }
 
+            excludedEventIds = excludedEventIds.concat(peak.includeEventIds)
+
             if (FCSFile.machineType === constants.MACHINE_CYTOF) {
                 // On the cytof, add any zero cutoffs to gates
                 if (peak.xCutoffs) {
@@ -917,6 +921,20 @@ export const api = {
 
             return gate
         })
+
+        // Create a negative gate including all the uncaptured events if the user specified
+        if (options.createNegativeGate) {
+            const gate = {
+                type: constants.GATE_TYPE_NEGATIVE,
+                selectedXParameterIndex: options.selectedXParameterIndex,
+                selectedYParameterIndex: options.selectedYParameterIndex,
+                selectedXScale: options.selectedXScale,
+                selectedYScale: options.selectedYScale,
+                gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                includeEventIds: _.filter(_.range(0, FCSFile.populationCount), eventId => !excludedEventIds.includes(eventId))
+            }
+            console.log(gate)
+        }
 
         if (!gateTemplateGroup && gates.length > 0) {
             // Create a Gate Template Group for this parameter combination

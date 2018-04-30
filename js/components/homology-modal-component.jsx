@@ -18,7 +18,8 @@ export default class FCSFileSelector extends Component {
         this.state = {
             edgeDistance: this.props.plotWidth * 0.05,
             minPeakHeight: this.props.plotWidth * 0.04,
-            minPeakSize: 5000
+            minPeakSize: 5000,
+            createNegativeGate: false,
         }
     }
 
@@ -31,6 +32,7 @@ export default class FCSFileSelector extends Component {
     }
 
     updateState(key, event) {
+        console.log(key, event)
         this.state[key] = event.target.value
         this.setState(this.state)
     }
@@ -44,7 +46,8 @@ export default class FCSFileSelector extends Component {
             machineType: this.props.selectedFCSFile.machineType,
             edgeDistance: this.state.edgeDistance,
             minPeakHeight: this.state.minPeakHeight,
-            minPeakSize: this.state.minPeakSize
+            minPeakSize: this.state.minPeakSize,
+            createNegativeGate: this.state.createNegativeGate
         })
         this.props.updateModalParameters('homology', { visible: false })
     }
@@ -114,6 +117,11 @@ export default class FCSFileSelector extends Component {
                             <div className='row'>
                                 <div className='text'>Minimum Peak Size</div>
                                 <input type='number' value={this.state.minPeakSize} onChange={this.updateState.bind(this, 'minPeakSize')} />
+                            </div>
+                            <div className='row'/>
+                            <div className={'row clickable' + (this.state.createNegativeGate ? ' active' : ' disabled')} onClick={this.updateState.bind(this, 'createNegativeGate', { target: { value: !this.state.createNegativeGate } })}>
+                                <i className={'lnr ' + (this.state.createNegativeGate ? 'lnr-checkmark-circle' : 'lnr-circle-minus')} />
+                                <div className='text right'>Create Negative Gate (Includes All Uncaptured Events)</div>
                             </div>
                             <div className='divider'></div>
                             <div className='actions'>

@@ -108,15 +108,24 @@ export default class PersistentHomology {
         for (let peak of this.truePeaks) {
             peak.includeEventIds = []
             const invertedPolygon = _.map(peak.polygon, p => [ scales.xScale.invert(p[0]), scales.yScale.invert(p[1]) ])
+            let invertedXCutoffs
+            let invertedYCutoffs
+            if (peak.xCutoffs) {
+                invertedXCutoffs = [ peak.zeroY ? 0 : Math.round(scales.yScale.invert(peak.xCutoffs[1])), Math.round(scales.yScale.invert(peak.xCutoffs[0])) ]
+            }
+            if (peak.yCutoffs) {
+                invertedYCutoffs = [ peak.zeroX ? 0 : Math.round(scales.xScale.invert(peak.yCutoffs[0])), Math.round(scales.xScale.invert(peak.yCutoffs[1])) ]
+            }
+            console.log(peak.xCutoffs, peak.yCutoffs)
+            console.log(invertedXCutoffs, invertedYCutoffs)
             for (let point of this.options.population.subPopulation) {
                 if (pointInsidePolygon(point, invertedPolygon)) {
                     peak.includeEventIds.push(point[2])
                 } else {
                     // Comparisons to 0 points along the y axis are inverted because of the way images and indexed starting at the top left corner
-                    if (peak.xCutoffs && point[0] === 0 && point[1] <= scales.yScale.invert(peak.xCutoffs[0]).toFixed(2) && point[1] >= scales.yScale.invert(peak.xCutoffs[1]).toFixed(2)) {
+                    if (invertedXCutoffs && point[0] === 0 && point[1] >= invertedXCutoffs[0] && point[1] <= invertedXCutoffs[1]) {
                         peak.includeEventIds.push(point[2])
-                    }
-                    if (peak.yCutoffs && point[1] === 0 && point[0] >= scales.xScale.invert(peak.yCutoffs[0]).toFixed(2) && point[0] <= scales.xScale.invert(peak.yCutoffs[1]).toFixed(2)) {
+                    } else if (invertedYCutoffs && point[1] === 0 && point[0] >= invertedYCutoffs[0] && point[0] <= invertedYCutoffs[1]) {
                         peak.includeEventIds.push(point[2])
                     }
                 }
@@ -201,7 +210,6 @@ export default class PersistentHomology {
                 yCutoffs.splice(p, 1)
                 p--
             } else {
-                console.log(closestGate)
                 // Don't expand to include events if expansion has been explicitly disabled by the user
                 if (closestGate.includeYChannelZeroes) {
                     // Insert the new 0 edge points
@@ -290,11 +298,9 @@ export default class PersistentHomology {
 
             if (!closestGate) {
                 console.log('Error: no close peak found for x = 0 peak with y value', peak)
-                console.log(xPeaks, p)
                 xPeaks.splice(p, 1)
                 xCutoffs.splice(p, 1)
                 p = p - 1
-                console.log(xPeaks, p)
             } else {
                 // Don't expand to include events if expansion has been explicitly disabled by the user
                 if (closestGate.includeXChannelZeroes) {
@@ -347,7 +353,6 @@ export default class PersistentHomology {
                 if (pointDistance > 20) {
                     // Break the line up into 10px segments
                     const range = _.range(10, pointDistance, 10)
-                    console.log(pointDistance, range)
                     const pointsToAdd = []
                     for (let step = 0; step < range.length; step++) {
                         const midPoint = getMidPoint(pointOne[0], pointOne[1], pointTwo[0], pointTwo[1], range[step] / pointDistance)
@@ -361,7 +366,6 @@ export default class PersistentHomology {
             // const grahamScan = new GrahamScan();
             // this.truePeaks[i].polygon.map(p => grahamScan.addPoint(p[0], p[1]))
             // this.truePeaks[i].polygon = grahamScan.getHull().map(p => [p.x, p.y])
-            console.log(this.truePeaks[i].polygon)
         }
     }
 
@@ -377,7 +381,6 @@ export default class PersistentHomology {
                 const polygonTwo = this.truePeaks[j].polygon
 
                 if (polygonsIntersect(polygonOne, polygonTwo)) {
-                    console.log('test')
                     // Find intersecting points between these two polygons
                     for (let p = 0; p < polygonOne.length; p++) {
                         const pointOne = polygonOne[p]
@@ -590,7 +593,7 @@ export default class PersistentHomology {
         } else {
             for (let peak of this.homologyPeaks) {
                 if (peak.height > this.options.options.minPeakHeight && area(peak.polygon.map((p) => { return { x: p[0], y: p[1] } })) > this.options.options.minPeakSize && !_.find(this.truePeaks, p => p.id === peak.id)) {
-                    console.log(peak, 'has qualified to be added to truePeaks')
+                    // console.log(peak, 'has qualified to be added to truePeaks')
                     const truePeak = _.cloneDeep(peak)
                     truePeak.homologyParameters = {
                         bonusIterations: peak.maxIterations
