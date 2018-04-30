@@ -31,13 +31,11 @@ import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace,
     createGateTemplateAndAddToWorkspace, selectGateTemplate,
     createGateTemplateGroupAndAddToWorkspace, setFCSParametersDisabled } from '../actions/workspace-actions'
 
-window.d3 = d3
-
 import request from 'request'
 
 let currentState = {}
 
-let reduxStore = {}
+let reduxStore
 
 // Debug imports below
 // import getImageForPlotBackend from '../lib/get-image-for-plot'
@@ -72,29 +70,31 @@ const pushToQueue = async function (job, priority) {
 }
 
 const processJob = async function () {
-    if (!currentState.backgroundJobsEnabled) {
-        return false
-    }
-
-    if (reduxStore.getState().sessionLoading) {
+    if (!reduxStore || reduxStore.getState().sessionLoading) {
         return false
     }
 
     const priorityKeys = _.keys(priorityQueue)
     const jobKeys = _.keys(jobQueue)
     let currentJob
+    let isPriority
     if (priorityKeys.length > 0) {
         currentJob = priorityQueue[priorityKeys[0]]
         delete priorityQueue[priorityKeys[0]]
+        isPriority = true
     } else if (jobKeys.length > 0) {
         currentJob = jobQueue[jobKeys[0]]
         delete jobQueue[jobKeys[0]]
+        isPriority = false
     }
 
     if (!currentJob) {
         return false
     } else if (!currentJob.checkValidity()) {
         return true
+    } else if (!currentState.backgroundJobsEnabled && !isPriority) {
+        pushToQueue(currentJob, false)
+        return false
     } else {
         let result
         let requestFunction = (resolve, reject) => {
@@ -233,7 +233,7 @@ const getImageForPlot = async (sample, FCSFile, options, priority) => {
             checkValidity: () => {
                 let FCSFileUpdated = _.find(currentState.FCSFiles, fcs => FCSFileId === fcs.id)
                 const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sampleId))
-                if (options.machineType !== FCSFileUpdated.machineType) {
+                if (!workspace || options.machineType !== FCSFileUpdated.machineType) {
                     return false
                 }
 
@@ -773,8 +773,11 @@ export const api = {
         currentState = applicationReducer(currentState, setAction)
         reduxStore.dispatch(setAction)
 
-        for (let sample of currentState.samples) {
-            getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
+        // If parameters are only being disabled, don't bother to recalculate images
+        if (_.values(parameters).reduce((current, accumulator) => { return current || accumulator }, false)) {
+            for (let sample of currentState.samples) {
+                getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
+            }
         }
 
         saveSessionToDisk()
