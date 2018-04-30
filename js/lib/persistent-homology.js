@@ -373,20 +373,23 @@ export default class PersistentHomology {
                     continue
                 }
 
-                const polygonOne = turf.polygon([this.truePeaks[i].polygon.concat([this.truePeaks[i].polygon[0]])])
-                const polygonTwo = turf.polygon([this.truePeaks[j].polygon.concat([this.truePeaks[j].polygon[0]])])
+                const polygonOne = this.truePeaks[i].polygon
+                const polygonTwo = this.truePeaks[j].polygon
 
-                if (turf.intersect(polygonOne, polygonTwo)) {
+                if (polygonsIntersect(polygonOne, polygonTwo)) {
+                    console.log('test')
                     // Find intersecting points between these two polygons
-                    for (let p = 0; p < this.truePeaks[i].polygon.length; p++) {
-                        const pointOne = turf.point(this.truePeaks[i].polygon[p])
+                    for (let p = 0; p < polygonOne.length; p++) {
+                        const pointOne = polygonOne[p]
                         // If this particular point is inside the other polygon
-                        if (turf.booleanPointInPolygon(pointOne, polygonTwo)) {
+                        if (pointInsidePolygon(pointOne, polygonTwo)) {
                             // Find the closest point on the border of the other polygon
                             let closestPointIndex
                             let closestPointDistance = Infinity
-                            for (let p2 = 0; p2 < this.truePeaks[j].polygon.length; p2++) {
-                                const pointDistance = distanceBetweenPoints(pointOne.geometry.coordinates, this.truePeaks[j].polygon[p2])
+                            for (let p2 = 0; p2 < polygonTwo.length; p2++) {
+                                const pointTwo = polygonTwo[p2]
+
+                                const pointDistance = distanceBetweenPoints(pointOne, pointTwo)
                                 if (pointDistance < closestPointDistance) {
                                     closestPointDistance = pointDistance
                                     closestPointIndex = p2
@@ -394,10 +397,10 @@ export default class PersistentHomology {
                             }
 
                             // Get the halfway point between the two points
-                            const halfwayPoint = [ (pointOne.geometry.coordinates[0] + this.truePeaks[j].polygon[closestPointIndex][0]) / 2, (pointOne.geometry.coordinates[1] + this.truePeaks[j].polygon[closestPointIndex][1]) / 2 ]
+                            const halfwayPoint = [ (pointOne[0] + polygonTwo[closestPointIndex][0]) / 2, (pointOne[1] + polygonTwo[closestPointIndex][1]) / 2 ]
                             // Add the halfway point to both polygons and remove both the original points
-                            this.truePeaks[i].polygon.splice(p, 1, halfwayPoint)
-                            this.truePeaks[j].polygon.splice(closestPointIndex, 1, halfwayPoint)
+                            polygonOne.splice(p, 1, halfwayPoint)
+                            polygonTwo.splice(closestPointIndex, 1, halfwayPoint)
                         }
                     }
                 }
@@ -544,6 +547,11 @@ export default class PersistentHomology {
                     }
                 }
 
+
+                if (true || this.options.options.breakLongLinesIntoPoints) {
+                    this.breakLongLinesIntoPoints()
+                }
+
                 if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF) {
                     this.expandToIncludeZeroes()
                 }
@@ -600,13 +608,16 @@ export default class PersistentHomology {
                 peak.includeYChannelZeroes = true
             }
 
-            this.fixOverlappingPolygonsUsingZipper()
+            if (true || this.options.options.breakLongLinesIntoPoints) {
+                this.breakLongLinesIntoPoints()                
+            }
+
 
             if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF && !dontIncludeZeroes) {
                 this.expandToIncludeZeroes()
             }
 
-            // this.breakLongLinesIntoPoints()
+            this.fixOverlappingPolygonsUsingZipper()
 
             this.findIncludedEvents()
 
@@ -620,8 +631,6 @@ export default class PersistentHomology {
                     peak.homologyParameters.includeYChannelZeroes = true
                 }
             }
-
-            console.log(this.truePeaks)
 
             return this.truePeaks
         }

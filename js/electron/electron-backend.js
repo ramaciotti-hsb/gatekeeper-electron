@@ -843,24 +843,31 @@ export const api = {
             postBody = { jobId: jobId, type: 'find-peaks', payload: homologyOptions }
         }
 
+        const checkValidity = () => {
+            const sample = _.find(currentState.samples, s => s.id === sampleId)
+            // If the sample or gate template group has been deleted while homology has been calculating, just do nothing
+            if (!sample || (gateTemplateGroup && !_.find(currentState.gateTemplateGroups, (group) => {
+                return group.parentGateTemplateId === sample.gateTemplateId 
+                    && group.selectedXParameterIndex === options.selectedXParameterIndex
+                    && group.selectedYParameterIndex === options.selectedYParameterIndex
+                    && group.selectedXScale === options.selectedXScale
+                    && group.selectedYScale === options.selectedYScale
+                    && group.machineType === FCSFile.machineType
+            }))) { console.log('Error calculating homology, sample or gate template group has been deleted'); return false }
+
+            return true
+        }
+
         const truePeaks = await new Promise((resolve, reject) => {
             pushToQueue({
                 jobParameters: { url: 'http://127.0.0.1:3145', json: postBody },
                 jobKey: uuidv4(),
-                checkValidity: () => { return true },
+                checkValidity,
                 callback: (data) => { resolve(data) }
             }, true)
         })
 
-        // If the sample or gate template group has been deleted while homology has been calculating, just do nothing
-        if (!_.find(currentState.samples, s => s.id === sampleId) || (gateTemplateGroup && !_.find(currentState.gateTemplateGroups, (group) => {
-            return group.parentGateTemplateId === sample.gateTemplateId 
-                && group.selectedXParameterIndex === options.selectedXParameterIndex
-                && group.selectedYParameterIndex === options.selectedYParameterIndex
-                && group.selectedXScale === options.selectedXScale
-                && group.selectedYScale === options.selectedYScale
-                && group.machineType === FCSFile.machineType
-        }))) { console.log('Error calculating homology, sample or gate template group has been deleted'); return false }
+        if (!checkValidity()) { return false }
 
         clearInterval(intervalToken)
 
