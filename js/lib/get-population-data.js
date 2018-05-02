@@ -189,7 +189,7 @@ export default async function getPopulationForSample (sample, FCSFile, options) 
 
     const calculateDensity1D = function (points, scale, densityWidth = 2) {
         // Create a sorted point cache that's accessible by [row] for faster density estimation
-        const pointCache = []
+        const pointCache = Array(points.length).fill(0)
         let maxDensity = 0
         
         for (let i = 0; i < points.length; i++) {
@@ -205,9 +205,6 @@ export default async function getPopulationForSample (sample, FCSFile, options) 
             for (let j = val - densityWidth; j < val + densityWidth; j++) {
                 if (j === val) { continue }
                 const density = pointCache[j]
-                if (!pointCache[j]) {
-                    pointCache[j] = 0
-                }
 
                 pointCache[j] += Math.abs(val - j) / densityWidth
                 if (pointCache[j] > maxDensity) {

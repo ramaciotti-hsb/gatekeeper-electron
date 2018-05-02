@@ -13,26 +13,33 @@ import BivariatePlot from '../containers/bivariate-plot-container.jsx'
 
 export default class FCSFileSelector extends Component {
     
-    constructor(props) {
+    constructor (props) {
         super(props)
         this.state = {
             edgeDistance: this.props.plotWidth * 0.05,
             minPeakHeight: this.props.plotWidth * 0.04,
-            minPeakSize: this.props.selectedFCSFile.machineType === constants.MACHINE_CYTOF ? 5000 : 1000,
+            minPeakSize: props.selectedFCSFile.machineType === constants.MACHINE_CYTOF ? 5000 : 1000,
             createNegativeGate: false,
         }
     }
 
-    modalOuterClicked(event) {
+    modalOuterClicked (event) {
         this.props.updateModalParameters('homology', { visible: false })
     }
 
-    modalInnerClicked(event) {
+    modalInnerClicked (event) {
         event.stopPropagation()
     }
 
+    componentDidUpdate (prevProps) {
+        if (prevProps.selectedFCSFile.machineType !== this.props.selectedFCSFile.machineType) {
+            this.setState({
+                minPeakSize: this.props.selectedFCSFile.machineType === constants.MACHINE_CYTOF ? 5000 : 1000
+            })
+        }
+    }
+
     updateState(key, event) {
-        console.log(key, event)
         this.state[key] = event.target.value
         this.setState(this.state)
     }
@@ -52,43 +59,7 @@ export default class FCSFileSelector extends Component {
         this.props.updateModalParameters('homology', { visible: false })
     }
 
-    selectFCSFile (FCSFileId) {
-        this.refs['FCSFileDropdown'].getInstance().hideDropdown()
-        this.props.api.selectFCSFile(FCSFileId, this.props.workspaceId)   
-    }
-
     render () {
-        // let inner
-
-        // if (this.props.FCSFiles.length > 0) {
-        //     let multipleSampleView
-        //     if (this.props.selectedFCSFile && this.props.selectedSample) {
-        //         multipleSampleView = <MultipleSampleView FCSFileId={this.props.selectedFCSFile.id} sampleId={this.props.selectedSample.id} />
-        //     }
-
-        //     const FCSFiles = this.props.FCSFiles.map((FCSFile) => {
-        //         return {
-        //             value: FCSFile.title,
-        //             component: <div className='item' onClick={this.selectFCSFile.bind(this, FCSFile.id, this.props.workspaceId)} key={FCSFile.id}>{FCSFile.title}</div>
-        //         }
-        //     })
-
-        //     inner = (
-        //         <div className='fcs-file-selector-inner'>
-        //             <div className='header'>
-        //                 <div className='fcs-file-selector-dropdown'><Dropdown items={FCSFiles} textLabel={this.props.selectedFCSFile ? this.props.selectedFCSFile.title : 'Select FCSFile'} ref='FCSFileDropdown' /></div>
-        //                 <div className='button'><i className='lnr lnr-cross-circle' onClick={this.props.api.removeFCSFile.bind(null, this.props.selectedFCSFile.id)}></i>Remove File From Workspace</div>
-        //             </div>
-        //             {multipleSampleView}
-        //         </div>
-        //     )
-        // } else {
-        //     inner = (
-        //         <div className='fcs-file-selector-inner empty'>
-        //             <div>Use File -> Add FCS Files to workspace to add an FCSFile.</div>
-        //         </div>
-        //     )
-        // }
 
         if (!this.props.selectedSample.id) {
             return <div></div>

@@ -761,7 +761,7 @@ export const api = {
         reduxStore.dispatch(setAction)
 
         // If parameters are only being disabled, don't bother to recalculate images
-        if (_.values(parameters).reduce((current, accumulator) => { return current || accumulator }, false)) {
+        if (!_.values(parameters).reduce((current, accumulator) => { return current || accumulator }, false)) {
             for (let sample of currentState.samples) {
                 getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
             }
