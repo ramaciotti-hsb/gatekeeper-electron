@@ -154,7 +154,7 @@ export default class PersistentHomology {
                     lowerCutoffFound = true
                     yCutoffs[i][0] = 0
                 // If the mean of the next inflectionWidth points is greater than the current point, the slope is increasing again (approaching another peak)
-                } else if (this.options.population.zeroDensityY.densityMap[index] < this.options.population.zeroDensityY.densityMap.slice(index - inflectionWidth - 1, index - 1).reduce((acc, curr) => { return acc + curr }, 0) / inflectionWidth || this.options.population.zeroDensityY.densityMap[index] < 0.001) {
+                } else if (this.options.population.zeroDensityY.densityMap[index] < this.options.population.zeroDensityY.densityMap.slice(index - inflectionWidth - 1, index - 1).reduce((acc, curr) => { return acc + curr }, 0) / inflectionWidth || this.options.population.zeroDensityY.densityMap[index] < 2) {
                     lowerCutoffFound = true
                     yCutoffs[i][0] = index
                 }
@@ -168,7 +168,7 @@ export default class PersistentHomology {
                     upperCutoffFound = true
                     yCutoffs[i][1] = index - 1
                 // If the mean of the next inflectionWidth points is greater than the current point, the slope is increasing again (approaching another peak)
-                } else if (this.options.population.zeroDensityY.densityMap[index] < this.options.population.zeroDensityY.densityMap.slice(index + 1, index + inflectionWidth + 1).reduce((acc, curr) => { return acc + curr }, 0) / inflectionWidth || this.options.population.zeroDensityY.densityMap[index] < 0.001) {
+                } else if (this.options.population.zeroDensityY.densityMap[index] < this.options.population.zeroDensityY.densityMap.slice(index + 1, index + inflectionWidth + 1).reduce((acc, curr) => { return acc + curr }, 0) / inflectionWidth || this.options.population.zeroDensityY.densityMap[index] < 2) {
                     upperCutoffFound = true
                     yCutoffs[i][1] = index
                 }
@@ -245,7 +245,7 @@ export default class PersistentHomology {
                     lowerCutoffFound = true
                     xCutoffs[i][0] = 0
                 // If the mean of the next inflectionWidth points is greater than the current point, the slope is increasing again (approaching another peak)
-                } else if (this.options.population.zeroDensityX.densityMap[index] < this.options.population.zeroDensityX.densityMap.slice(index - inflectionWidth - 1, index - 1).reduce((acc, curr) => { return acc + curr }, 0) / inflectionWidth || this.options.population.zeroDensityX.densityMap[index] < 0.001) {
+                } else if (this.options.population.zeroDensityX.densityMap[index] < this.options.population.zeroDensityX.densityMap.slice(index - inflectionWidth - 1, index - 1).reduce((acc, curr) => { return acc + curr }, 0) / inflectionWidth || this.options.population.zeroDensityX.densityMap[index] < 2) {
                     lowerCutoffFound = true
                     xCutoffs[i][0] = index
                 }
@@ -259,7 +259,7 @@ export default class PersistentHomology {
                     upperCutoffFound = true
                     xCutoffs[i][1] = index - 1
                 // If the mean of the next inflectionWidth points is greater than the current point, the slope is increasing again (approaching another peak)
-                } else if (this.options.population.zeroDensityX.densityMap[index] < this.options.population.zeroDensityX.densityMap.slice(index + 1, index + inflectionWidth + 1).reduce((acc, curr) => { return acc + curr }, 0) / inflectionWidth || this.options.population.zeroDensityX.densityMap[index] < 0.001) {
+                } else if (this.options.population.zeroDensityX.densityMap[index] < this.options.population.zeroDensityX.densityMap.slice(index + 1, index + inflectionWidth + 1).reduce((acc, curr) => { return acc + curr }, 0) / inflectionWidth || this.options.population.zeroDensityX.densityMap[index] < 2) {
                     upperCutoffFound = true
                     xCutoffs[i][1] = index
                 }
