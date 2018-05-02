@@ -90,7 +90,7 @@ export default async (sample, FCSFile, subPopulation, options) => {
         // if (point[0] >= 0 && point[0] < subPopulation.newDensityMap.densityX.length && point[1] >= 0 && point[1] < subPopulation.newDensityMap.densityY.length) {
         if (subPopulation.densityMap.densityMap[point[1]] && subPopulation.densityMap.densityMap[point[1]][point[0]]) {
             // console.log(point)
-            const color = heatMapRGBForValue(subPopulation.densityMap.densityMap[point[1]][point[0]] / subPopulation.densityMap.maxDensity)
+            const color = heatMapRGBForValue(subPopulation.densityMap.densityMap[point[1]][point[0]] / subPopulation.maxDensity)
             // const density = (subPopulation.newDensityMap.subPopulation.zeroDensityX.densityMap[point[0]][1] * subPopulation.newDensityMap.subPopulation.zeroDensityY.densityMap[point[1]][1]) / subPopulation.newDensityMap.newMaxDensity
             // console.log(density)
             // const color = heatMapRGBForValue(density)
@@ -126,14 +126,14 @@ export default async (sample, FCSFile, subPopulation, options) => {
             }
             // If we're in the first `xOffset` pixels of a row, render the histogram for the X == 0 points
             else if (i % (options.plotWidth * 4) < xOffset * 4) {
-                const xColour = heatMapRGBForValue(subPopulation.zeroDensityX.densityMap[Math.floor(i / (options.plotWidth * 4))][1] / subPopulation.zeroDensityX.maxDensity)
+                const xColour = heatMapRGBForValue(subPopulation.zeroDensityX.densityMap[Math.floor(i / (options.plotWidth * 4))] / subPopulation.maxDensity)
                 PNGFile.data[i] = xColour[0]
                 PNGFile.data[i + 1] = xColour[1]
                 PNGFile.data[i + 2] = xColour[2]
                 PNGFile.data[i + 3] = 255 // Alpha channel
             // If we're in the last `yOffset` rows, render the histogram
             } else if (Math.floor(i / (options.plotWidth * 4)) > options.plotHeight - yOffset) {
-                const yColour = heatMapRGBForValue(subPopulation.zeroDensityY.densityMap[(i % (options.plotWidth * 4) / 4) - xOffset][1] / subPopulation.zeroDensityY.maxDensity)
+                const yColour = heatMapRGBForValue(subPopulation.zeroDensityY.densityMap[(i % (options.plotWidth * 4) / 4) - xOffset] / subPopulation.maxDensity)
                 PNGFile.data[i] = yColour[0]
                 PNGFile.data[i + 1] = yColour[1]
                 PNGFile.data[i + 2] = yColour[2]

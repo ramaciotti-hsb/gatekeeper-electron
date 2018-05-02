@@ -122,8 +122,8 @@ export default class PersistentHomology {
 
     expandToIncludeZeroes () {
         // If we're looking at cytof data, extend lower gates out towards zero if there is a peak there
-        const minPeakWidth = this.options.options.plotWidth * 0.05
-        const inflectionWidth = 10
+        const minPeakWidth = this.options.options.plotWidth * 0.1
+        const inflectionWidth = 20
 
         let yPeaks = []
         // Find peaks in the 1d data where one of the channels is zero
@@ -132,7 +132,7 @@ export default class PersistentHomology {
             for (let j = Math.max(i - minPeakWidth, 0); j < Math.min(i + minPeakWidth, this.options.population.zeroDensityY.densityMap.length); j++) {
                 if (i === j) { continue }
 
-                if (this.options.population.zeroDensityY.densityMap[j][1] >= this.options.population.zeroDensityY.densityMap[i][1]) {
+                if (this.options.population.zeroDensityY.densityMap[j] >= this.options.population.zeroDensityY.densityMap[i]) {
                     isPeak = false
                 }
             }
@@ -154,7 +154,7 @@ export default class PersistentHomology {
                     lowerCutoffFound = true
                     yCutoffs[i][0] = 0
                 // If the mean of the next inflectionWidth points is greater than the current point, the slope is increasing again (approaching another peak)
-                } else if (this.options.population.zeroDensityY.densityMap[index][1] < this.options.population.zeroDensityY.densityMap.slice(index - inflectionWidth - 1, index - 1).reduce((acc, curr) => { return acc + curr[1] }, 0) / inflectionWidth || this.options.population.zeroDensityY.densityMap[index][1] < 0.001) {
+                } else if (this.options.population.zeroDensityY.densityMap[index] < this.options.population.zeroDensityY.densityMap.slice(index - inflectionWidth - 1, index - 1).reduce((acc, curr) => { return acc + curr }, 0) / inflectionWidth || this.options.population.zeroDensityY.densityMap[index] < 0.001) {
                     lowerCutoffFound = true
                     yCutoffs[i][0] = index
                 }
@@ -168,7 +168,7 @@ export default class PersistentHomology {
                     upperCutoffFound = true
                     yCutoffs[i][1] = index - 1
                 // If the mean of the next inflectionWidth points is greater than the current point, the slope is increasing again (approaching another peak)
-                } else if (this.options.population.zeroDensityY.densityMap[index][1] < this.options.population.zeroDensityY.densityMap.slice(index + 1, index + inflectionWidth + 1).reduce((acc, curr) => { return acc + curr[1] }, 0) / inflectionWidth || this.options.population.zeroDensityY.densityMap[index][1] < 0.001) {
+                } else if (this.options.population.zeroDensityY.densityMap[index] < this.options.population.zeroDensityY.densityMap.slice(index + 1, index + inflectionWidth + 1).reduce((acc, curr) => { return acc + curr }, 0) / inflectionWidth || this.options.population.zeroDensityY.densityMap[index] < 0.001) {
                     upperCutoffFound = true
                     yCutoffs[i][1] = index
                 }
@@ -223,7 +223,7 @@ export default class PersistentHomology {
             for (let j = Math.max(i - minPeakWidth, 0); j < Math.min(i + minPeakWidth, this.options.population.zeroDensityX.densityMap.length); j++) {
                 if (i === j) { continue }
 
-                if (this.options.population.zeroDensityX.densityMap[j][1] >= this.options.population.zeroDensityX.densityMap[i][1]) {
+                if (this.options.population.zeroDensityX.densityMap[j] >= this.options.population.zeroDensityX.densityMap[i]) {
                     isPeak = false
                 }
             }
@@ -245,7 +245,7 @@ export default class PersistentHomology {
                     lowerCutoffFound = true
                     xCutoffs[i][0] = 0
                 // If the mean of the next inflectionWidth points is greater than the current point, the slope is increasing again (approaching another peak)
-                } else if (this.options.population.zeroDensityX.densityMap[index][1] < this.options.population.zeroDensityX.densityMap.slice(index - inflectionWidth - 1, index - 1).reduce((acc, curr) => { return acc + curr[1] }, 0) / inflectionWidth || this.options.population.zeroDensityX.densityMap[index][1] < 0.001) {
+                } else if (this.options.population.zeroDensityX.densityMap[index] < this.options.population.zeroDensityX.densityMap.slice(index - inflectionWidth - 1, index - 1).reduce((acc, curr) => { return acc + curr }, 0) / inflectionWidth || this.options.population.zeroDensityX.densityMap[index] < 0.001) {
                     lowerCutoffFound = true
                     xCutoffs[i][0] = index
                 }
@@ -259,7 +259,7 @@ export default class PersistentHomology {
                     upperCutoffFound = true
                     xCutoffs[i][1] = index - 1
                 // If the mean of the next inflectionWidth points is greater than the current point, the slope is increasing again (approaching another peak)
-                } else if (this.options.population.zeroDensityX.densityMap[index][1] < this.options.population.zeroDensityX.densityMap.slice(index + 1, index + inflectionWidth + 1).reduce((acc, curr) => { return acc + curr[1] }, 0) / inflectionWidth || this.options.population.zeroDensityX.densityMap[index][1] < 0.001) {
+                } else if (this.options.population.zeroDensityX.densityMap[index] < this.options.population.zeroDensityX.densityMap.slice(index + 1, index + inflectionWidth + 1).reduce((acc, curr) => { return acc + curr }, 0) / inflectionWidth || this.options.population.zeroDensityX.densityMap[index] < 0.001) {
                     upperCutoffFound = true
                     xCutoffs[i][1] = index
                 }

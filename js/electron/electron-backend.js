@@ -252,6 +252,8 @@ const getImageForPlot = async (sample, FCSFile, options, priority) => {
     currentState = applicationReducer(currentState, imageAction)
     reduxStore.dispatch(imageAction)
 
+    saveSessionToDisk()
+
     return imagePath
 }
 
