@@ -18,7 +18,7 @@ export default class FCSFileSelector extends Component {
         this.state = {
             edgeDistance: this.props.plotWidth * 0.05,
             minPeakHeight: this.props.plotWidth * 0.04,
-            minPeakSize: 5000,
+            minPeakSize: this.props.selectedFCSFile.machineType === constants.MACHINE_CYTOF ? 5000 : 1000,
             createNegativeGate: false,
         }
     }
