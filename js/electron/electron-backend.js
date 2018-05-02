@@ -956,6 +956,7 @@ export const api = {
                 if (gate.type === constants.GATE_TYPE_POLYGON) {
                     gateTemplate = {
                         id: uuidv4(),
+                        type: constants.GATE_TYPE_POLYGON,
                         title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + (truePeaks[index].xGroup === 0 ? ' (LOW) · ' : ' (HIGH) · ') + FCSFile.FCSParameters[options.selectedYParameterIndex].label + (truePeaks[index].yGroup === 1 ? ' (LOW)' : ' (HIGH)'),
                         creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
                         xGroup: truePeaks[index].xGroup,
@@ -965,6 +966,7 @@ export const api = {
                 } else if (gate.type === constants.GATE_TYPE_NEGATIVE) {
                     gateTemplate = {
                         id: uuidv4(),
+                        type: constants.GATE_TYPE_NEGATIVE,
                         title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[options.selectedYParameterIndex].label + ' Negative Gate',
                         creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
                         typeSpecificData: {}

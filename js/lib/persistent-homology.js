@@ -15,6 +15,8 @@ import { getPolygonCenter, getScales } from './utilities'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import * as turf from '@turf/turf'
 
+let CYTOF_HISTOGRAM_WIDTH
+
 // This function takes a two dimensional array (e.g foo[][]) and returns an array of polygons
 // representing discovered peaks. e.g:
 // [[2, 1], [2, 2], [1, 2]]
@@ -89,12 +91,14 @@ export default class PersistentHomology {
 
         this.homologyPeaks = []
         this.truePeaks = []
+
+        CYTOF_HISTOGRAM_WIDTH = Math.round(Math.min(this.options.options.plotWidth, this.options.options.plotHeight) * 0.07)
     }
 
     findIncludedEvents () {
         // Offset the entire graph and add histograms if we're looking at cytof data
-        let xOffset = this.options.FCSFile.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(this.options.options.plotWidth, this.options.options.plotHeight) * 0.07) : 0
-        let yOffset = this.options.FCSFile.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(this.options.options.plotWidth, this.options.options.plotHeight) * 0.07) : 0
+        let xOffset = this.options.FCSFile.machineType === constants.MACHINE_CYTOF ? CYTOF_HISTOGRAM_WIDTH : 0
+        let yOffset = this.options.FCSFile.machineType === constants.MACHINE_CYTOF ? CYTOF_HISTOGRAM_WIDTH : 0
         
         const scales = getScales({
             selectedXScale: this.options.options.selectedXScale,
@@ -213,8 +217,8 @@ export default class PersistentHomology {
                 if (closestGate.includeYChannelZeroes) {
                     // Insert the new 0 edge points
                     const newGatePolygon = closestGate.polygon.concat([
-                        [yCutoffs[p][0], this.options.options.plotHeight - Math.round(Math.min(this.options.options.plotWidth, this.options.options.plotHeight) * 0.07)],
-                        [yCutoffs[p][1], this.options.options.plotHeight - Math.round(Math.min(this.options.options.plotWidth, this.options.options.plotHeight) * 0.07)]
+                        [yCutoffs[p][0], this.options.options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
+                        [yCutoffs[p][1], this.options.options.plotHeight - CYTOF_HISTOGRAM_WIDTH]
                     ])
                     // Recalculate the polygon boundary
                     const grahamScan = new GrahamScan();
@@ -325,11 +329,11 @@ export default class PersistentHomology {
             // If a gate includes zeroes on both the x and y axis, add a special (0,0) point to the gate            
             if (gate.zeroX && gate.zeroY) {
                 // Insert the two new 0 edge points
-                const newGatePolygon = gate.polygon.concat([[0, this.options.options.plotHeight - Math.round(Math.min(this.options.options.plotWidth, this.options.options.plotHeight) * 0.07)]])
+                const newGatePolygon = gate.polygon.concat([[0, this.options.options.plotHeight - CYTOF_HISTOGRAM_WIDTH]])
                 // Recalculate the polygon boundary
                 const grahamScan = new GrahamScan();
                 newGatePolygon.map(p => grahamScan.addPoint(p[0], p[1]))
-                gate.xCutoffs[1] = this.options.options.plotHeight - Math.round(Math.min(this.options.options.plotWidth, this.options.options.plotHeight) * 0.07)
+                gate.xCutoffs[1] = this.options.options.plotHeight - CYTOF_HISTOGRAM_WIDTH
                 gate.yCutoffs[0] = 0
                 gate.polygon = grahamScan.getHull().map(p => [p.x, p.y])
             }
@@ -520,8 +524,9 @@ export default class PersistentHomology {
         // First find true peaks at their original size
         this.options.options.maxIterations = 0
         this.findPeaksInternal(stepCallback)
+        const polygonTemplates = _.filter(this.options.gateTemplates, p => p.type === constants.GATE_TYPE_POLYGON)
         // Try and match them to options.gateTemplates
-        if (this.truePeaks.length !== this.options.gateTemplates.length) {
+        if (this.truePeaks.length !== polygonTemplates.length) {
             console.log(this.options)
             console.log('Error, peak number didnt match templates', this.truePeaks)
             return []
@@ -535,9 +540,9 @@ export default class PersistentHomology {
 
             // Compare the orders to the templates
             let orderMatches = true
-            for (let i = 0; i < this.options.gateTemplates.length; i++) {
+            for (let i = 0; i < polygonTemplates.length; i++) {
                 // If there's no matching template for the peak we're looking at
-                if (!_.find(this.truePeaks, p => p.yGroup === this.options.gateTemplates[i].yGroup && p.xGroup === this.options.gateTemplates[i].xGroup)) {
+                if (!_.find(this.truePeaks, p => p.yGroup === polygonTemplates[i].yGroup && p.xGroup === polygonTemplates[i].xGroup)) {
                     orderMatches = false
                 }
             }
@@ -550,9 +555,9 @@ export default class PersistentHomology {
                 return []
             }
 
-            for (let i = 0; i < this.options.gateTemplates.length; i++) {
-                const matchingPeak = _.find(this.truePeaks, p => p.yGroup === this.options.gateTemplates[i].yGroup && p.xGroup === this.options.gateTemplates[i].xGroup)
-                this.options.gateTemplates[i].centerPoint = getPolygonCenter(matchingPeak.polygon)
+            for (let i = 0; i < polygonTemplates.length; i++) {
+                const matchingPeak = _.find(this.truePeaks, p => p.yGroup === polygonTemplates[i].yGroup && p.xGroup === polygonTemplates[i].xGroup)
+                polygonTemplates[i].centerPoint = getPolygonCenter(matchingPeak.polygon)
             }
 
             this.homologyPeaks = []
@@ -561,7 +566,7 @@ export default class PersistentHomology {
             let currentHeight = 100
 
             while (currentHeight > 3) {
-                this.performHomologyIteration(currentHeight, this.options.gateTemplates)
+                this.performHomologyIteration(currentHeight, polygonTemplates)
                 currentHeight = currentHeight - 1
                 if (stepCallback) { stepCallback('Applying existing templates to sample: ' + (100 - currentHeight) + '% complete.') }
             }
@@ -597,6 +602,18 @@ export default class PersistentHomology {
                         peak.homologyParameters.includeXChannelZeroes = peak.includeXChannelZeroes
                         peak.homologyParameters.includeYChannelZeroes = peak.includeYChannelZeroes
                     }
+                }
+
+                // Create a negative gate including all the uncaptured events if the user specified
+                if (this.options.options.createNegativeGate) {
+                    const excludedEventIds = this.truePeaks.reduce((accumulator, current) => { return accumulator.concat(current.includeEventIds) }, [])
+                    const gate = {
+                        type: constants.GATE_TYPE_NEGATIVE,
+                        gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                        includeEventIds: _.filter(this.options.population.subPopulation, event => !excludedEventIds.includes(event[2])).map(event => event[2])
+                    }
+
+                    this.truePeaks.push(gate)
                 }
 
                 return this.truePeaks

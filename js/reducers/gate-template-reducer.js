@@ -17,6 +17,7 @@ const gateTemplates = (state = initialState, action = {}) => {
         const newGateTemplate = {
             id: action.payload.gateTemplate.id,
             title: action.payload.gateTemplate.title,
+            type: action.payload.gateTemplate.type,
             creator: action.payload.gateTemplate.creator,
             xGroup: action.payload.gateTemplate.xGroup,
             yGroup: action.payload.gateTemplate.yGroup,
