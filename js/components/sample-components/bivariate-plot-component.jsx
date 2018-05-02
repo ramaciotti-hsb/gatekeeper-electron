@@ -255,14 +255,7 @@ export default class BivariatePlot extends Component {
         image.src = this.props.sample.plotImages[getPlotImageKey(this.props)]
 
         const redrawGraph = () => {
-            // if (this.props.workspace.invertedAxisPlots[this.props.selectedXParameterIndex + '_' + this.props.selectedYParameterIndex]) {
-            //     context.translate(this.props.plotDisplayWidth / 2, this.props.plotDisplayHeight / 2)
-            //     context.rotate(Math.PI / 2)
-            //     context.scale(-1, 1);
-            //     context.drawImage(image, -this.props.plotDisplayWidth / 2, -this.props.plotDisplayHeight / 2, this.props.plotDisplayWidth, this.props.plotDisplayHeight)
-            // } else {
-                context.drawImage(image, 0, 0, this.props.plotDisplayWidth, this.props.plotDisplayHeight)
-            // }
+            context.drawImage(image, 0, 0, this.props.plotDisplayWidth, this.props.plotDisplayHeight)
 
             // Determine if there are any 2d gates in the subsamples that match these parameters
             let gatesExist = false
@@ -278,7 +271,7 @@ export default class BivariatePlot extends Component {
                 // Redraw the image and greyscale any points that are outside the gate
                 const imageData = context.getImageData(0, 0, this.props.plotDisplayWidth, this.props.plotDisplayHeight);
                 const data = imageData.data;
-                let gatesToRender = this.props.gates
+                let gatesToRender = _.filter(this.props.gates, g => g.type === constants.GATE_TYPE_POLYGON)
 
                 const gateData = gatesToRender.map((gate) => {
                     const toReturn = {
@@ -466,61 +459,66 @@ export default class BivariatePlot extends Component {
         const gates = this.props.gates.map((gate) => {
             const gateTemplate = _.find(this.props.gateTemplates, gt => gt.id === gate.gateTemplateId)
             const gateTemplateGroup = _.find(this.props.gateTemplateGroups, g => g.childGateTemplateIds.includes(gateTemplate.id))
-            const scaledPoints = gate.gateData.map(p => [ Math.floor(scales.xScale(p[0])) + xOffset, Math.floor(scales.yScale(p[1])) ])
-            const points = scaledPoints.reduce((string, point) => {
-                return string + point[0] + " " + point[1] + " "
-            }, "")
-            if (this.state.visibleGateTooltipId === gate.id) {
-                const polygonCenter = getPolygonCenter(scaledPoints)
-                const tooltipWidth = 250
-                let tooltipHeight = 100
 
-                let cytofOptions
-                if (this.props.FCSFile.machineType === constants.MACHINE_CYTOF) {
-                    cytofOptions = (
-                        <div className='cytof-options'>
-                            <div className='title'>Mass Cytometry Options</div>
-                            <div className={'parameter checkbox include-x-zeroes' + (gateTemplate.typeSpecificData.includeXChannelZeroes ? ' active' : '')} onClick={this.updateTypeSpecificData.bind(this, gateTemplate, { includeXChannelZeroes: !gateTemplate.typeSpecificData.includeXChannelZeroes }) }>
-                                <i className={'lnr ' + (gateTemplate.typeSpecificData.includeXChannelZeroes ? 'lnr-checkmark-circle' : 'lnr-circle-minus')} />
-                                <div className='text'>Include events with 0 X value</div>
+            if (gate.type === constants.GATE_TYPE_POLYGON) {
+                const scaledPoints = gate.gateData.map(p => [ Math.floor(scales.xScale(p[0])) + xOffset, Math.floor(scales.yScale(p[1])) ])
+                const points = scaledPoints.reduce((string, point) => {
+                    return string + point[0] + " " + point[1] + " "
+                }, "")
+                
+                if (this.state.visibleGateTooltipId === gate.id) {
+                    const polygonCenter = getPolygonCenter(scaledPoints)
+                    const tooltipWidth = 250
+                    let tooltipHeight = 100
+
+                    let cytofOptions
+                    if (this.props.FCSFile.machineType === constants.MACHINE_CYTOF) {
+                        cytofOptions = (
+                            <div className='cytof-options'>
+                                <div className='title'>Mass Cytometry Options</div>
+                                <div className={'parameter checkbox include-x-zeroes' + (gateTemplate.typeSpecificData.includeXChannelZeroes ? ' active' : '')} onClick={this.updateTypeSpecificData.bind(this, gateTemplate, { includeXChannelZeroes: !gateTemplate.typeSpecificData.includeXChannelZeroes }) }>
+                                    <i className={'lnr ' + (gateTemplate.typeSpecificData.includeXChannelZeroes ? 'lnr-checkmark-circle' : 'lnr-circle-minus')} />
+                                    <div className='text'>Include events with 0 X value</div>
+                                </div>
+                                <div className={'parameter checkbox include-y-zeroes' + (gateTemplate.typeSpecificData.includeYChannelZeroes ? ' active' : '')} onClick={this.updateTypeSpecificData.bind(this, gateTemplate, { includeYChannelZeroes: !gateTemplate.typeSpecificData.includeYChannelZeroes }) }>
+                                    <i className={'lnr ' + (gateTemplate.typeSpecificData.includeYChannelZeroes ? 'lnr-checkmark-circle' : 'lnr-circle-minus')} />
+                                    <div className='text'>Include events with 0 Y value</div>
+                                </div>
                             </div>
-                            <div className={'parameter checkbox include-y-zeroes' + (gateTemplate.typeSpecificData.includeYChannelZeroes ? ' active' : '')} onClick={this.updateTypeSpecificData.bind(this, gateTemplate, { includeYChannelZeroes: !gateTemplate.typeSpecificData.includeYChannelZeroes }) }>
-                                <i className={'lnr ' + (gateTemplate.typeSpecificData.includeYChannelZeroes ? 'lnr-checkmark-circle' : 'lnr-circle-minus')} />
-                                <div className='text'>Include events with 0 Y value</div>
+                        )
+
+                        tooltipHeight = 200
+                    }
+
+                    tooltip = (
+                        <div className="tooltip" style={{width: tooltipWidth, height: tooltipHeight, left: (polygonCenter[0] - tooltipWidth / 2) + this.state.graphMargin.left, top: (polygonCenter[1] - tooltipHeight * 1.5) + this.state.graphMargin.top}}
+                            onClick={(event) => { event.stopPropagation() }}>
+                            <div className='tooltip-inner'>
+                                <div className='title'>Gate Template {gateTemplate.id.substring(0, 5)}</div>
+                                <div className='creator'>{gateCreators[gateTemplateGroup.creator]}</div>
+                                <div className='divider'></div>
+                                <div className='parameter width'>
+                                    <div className='text'>Additional Width:</div>
+                                    <div className='value'>{gateTemplate.typeSpecificData.bonusIterations}</div>
+                                    <i className='lnr lnr-plus-circle' onClick={this.updateTypeSpecificData.bind(this, gateTemplate, { bonusIterations: gateTemplate.typeSpecificData.bonusIterations + 10 }) } />
+                                    <i className='lnr lnr-circle-minus' onClick={this.updateTypeSpecificData.bind(this, gateTemplate, { bonusIterations: gateTemplate.typeSpecificData.bonusIterations - 10 }) } />
+                                </div>
+                                {cytofOptions}
                             </div>
                         </div>
                     )
-
-                    tooltipHeight = 200
                 }
 
-                tooltip = (
-                    <div className="tooltip" style={{width: tooltipWidth, height: tooltipHeight, left: (polygonCenter[0] - tooltipWidth / 2) + this.state.graphMargin.left, top: (polygonCenter[1] - tooltipHeight * 1.5) + this.state.graphMargin.top}}
-                        onClick={(event) => { event.stopPropagation() }}>
-                        <div className='tooltip-inner'>
-                            <div className='title'>Gate Template {gateTemplate.id.substring(0, 5)}</div>
-                            <div className='creator'>{gateCreators[gateTemplateGroup.creator]}</div>
-                            <div className='divider'></div>
-                            <div className='parameter width'>
-                                <div className='text'>Additional Width:</div>
-                                <div className='value'>{gateTemplate.typeSpecificData.bonusIterations}</div>
-                                <i className='lnr lnr-plus-circle' onClick={this.updateTypeSpecificData.bind(this, gateTemplate, { bonusIterations: gateTemplate.typeSpecificData.bonusIterations + 10 }) } />
-                                <i className='lnr lnr-circle-minus' onClick={this.updateTypeSpecificData.bind(this, gateTemplate, { bonusIterations: gateTemplate.typeSpecificData.bonusIterations - 10 }) } />
-                            </div>
-                            {cytofOptions}
-                        </div>
-                    </div>
+                return (
+                    <svg onMouseEnter={this.props.updateGateTemplate.bind(null, gateTemplate.id, { highlighted: true })}
+                        onMouseLeave={this.props.updateGateTemplate.bind(null, gateTemplate.id, { highlighted: false })}
+                        onContextMenu={this.showGateTooltip.bind(this, gate.id)}
+                        onClick={this.selectGateTemplate.bind(this, gate.gateTemplateId)}
+                        key={gate.id}>
+                        <polygon points={points} className={'gate' + (gateTemplate.highlighted ? ' highlighted' : '')} />
+                    </svg>
                 )
             }
-            return (
-                <svg onMouseEnter={this.props.updateGateTemplate.bind(null, gateTemplate.id, { highlighted: true })}
-                    onMouseLeave={this.props.updateGateTemplate.bind(null, gateTemplate.id, { highlighted: false })}
-                    onContextMenu={this.showGateTooltip.bind(this, gate.id)}
-                    onClick={this.selectGateTemplate.bind(this, gate.gateTemplateId)}
-                    key={gate.id}>
-                    <polygon points={points} className={'gate' + (gateTemplate.highlighted ? ' highlighted' : '')} />
-                </svg>
-            )
         })
 
         // Show a loading indicator if the parameters are marked as loading or if there is no image for the requested parameter combination

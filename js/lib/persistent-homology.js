@@ -116,8 +116,7 @@ export default class PersistentHomology {
             if (peak.yCutoffs) {
                 invertedYCutoffs = [ peak.zeroX ? 0 : Math.round(scales.xScale.invert(peak.yCutoffs[0])), Math.round(scales.xScale.invert(peak.yCutoffs[1])) ]
             }
-            console.log(peak.xCutoffs, peak.yCutoffs)
-            console.log(invertedXCutoffs, invertedYCutoffs)
+
             for (let point of this.options.population.subPopulation) {
                 if (pointInsidePolygon(point, invertedPolygon)) {
                     peak.includeEventIds.push(point[2])
@@ -489,11 +488,38 @@ export default class PersistentHomology {
         return { xGroups, yGroups } 
     }
 
+    findPeaksInternal (stepCallback) {
+        let currentHeight = 100
+
+        while (currentHeight > 3) {
+            this.performHomologyIteration(currentHeight)
+            currentHeight = currentHeight - 1
+            if (stepCallback) { stepCallback('Gating using Persistent Homology: ' + (100 - currentHeight) + '% complete.') }
+        }
+        
+        if (this.truePeaks.length > 5) {
+            console.log("Error in PersistantHomology.findPeaks: too many peaks were found (", this.truePeaks.length + ")")
+        } else {
+            for (let peak of this.homologyPeaks) {
+                if (peak.height > this.options.options.minPeakHeight && area(peak.polygon.map((p) => { return { x: p[0], y: p[1] } })) > this.options.options.minPeakSize && !_.find(this.truePeaks, p => p.id === peak.id)) {
+                    // console.log(peak, 'has qualified to be added to truePeaks')
+                    const truePeak = _.cloneDeep(peak)
+                    truePeak.homologyParameters = {
+                        bonusIterations: peak.maxIterations
+                    }
+                    this.truePeaks.push(truePeak)
+                }
+            }
+
+            return this.truePeaks
+        }
+    }
+
     // Find peaks using gating template information
     findPeaksWithTemplate (stepCallback) {
         // First find true peaks at their original size
         this.options.options.maxIterations = 0
-        this.findPeaks(stepCallback, true)
+        this.findPeaksInternal(stepCallback)
         // Try and match them to options.gateTemplates
         if (this.truePeaks.length !== this.options.gateTemplates.length) {
             console.log(this.options)
@@ -550,7 +576,6 @@ export default class PersistentHomology {
                     }
                 }
 
-
                 if (true || this.options.options.breakLongLinesIntoPoints) {
                     this.breakLongLinesIntoPoints()
                 }
@@ -569,8 +594,8 @@ export default class PersistentHomology {
                         bonusIterations: peak.maxIterations
                     }
                     if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF) {
-                        peak.homologyParameters.includeXChannelZeroes = true
-                        peak.homologyParameters.includeYChannelZeroes = true
+                        peak.homologyParameters.includeXChannelZeroes = peak.includeXChannelZeroes
+                        peak.homologyParameters.includeYChannelZeroes = peak.includeYChannelZeroes
                     }
                 }
 
@@ -580,63 +605,54 @@ export default class PersistentHomology {
     }
 
     findPeaks (stepCallback, dontIncludeZeroes) {
-        let currentHeight = 100
+        this.findPeaksInternal()
 
-        while (currentHeight > 3) {
-            this.performHomologyIteration(currentHeight)
-            currentHeight = currentHeight - 1
-            if (stepCallback) { stepCallback('Gating using Persistent Homology: ' + (100 - currentHeight) + '% complete.') }
+        const groups = this.getAxisGroups(this.truePeaks)
+        // console.log(groups)
+        for (let peak of this.truePeaks) {
+            peak.xGroup = _.findIndex(groups.xGroups, g => g.peaks.includes(peak.id))
+            peak.yGroup = _.findIndex(groups.yGroups, g => g.peaks.includes(peak.id))
+            peak.includeXChannelZeroes = true
+            peak.includeYChannelZeroes = true
         }
-        
-        if (this.truePeaks.length > 5) {
-            console.log("Error in PersistantHomology.findPeaks: too many peaks were found (", this.truePeaks.length + ")")
-        } else {
-            for (let peak of this.homologyPeaks) {
-                if (peak.height > this.options.options.minPeakHeight && area(peak.polygon.map((p) => { return { x: p[0], y: p[1] } })) > this.options.options.minPeakSize && !_.find(this.truePeaks, p => p.id === peak.id)) {
-                    // console.log(peak, 'has qualified to be added to truePeaks')
-                    const truePeak = _.cloneDeep(peak)
-                    truePeak.homologyParameters = {
-                        bonusIterations: peak.maxIterations
-                    }
-                    this.truePeaks.push(truePeak)
-                }
-            }
 
-            const groups = this.getAxisGroups(this.truePeaks)
-            // console.log(groups)
-            for (let peak of this.truePeaks) {
-                peak.xGroup = _.findIndex(groups.xGroups, g => g.peaks.includes(peak.id))
-                peak.yGroup = _.findIndex(groups.yGroups, g => g.peaks.includes(peak.id))
-                peak.includeXChannelZeroes = true
-                peak.includeYChannelZeroes = true
-            }
-
-            if (true || this.options.options.breakLongLinesIntoPoints) {
-                this.breakLongLinesIntoPoints()                
-            }
-
-
-            if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF && !dontIncludeZeroes) {
-                this.expandToIncludeZeroes()
-            }
-
-            this.fixOverlappingPolygonsUsingZipper()
-
-            this.findIncludedEvents()
-
-            // Add homology parameters so they can be reused later
-            for (let peak of this.truePeaks) {
-                peak.homologyParameters = {
-                    bonusIterations: peak.maxIterations
-                }
-                if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF) {
-                    peak.homologyParameters.includeXChannelZeroes = true
-                    peak.homologyParameters.includeYChannelZeroes = true
-                }
-            }
-
-            return this.truePeaks
+        if (true || this.options.options.breakLongLinesIntoPoints) {
+            this.breakLongLinesIntoPoints()                
         }
+
+
+        if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF && !dontIncludeZeroes) {
+            this.expandToIncludeZeroes()
+        }
+
+        this.fixOverlappingPolygonsUsingZipper()
+
+        this.findIncludedEvents()
+
+        // Add homology parameters so they can be reused later
+        for (let peak of this.truePeaks) {
+            peak.homologyParameters = {
+                bonusIterations: peak.maxIterations
+            }
+            if (this.options.FCSFile.machineType === constants.MACHINE_CYTOF) {
+                peak.homologyParameters.includeXChannelZeroes = true
+                peak.homologyParameters.includeYChannelZeroes = true
+            }
+        }
+
+        // Create a negative gate including all the uncaptured events if the user specified
+        if (this.options.options.createNegativeGate) {
+            const excludedEventIds = this.truePeaks.reduce((accumulator, current) => { return accumulator.concat(current.includeEventIds) }, [])
+            const gate = {
+                type: constants.GATE_TYPE_NEGATIVE,
+                gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                includeEventIds: _.filter(this.options.population.subPopulation, event => !excludedEventIds.includes(event[2])).map(event => event[2])
+            }
+
+            this.truePeaks.push(gate)
+        }
+
+        return this.truePeaks
     }
 
     performHomologyIteration (height, gateTemplates)  {
@@ -682,6 +698,7 @@ export default class PersistentHomology {
                                 height: 0,
                                 bonusIterations: 0,
                                 maxIterations: this.options.options.maxIterations,
+                                type: constants.GATE_TYPE_POLYGON,
                                 pointsToAdd: []
                             })
                         }
@@ -731,6 +748,7 @@ export default class PersistentHomology {
                         const newPolygon = this.homologyPeaks[i].polygon.concat(this.homologyPeaks[j].polygon.slice(0))
                         this.homologyPeaks.splice(i, 1, {
                             polygon: newPolygon,
+                            type: constants.GATE_TYPE_POLYGON,
                             height: this.homologyPeaks[i].height,
                             id: this.homologyPeaks[i].id,
                             truePeak: this.homologyPeaks[i].truePeak,

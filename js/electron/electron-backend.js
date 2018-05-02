@@ -886,55 +886,52 @@ export const api = {
             height: currentState.plotHeight - yOffset
         })
 
-        let excludedEventIds = []
-
         const gates = truePeaks.map((peak) => {
-            // Convert the gate polygon back into real space
-            for (let i = 0; i < peak.polygon.length; i++) {
-                peak.polygon[i][0] = scales.xScale.invert(peak.polygon[i][0])
-                peak.polygon[i][1] = scales.yScale.invert(peak.polygon[i][1])
-            }
+            let gate
 
-            const gate = {
-                type: constants.GATE_TYPE_POLYGON,
-                gateData: peak.polygon,
-                selectedXParameterIndex: options.selectedXParameterIndex,
-                selectedYParameterIndex: options.selectedYParameterIndex,
-                selectedXScale: options.selectedXScale,
-                selectedYScale: options.selectedYScale,
-                gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
-                gateCreatorData: peak.homologyParameters,
-                includeEventIds: peak.includeEventIds
-            }
-
-            excludedEventIds = excludedEventIds.concat(peak.includeEventIds)
-
-            if (FCSFile.machineType === constants.MACHINE_CYTOF) {
-                // On the cytof, add any zero cutoffs to gates
-                if (peak.xCutoffs) {
-                    gate.xCutoffs = [ scales.yScale.invert(peak.xCutoffs[0]), scales.yScale.invert(peak.xCutoffs[1]) ]
+            if (peak.type === constants.GATE_TYPE_POLYGON) {
+                // Convert the gate polygon back into real space
+                for (let i = 0; i < peak.polygon.length; i++) {
+                    peak.polygon[i][0] = scales.xScale.invert(peak.polygon[i][0])
+                    peak.polygon[i][1] = scales.yScale.invert(peak.polygon[i][1])
                 }
-                if (peak.yCutoffs) {
-                    gate.yCutoffs = [ scales.xScale.invert(peak.yCutoffs[0]), scales.xScale.invert(peak.yCutoffs[1]) ]
+
+                gate = {
+                    type: constants.GATE_TYPE_POLYGON,
+                    gateData: peak.polygon,
+                    selectedXParameterIndex: options.selectedXParameterIndex,
+                    selectedYParameterIndex: options.selectedYParameterIndex,
+                    selectedXScale: options.selectedXScale,
+                    selectedYScale: options.selectedYScale,
+                    gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                    gateCreatorData: peak.homologyParameters,
+                    includeEventIds: peak.includeEventIds
+                }
+
+                if (FCSFile.machineType === constants.MACHINE_CYTOF) {
+                    // On the cytof, add any zero cutoffs to gates
+                    if (peak.xCutoffs) {
+                        gate.xCutoffs = [ scales.yScale.invert(peak.xCutoffs[0]), scales.yScale.invert(peak.xCutoffs[1]) ]
+                    }
+                    if (peak.yCutoffs) {
+                        gate.yCutoffs = [ scales.xScale.invert(peak.yCutoffs[0]), scales.xScale.invert(peak.yCutoffs[1]) ]
+                    }
+                }
+            } else if (peak.type === constants.GATE_TYPE_NEGATIVE) {
+                gate = {
+                    type: constants.GATE_TYPE_NEGATIVE,
+                    selectedXParameterIndex: options.selectedXParameterIndex,
+                    selectedYParameterIndex: options.selectedYParameterIndex,
+                    selectedXScale: options.selectedXScale,
+                    selectedYScale: options.selectedYScale,
+                    gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                    gateCreatorData: peak.homologyParameters,
+                    includeEventIds: peak.includeEventIds
                 }
             }
 
             return gate
         })
-
-        // Create a negative gate including all the uncaptured events if the user specified
-        if (options.createNegativeGate) {
-            const gate = {
-                type: constants.GATE_TYPE_NEGATIVE,
-                selectedXParameterIndex: options.selectedXParameterIndex,
-                selectedYParameterIndex: options.selectedYParameterIndex,
-                selectedXScale: options.selectedXScale,
-                selectedYScale: options.selectedYScale,
-                gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
-                includeEventIds: _.filter(_.range(0, FCSFile.populationCount), eventId => !excludedEventIds.includes(eventId))
-            }
-            console.log(gate)
-        }
 
         if (!gateTemplateGroup && gates.length > 0) {
             // Create a Gate Template Group for this parameter combination
@@ -954,14 +951,26 @@ export const api = {
             }
 
             const newGateTemplates = gates.map((gate, index) => {
-                const gateTemplate = {
-                    id: uuidv4(),
-                    title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + (truePeaks[index].xGroup === 0 ? ' (LOW) · ' : ' (HIGH) · ') + FCSFile.FCSParameters[options.selectedYParameterIndex].label + (truePeaks[index].yGroup === 1 ? ' (LOW)' : ' (HIGH)'),
-                    creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
-                    xGroup: truePeaks[index].xGroup,
-                    yGroup: truePeaks[index].yGroup,
-                    typeSpecificData: truePeaks[index].homologyParameters
+                let gateTemplate
+
+                if (gate.type === constants.GATE_TYPE_POLYGON) {
+                    gateTemplate = {
+                        id: uuidv4(),
+                        title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + (truePeaks[index].xGroup === 0 ? ' (LOW) · ' : ' (HIGH) · ') + FCSFile.FCSParameters[options.selectedYParameterIndex].label + (truePeaks[index].yGroup === 1 ? ' (LOW)' : ' (HIGH)'),
+                        creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                        xGroup: truePeaks[index].xGroup,
+                        yGroup: truePeaks[index].yGroup,
+                        typeSpecificData: truePeaks[index].homologyParameters
+                    }
+                } else if (gate.type === constants.GATE_TYPE_NEGATIVE) {
+                    gateTemplate = {
+                        id: uuidv4(),
+                        title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[options.selectedYParameterIndex].label + ' Negative Gate',
+                        creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                        typeSpecificData: {}
+                    }
                 }
+
                 newGateTemplateGroup.childGateTemplateIds.push(gateTemplate.id)
                 gate.gateTemplateId = gateTemplate.id
 

@@ -75,7 +75,7 @@ export default class FCSFileSelector extends Component {
 
             let machineTypeMessage
             if (this.props.selectedFCSFile && this.props.selectedFCSFile.machineType) {
-                machineTypeMessage = 'File Name: ' + _.find(machineTypes, m => m.key === this.props.selectedFCSFile.machineType).label
+                machineTypeMessage = 'Machine Type: ' + _.find(machineTypes, m => m.key === this.props.selectedFCSFile.machineType).label
             } else {
                 machineTypeMessage = 'Loading...'
             }
