@@ -491,7 +491,7 @@ export default class BivariatePlot extends Component {
                     }
 
                     tooltip = (
-                        <div className="tooltip" style={{width: tooltipWidth, height: tooltipHeight, left: (polygonCenter[0] - tooltipWidth / 2) + this.state.graphMargin.left, top: (polygonCenter[1] - tooltipHeight * 1.5) + this.state.graphMargin.top}}
+                        <div className="tooltip" style={{width: tooltipWidth, height: tooltipHeight, left: (polygonCenter[0] - tooltipWidth / 2) + this.state.graphMargin.left, top: Math.max((polygonCenter[1] - tooltipHeight * 1.5) + this.state.graphMargin.top, 0)}}
                             onClick={(event) => { event.stopPropagation() }}>
                             <div className='tooltip-inner'>
                                 <div className='title'>Gate Template {gateTemplate.id.substring(0, 5)}</div>

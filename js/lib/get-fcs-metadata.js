@@ -7,7 +7,7 @@ import fs from 'fs'
 import FCS from 'fcs'
 import _ from 'lodash'
 import * as d3 from 'd3'
-import { getScales, kernelDensityEstimator, kernelEpanechnikov } from './utilities'
+import { getScales } from './utilities'
 
 // Wrap the read file function from FS in a promise
 const readFileBuffer = (path) => {

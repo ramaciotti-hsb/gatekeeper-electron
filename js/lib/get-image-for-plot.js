@@ -9,7 +9,7 @@ import path from 'path'
 import mkdirp from 'mkdirp'
 import fs from 'fs'
 import * as d3 from 'd3'
-import { getPlotImageKey, heatMapRGBForValue, getScales, getPolygonCenter, kernelDensityEstimator, kernelEpanechnikov } from './utilities'
+import { getPlotImageKey, heatMapRGBForValue, getScales, getPolygonCenter } from './utilities'
 
 const mkdirpPromise = (directory) => {
     return new Promise((resolve, reject) => {

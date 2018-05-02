@@ -21,22 +21,6 @@ let CYTOF_HISTOGRAM_WIDTH
 // representing discovered peaks. e.g:
 // [[2, 1], [2, 2], [1, 2]]
 
-
-// Calculate 1d density using kernel density estimation for drawing histograms
-function kernelDensityEstimator(kernel, X) {
-  return function(V) {
-    return X.map(function(x) {
-      return [x, d3.mean(V, function(v) { return kernel(x - v); })];
-    });
-  };
-}
-
-function kernelEpanechnikov(k) {
-  return function(v) {
-    return Math.abs(v /= k) <= 1 ? 0.75 * (1 - v * v) / k : 0;
-  };
-}
-
 // Get the min and max y points of a polygon as [min, max]
 function getPolygonXBoundaries (points) {
     let minX = Infinity

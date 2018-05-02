@@ -6,7 +6,6 @@ import uuidv4 from 'uuid/v4'
 import _ from 'lodash'
 import constants from '../lib/constants'
 
-// Make sure there is at least one workspace
 const initialState = []
 
 const workspaces = (state = initialState, action = {}) => {
