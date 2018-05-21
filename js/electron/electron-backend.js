@@ -15,6 +15,8 @@ import { getPlotImageKey, heatMapRGBForValue, getScales, getPolygonCenter } from
 import constants from '../lib/constants'
 import PersistentHomology from '../lib/persistent-homology.js'
 import { fork } from 'child_process'
+import ls from 'ls'
+import rimraf from 'rimraf'
 import GrahamScan from '../lib/graham-scan.js'
 import pointInsidePolygon from 'point-in-polygon'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
@@ -194,6 +196,16 @@ const writeFile = (path, data, opts = 'utf8') => {
     })
 }
 
+// Loops through the image directories on disk and deletes images that no longer reference a sample on disk
+const cleanupImageDirectories = () => {
+    for (var file of ls(path.join(remote.app.getPath('userData'), 'sample-images', '*'))) {
+        if (!_.find(currentState.samples, s => s.id === file.file)) {
+            console.log('going to delete', file.full)
+            rimraf(file.full, () => { console.log('deleted', file.full) })
+        }
+    }
+}
+
 const filteredSampleAttributes = ['includeEventIds']
 
 const populationDataCache = {}
@@ -335,6 +347,7 @@ export const api = {
         try {
             reduxStore.dispatch({ type: 'SET_SESSION_BROKEN', payload: { sessionBroken: false } })
             reduxStore.dispatch({ type: 'SET_SESSION_STATE', payload: uiState })
+            cleanupImageDirectories()
         } catch (error) {
             reduxStore.dispatch({ type: 'SET_SESSION_BROKEN', payload: { sessionBroken: true } })
             console.log(error)
