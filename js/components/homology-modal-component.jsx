@@ -54,7 +54,8 @@ export default class FCSFileSelector extends Component {
             edgeDistance: this.state.edgeDistance,
             minPeakHeight: this.state.minPeakHeight,
             minPeakSize: this.state.minPeakSize,
-            createNegativeGate: this.state.createNegativeGate
+            createNegativeGate: this.state.createNegativeGate,
+            removeExistingGates: true
         })
         this.props.updateModalParameters('homology', { visible: false })
     }
@@ -95,6 +96,7 @@ export default class FCSFileSelector extends Component {
                                 <div className='text right'>Create Negative Gate (Includes All Uncaptured Events)</div>
                             </div>
                             <div className='divider'></div>
+                            <div className={'warning-message' + (this.props.gateHasChildren ? ' active' : '')}>Warning: Current gates and any sub gates will be deleted upon recalculation.</div>
                             <div className='actions'>
                                 <div className='calculate-homology' onClick={this.createGatesClicked.bind(this)}>Create Gates</div>
                             </div>

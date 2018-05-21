@@ -21,7 +21,7 @@ let CYTOF_HISTOGRAM_WIDTH
 // representing discovered peaks. e.g:
 // [[2, 1], [2, 2], [1, 2]]
 
-// Get the min and max y points of a polygon as [min, max]
+// Get the min and max x points of a polygon as [min, max]
 function getPolygonXBoundaries (points) {
     let minX = Infinity
     let maxX = -Infinity
@@ -138,7 +138,7 @@ export default class PersistentHomology {
                 }
             }
 
-            if (this.options.population.zeroDensityY.densityMap[i] / this.options.population.maxDensity  < minPeakHeight) {
+            if (this.options.population.zeroDensityY.densityMap[i] / this.options.population.maxDensity < minPeakHeight) {
                 isPeak = false
             }
 

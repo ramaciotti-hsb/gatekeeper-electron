@@ -11,6 +11,7 @@ const mapStateToProps = (state, ownProps) => {
     const selectedWorkspace = _.find(state.workspaces, w => w.id === state.selectedWorkspaceId) || {}
     const selectedFCSFile = _.find(state.FCSFiles, fcs => fcs.id === selectedWorkspace.selectedFCSFileId) || {}
     const selectedGateTemplate = _.find(state.gateTemplates, gt => gt.id === selectedWorkspace.selectedGateTemplateId) || {}
+    const gateHasChildren = _.find(state.gateTemplateGroups, g => g.parentGateTemplateId === selectedGateTemplate.id) ? true : false
     const selectedSample = _.find(state.samples, s => s.gateTemplateId === selectedGateTemplate.id && s.FCSFileId === selectedFCSFile.id) || {}
 
     return {
@@ -19,6 +20,7 @@ const mapStateToProps = (state, ownProps) => {
         selectedFCSFile,
         selectedGateTemplate,
         selectedSample,
+        gateHasChildren,
         plotWidth: state.plotWidth,
         plotHeight: state.plotHeight,
         modalOptions: state.modals.homology,

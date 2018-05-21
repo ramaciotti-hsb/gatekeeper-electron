@@ -105,6 +105,17 @@
                     flex-grow: 1;
                 }
 
+                .warning-message {
+                    display: none;
+                    color: $red-colour;
+                    font-size: 12px;
+                    margin-bottom: 15px;
+
+                    &.active {
+                        display: flex;
+                    }
+                }
+
                 .actions {
                     margin-bottom: 25px;
 

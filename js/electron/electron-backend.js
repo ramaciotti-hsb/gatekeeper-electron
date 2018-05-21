@@ -783,9 +783,9 @@ export const api = {
     calculateHomology: async function (sampleId, options) {
         const sample = _.find(currentState.samples, s => s.id === sampleId)
         const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
-        const gateTemplate = _.find(currentState.gateTemplates, gt => gt.id === sample.gateTemplateId)
         const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sampleId))
 
+        let gateTemplate = _.find(currentState.gateTemplates, gt => gt.id === sample.gateTemplateId)
         let gateTemplateGroup = _.find(currentState.gateTemplateGroups, (group) => {
             return group.parentGateTemplateId === sample.gateTemplateId 
                 && group.selectedXParameterIndex === options.selectedXParameterIndex
@@ -794,6 +794,13 @@ export const api = {
                 && group.selectedYScale === options.selectedYScale
                 && group.machineType === FCSFile.machineType
         })
+
+        // If the user clicked the "create gates" button and there is already a gate template group, delete it
+        if (options.removeExistingGates && gateTemplateGroup) {
+            await api.removeGateTemplateGroup(gateTemplateGroup.id)
+            gateTemplate = null
+            gateTemplateGroup = null
+        }
 
         if (!sample) { console.log('Error in calculateHomology(): no sample with id ', sampleId, 'was found'); return }
         // Dispatch a redux action to mark the gate template as loading
