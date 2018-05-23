@@ -107,6 +107,7 @@ export default class MultipleSampleView extends Component {
     }
 
     filterPlots () {
+        console.log('re filter', this.props.FCSFile.FCSParameters.length)
         const combinations = []
         for (let x = 0; x < this.props.FCSFile.FCSParameters.length; x++) {
             // Don't bother displaying the plot if the parameter is disabled
@@ -255,7 +256,7 @@ export default class MultipleSampleView extends Component {
         const maxIndex = Math.min(this.state.combinations.length, (Math.floor(this.state.scrollTop / (this.props.plotDisplayHeight + 115)) + 4) * plotsPerRow)
 
         const gates = this.state.combinations.slice(minIndex, maxIndex).map((c, index) => {
-            if (!this.props.FCSFile.FCSParameters || this.props.FCSFile.FCSParameters.length === 0 || index >= this.state.combinations.length) {
+            if (!this.props.FCSFile.FCSParameters || this.props.FCSFile.FCSParameters.length === 0 || index >= this.state.combinations.length || c[0] >= this.props.FCSFile.FCSParameters.length || c[1] >= this.props.FCSFile.FCSParameters.length) {
                 return null
             }
 
