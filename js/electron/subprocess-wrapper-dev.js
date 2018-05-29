@@ -24,10 +24,16 @@ require("babel-register")({
 
 let heartbeatTime = process.hrtime()[0]
 
+const assetDirectory = process.argv[2]
+
 const getSubPopulation = require('../lib/get-population-data.js').default
 const getImageForPlot = require('../lib/get-image-for-plot.js').default
 const PersistentHomology = require('../lib/persistent-homology.js').default
 const getFCSMetadata = require('../lib/get-fcs-metadata.js').default
+const findIncludedPositiveEvents = require('../lib/gate-utilities').findIncludedPositiveEvents
+const find1DPeaks = require('../lib/1d-homology').default
+const expandToIncludeZeroes = require('../lib/gate-utilities').expandToIncludeZeroes
+const _ = require('lodash')
 
 const cluster = require('cluster');
 const http = require('http');
@@ -47,6 +53,30 @@ if (cluster.isMaster) {
     console.log(`Child ${process.pid} is running`);
     const populationCache = {}
 
+    const getPopulation = (sample, FCSFile, options) => {
+        const key = `${sample.id}-${options.selectedXParameterIndex}_${options.selectedXScale}-${options.selectedYParameterIndex}_${options.selectedYScale}`
+        
+        return new Promise((resolve, reject) => {
+            if (populationCache[key]) {
+                resolve(populationCache[key])
+            } else {
+                getSubPopulation(sample, FCSFile, options).then((data) => {
+                    populationCache[key] = data
+                    resolve(data)
+                }).catch((error) => {
+                    console.log(error)
+                    process.stderr.write(JSON.stringify({ jobId, data: JSON.stringify(error) }))
+                })
+            }
+        })
+    }
+
+    const handleError = (error) => {
+        console.log(error)
+        process.stderr.write(JSON.stringify({ jobId, data: JSON.stringify(error) }))
+        res.end(JSON.stringify({ jobId, data: JSON.stringify(error) }))
+    }
+
     http.createServer((req, res) => {
         res.writeHead(200);
         let bodyRaw = ''
@@ -57,113 +87,68 @@ if (cluster.isMaster) {
             if (body.type === 'heartbeat') {
                 heartbeatTime = process.hrtime()[0]
             } else {
+                if (body.payload.options) {
+                    body.payload.options = _.merge(body.payload.options, { assetDirectory })
+                }
+// get-fcs-metadata
                 if (body.type === 'get-fcs-metadata') {
                     getFCSMetadata(body.payload.filePath).then((data) => {
                         process.stdout.write(JSON.stringify({ jobId: body.jobId, data: 'Finished job on worker side'}))
                         res.end(JSON.stringify(data))
                     })
+
+// get-population-data
                 } else if (body.type === 'get-population-data') {
-                    const key = `${body.payload.sample.id}-${body.payload.options.selectedXParameterIndex}_${body.payload.options.selectedXScale}-${body.payload.options.selectedYParameterIndex}_${body.payload.options.selectedYScale}`
-                    if (populationCache[key]) {
-                        res.end(JSON.stringify(populationCache[key]))
-                    } else {
-                        getSubPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((data) => {
-                            process.stdout.write(JSON.stringify({ jobId: body.jobId, data: 'Finished job on worker side'}))
-                            populationCache[key] = data
-                            res.end(JSON.stringify(data))
-                        }).catch((error) => {
-                            console.log(error)
-                            process.stderr.write(JSON.stringify({ jobId, data: JSON.stringify(error) }))
-                        })
-                    }
+                    getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((data) => { res.end(JSON.stringify(data)) }).catch(handleError)
+
+// get-image-for-plot
                 } else if (body.type === 'get-image-for-plot') {
                     // console.log(body.payload.options)
-                    const key = `${body.payload.sample.id}-${body.payload.options.selectedXParameterIndex}_${body.payload.options.selectedXScale}-${body.payload.options.selectedYParameterIndex}_${body.payload.options.selectedYScale}`
-                    new Promise((resolve, reject) => {
-                        if (populationCache[key]) {
-                            resolve(populationCache[key])
-                        } else {
-                            getSubPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((data) => {
-                                populationCache[key] = data
-                                resolve(data)
-                            }).catch((error) => {
-                                console.log(error)
-                                process.stderr.write(JSON.stringify({ jobId, data: JSON.stringify(error) }))
-                            })
-                        }
-                    }).then((population) => {
+                    getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((population) => {
                         getImageForPlot(body.payload.sample, body.payload.FCSFile, population, body.payload.options).then((data) => {
                             res.end(JSON.stringify(data))
-                        }).catch((error) => {
-                            console.log(error)
-                            process.stderr.write(JSON.stringify({ jobId, data: JSON.stringify(error) }))
-                        })
+                        }).catch(handleError)
                     })
+
+// find-peaks
                 } else if (body.type === 'find-peaks') {
-                    const key = `${body.payload.sample.id}-${body.payload.options.selectedXParameterIndex}_${body.payload.options.selectedXScale}-${body.payload.options.selectedYParameterIndex}_${body.payload.options.selectedYScale}`
-                    new Promise((resolve, reject) => {
-                        if (populationCache[key]) {
-                            resolve(populationCache[key])
-                        } else {
-                            getSubPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((data) => {
-                                populationCache[key] = data
-                                resolve(data)
-                            }).catch((error) => {
-                                console.log(error)
-                                process.stderr.write(JSON.stringify({ jobId, data: JSON.stringify(error) }))
-                            })
-                        }
-                    }).then((population) => {
-                        const homology = new PersistentHomology({
-                            sample: body.payload.sample,
-                            FCSFile: body.payload.FCSFile,
-                            population,
-                            options: body.payload.options
-                        })
+                    getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((population) => {
+                        const homology = new PersistentHomology(population, body.payload.options)
                         let percentageComplete = 0
                         const data = homology.findPeaks((message) => {
                             // console.log({ jobId: jobId, type: 'loading-update', data: message })
                             // res.send({ jobId: jobId, type: 'loading-update', data: message })
                         })
                         res.end(JSON.stringify(data))
-                    }).catch((error) => {
-                        console.log(error)
-                        process.stderr.write(JSON.stringify({ jobId, data: JSON.stringify(error) }))
-                        res.end(JSON.stringify({ jobId, data: JSON.stringify(error) }))
-                    })
+                    }).catch(handleError)
+
+// find-peaks-with-templates
                 } else if (body.type === 'find-peaks-with-template') {
-                    const key = `${body.payload.sample.id}-${body.payload.options.selectedXParameterIndex}_${body.payload.options.selectedXScale}-${body.payload.options.selectedYParameterIndex}_${body.payload.options.selectedYScale}`
-                    new Promise((resolve, reject) => {
-                        if (populationCache[key]) {
-                            resolve(populationCache[key])
-                        } else {
-                            getSubPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((data) => {
-                                populationCache[key] = data
-                                resolve(data)
-                            }).catch((error) => {
-                                console.log(error)
-                                process.stderr.write(JSON.stringify({ jobId, data: JSON.stringify(error) }))
-                            })
-                        }
-                    }).then((population) => {
-                        const homology = new PersistentHomology({
-                            sample: body.payload.sample,
-                            FCSFile: body.payload.FCSFile,
-                            population,
-                            options: body.payload.options,
-                            gateTemplates: body.payload.gateTemplates
-                        })
+                    getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((population) => {
+                        const homology = new PersistentHomology(population, body.payload.options)
                         let percentageComplete = 0
                         const data = homology.findPeaksWithTemplate((message) => {
                             // console.log({ jobId: jobId, type: 'loading-update', data: message })
                             // res.send({ jobId: jobId, type: 'loading-update', data: message })
-                        })
+                        }, body.payload.gateTemplates)
                         res.end(JSON.stringify(data))
-                    }).catch((error) => {
-                        console.log(error)
-                        process.stderr.write(JSON.stringify({ jobId, data: JSON.stringify(error) }))
-                        res.end(JSON.stringify({ jobId, data: JSON.stringify(error) }))
-                    })
+                    }).catch(handleError)
+                                    
+// get-expanded-gates
+                } else if (body.type === 'get-expanded-gates') {
+                    getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((population) => {
+                        const xCutoffs = find1DPeaks(population.zeroDensityX.densityMap, population.maxDensity, body.payload.options)
+                        const yCutoffs = find1DPeaks(population.zeroDensityY.densityMap, population.maxDensity, body.payload.options)
+                        const expandedGates = expandToIncludeZeroes(xCutoffs, yCutoffs, body.payload.gates, body.payload.options)
+                        res.end(JSON.stringify(expandedGates))
+                    }).catch(handleError)
+
+// get-included-events
+                } else if (body.type === 'get-included-events') {
+                    getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((population) => {
+                        const includeEventIds = findIncludedPositiveEvents(body.payload.polygon, population, body.payload.FCSFile, body.payload.options)
+                        res.end(JSON.stringify(includeEventIds))
+                    }).catch(handleError)
                 }
             }  
         })

@@ -21,8 +21,9 @@ import GrahamScan from '../lib/graham-scan.js'
 import pointInsidePolygon from 'point-in-polygon'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import isDev from 'electron-is-dev'
+import { breakLongLinesIntoPoints, fixOverlappingPolygonsUsingZipper } from '../lib/polygon-utilities'
 import applicationReducer from '../reducers/application-reducer'
-import { setBackgroundJobsEnabled, setPlotDimensions, setPlotDisplayDimensions, toggleShowDisabledParameters } from '../actions/application-actions'
+import { setBackgroundJobsEnabled, setPlotDimensions, setPlotDisplayDimensions, toggleShowDisabledParameters, setUnsavedGates } from '../actions/application-actions'
 import { updateSample, removeSample, setSamplePlotImage, setSampleParametersLoading } from '../actions/sample-actions'
 import { updateGateTemplate, removeGateTemplate } from '../actions/gate-template-actions'
 import { removeGateTemplateGroup } from '../actions/gate-template-group-actions'
@@ -48,9 +49,9 @@ let workerFork
 const createFork = function () {
     console.log('starting fork')
     if (isDev) {
-        workerFork = fork(__dirname + '/js/electron/subprocess-wrapper-dev.js', [], { silent: true })
+        workerFork = fork(__dirname + '/js/electron/subprocess-wrapper-dev.js', [ remote.app.getPath('userData') ], { silent: true })
     } else {
-        workerFork = fork(__dirname + '/webpack-build/fork.bundle.js', [], { silent: true })
+        workerFork = fork(__dirname + '/webpack-build/fork.bundle.js', [ remote.app.getPath('userData') ], { silent: true })
     }
 }
 
@@ -641,6 +642,8 @@ export const api = {
             plotImages: {}
         }
 
+        console.log(gateParameters)
+
         const gate = {
             id: gateId,
             type: gateParameters.type,
@@ -783,6 +786,12 @@ export const api = {
         saveSessionToDisk()
     },
 
+    resetUnsavedGates () {
+        const setUnsavedGatesAction = setUnsavedGates(null)
+        currentState = applicationReducer(currentState, setUnsavedGatesAction)
+        reduxStore.dispatch(setUnsavedGatesAction)
+    },
+
     // Performs persistent homology calculation to automatically create gates on a sample
     // If a related gateTemplate already exists it will be applied, otherwise a new one will be created.
     // Options shape:
@@ -841,13 +850,12 @@ export const api = {
             reduxStore.dispatch(loadingAction)
         }, 500)
 
-        const jobId = uuidv4()
         let postBody
 
         if (gateTemplateGroup) {
-            postBody = { jobId: jobId, type: 'find-peaks-with-template', payload: homologyOptions }
+            postBody = { type: 'find-peaks-with-template', payload: homologyOptions }
         } else {
-            postBody = { jobId: jobId, type: 'find-peaks', payload: homologyOptions }
+            postBody = { type: 'find-peaks', payload: homologyOptions }
         }
 
         const checkValidity = () => {
@@ -893,150 +901,204 @@ export const api = {
             height: currentState.plotHeight - yOffset
         })
 
-        const gates = truePeaks.map((peak) => {
+        let gates = []
+
+        for (let i = 0; i < truePeaks.length; i++) {
+            const peak = truePeaks[i]
+
             let gate
 
             if (peak.type === constants.GATE_TYPE_POLYGON) {
-                // Convert the gate polygon back into real space
-                for (let i = 0; i < peak.polygon.length; i++) {
-                    peak.polygon[i][0] = scales.xScale.invert(peak.polygon[i][0])
-                    peak.polygon[i][1] = scales.yScale.invert(peak.polygon[i][1])
-                }
-
                 gate = {
+                    id: uuidv4(),
                     type: constants.GATE_TYPE_POLYGON,
-                    gateData: peak.polygon,
+                    title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + (peak.xGroup === 0 ? ' (LOW) · ' : ' (HIGH) · ') + FCSFile.FCSParameters[options.selectedYParameterIndex].label + (peak.yGroup === 1 ? ' (LOW)' : ' (HIGH)'),
+                    gateData: {
+                        polygons: peak.polygons
+                    },
                     selectedXParameterIndex: options.selectedXParameterIndex,
                     selectedYParameterIndex: options.selectedYParameterIndex,
                     selectedXScale: options.selectedXScale,
                     selectedYScale: options.selectedYScale,
                     gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
                     gateCreatorData: peak.homologyParameters,
-                    includeEventIds: peak.includeEventIds
-                }
-
-                if (FCSFile.machineType === constants.MACHINE_CYTOF) {
-                    // On the cytof, add any zero cutoffs to gates
-                    if (peak.xCutoffs) {
-                        gate.xCutoffs = [ scales.yScale.invert(peak.xCutoffs[0]), scales.yScale.invert(peak.xCutoffs[1]) ]
-                    }
-                    if (peak.yCutoffs) {
-                        gate.yCutoffs = [ scales.xScale.invert(peak.yCutoffs[0]), scales.xScale.invert(peak.yCutoffs[1]) ]
-                    }
                 }
             } else if (peak.type === constants.GATE_TYPE_NEGATIVE) {
                 gate = {
                     type: constants.GATE_TYPE_NEGATIVE,
+                    title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[options.selectedYParameterIndex].label + ' Negative Gate',
                     selectedXParameterIndex: options.selectedXParameterIndex,
                     selectedYParameterIndex: options.selectedYParameterIndex,
                     selectedXScale: options.selectedXScale,
                     selectedYScale: options.selectedYScale,
                     gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
                     gateCreatorData: peak.homologyParameters,
-                    includeEventIds: peak.includeEventIds
                 }
             }
 
-            return gate
-        })
+            gates.push(gate)
+        }
 
-        if (!gateTemplateGroup && gates.length > 0) {
-            // Create a Gate Template Group for this parameter combination
-            const newGateTemplateGroup = {
-                id: uuidv4(),
-                title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[options.selectedYParameterIndex].label,
-                creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
-                selectedXParameterIndex: options.selectedXParameterIndex,
-                selectedYParameterIndex: options.selectedYParameterIndex,
-                selectedXScale: options.selectedXScale,
-                selectedYScale: options.selectedYScale,
-                machineType: FCSFile.machineType,
-                parentGateTemplateId: sample.gateTemplateId,
-                childGateTemplateIds: [],
-                expectedGates: [],
-                typeSpecificData: options
-            }
-
-            const newGateTemplates = gates.map((gate, index) => {
-                let gateTemplate
-
-                if (gate.type === constants.GATE_TYPE_POLYGON) {
-                    gateTemplate = {
-                        id: uuidv4(),
-                        type: constants.GATE_TYPE_POLYGON,
-                        title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + (truePeaks[index].xGroup === 0 ? ' (LOW) · ' : ' (HIGH) · ') + FCSFile.FCSParameters[options.selectedYParameterIndex].label + (truePeaks[index].yGroup === 1 ? ' (LOW)' : ' (HIGH)'),
-                        creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
-                        xGroup: truePeaks[index].xGroup,
-                        yGroup: truePeaks[index].yGroup,
-                        typeSpecificData: truePeaks[index].homologyParameters
-                    }
-                } else if (gate.type === constants.GATE_TYPE_NEGATIVE) {
-                    gateTemplate = {
-                        id: uuidv4(),
-                        type: constants.GATE_TYPE_NEGATIVE,
-                        title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[options.selectedYParameterIndex].label + ' Negative Gate',
-                        creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
-                        typeSpecificData: {}
-                    }
-                }
-
-                newGateTemplateGroup.childGateTemplateIds.push(gateTemplate.id)
-                gate.gateTemplateId = gateTemplate.id
-
-                const createGateTemplateAction = createGateTemplateAndAddToWorkspace(workspace.id, gateTemplate)
-                currentState = applicationReducer(currentState, createGateTemplateAction)
-                reduxStore.dispatch(createGateTemplateAction)
-                return gateTemplate
+        if (FCSFile.machineType === constants.MACHINE_CYTOF) {
+            gates = await new Promise((resolve, reject) => {
+                pushToQueue({
+                    jobParameters: { url: 'http://127.0.0.1:3145', json: { type: 'get-expanded-gates', payload: { sample, gates, FCSFile, options } } },
+                    jobKey: uuidv4(),
+                    checkValidity,
+                    callback: (data) => { resolve(data) }
+                }, true)
             })
-
-            const createGateTemplateGroupAction = createGateTemplateGroupAndAddToWorkspace(workspace.id, newGateTemplateGroup)
-            currentState = applicationReducer(currentState, createGateTemplateGroupAction)
-            reduxStore.dispatch(createGateTemplateGroupAction)
-        } else if (gates.length > 0) {
-            const gateTemplates = _.filter(currentState.gateTemplates, g => gateTemplateGroup.childGateTemplateIds.includes(g.id))
-            truePeaks.map((peak, index) => {
-                gates[index].gateTemplateId = _.find(gateTemplates, gt => gt.xGroup === peak.xGroup && gt.yGroup === peak.yGroup).id
-            })
-
-            // Delete previous gates on this plot
-            for (let gate of _.filter(currentState.gates, g => gateTemplateGroup.childGateTemplateIds.includes(g.gateTemplateId) && g.parentSampleId === sampleId)) {
-                await api.removeSample(gate.childSampleId)
-            }
         }
 
+        console.log(gates)
 
-        for (let i = 0; i < gates.length; i++) {
-            const gate = gates[i]
-            console.log("CREATING NEW GATE", gate)
-            api.createSubSampleAndAddToWorkspace(
-                workspace.id,
-                sampleId,
-                {
-                    filePath: sample.filePath,
-                    FCSParameters: FCSFile.FCSParameters,
-                    plotImages: {},
-                    subSampleIds: [],
-                    gateTemplateId: gate.gateTemplateId,
-                    selectedXParameterIndex: options.selectedXParameterIndex,
-                    selectedYParameterIndex: options.selectedYParameterIndex,
-                    selectedXScale: options.selectedXScale,
-                    selectedYScale: options.selectedYScale
-                },
-                gate,
-            )
+        api.createUnsavedGatePolygons(gates)
+
+        if (gates.length > 0) {
+            const loadingFinishedAction = setSampleParametersLoading(sampleId, options.selectedXParameterIndex + '_' + options.selectedYParameterIndex, { loading: false, loadingMessage: null })
+            currentState = applicationReducer(currentState, loadingFinishedAction)
+            reduxStore.dispatch(loadingFinishedAction)
+
+            const setUnsavedGatesAction = setUnsavedGates(gates)
+            currentState = applicationReducer(currentState, setUnsavedGatesAction)
+            reduxStore.dispatch(setUnsavedGatesAction)
         }
 
-        let samplesToRecalculate = _.filter(currentState.samples, s => s.gateTemplateId === sample.gateTemplateId && s.id !== sample.id)
-        // Recalculate the gates on other FCS files
-        for (let sampleToRecalculate of samplesToRecalculate) {
-            api.applyGateTemplatesToSample(sampleToRecalculate.id)
-        }
+        // // Get events that are included inside this gate
+        // const includeEventIds = await new Promise((resolve, reject) => {
+        //     pushToQueue({
+        //         jobParameters: { url: 'http://127.0.0.1:3145', json: { type: 'get-included-events', payload: { sample, polygon: peak.finalPolygon, FCSFile, options } } },
+        //         jobKey: uuidv4(),
+        //         checkValidity,
+        //         callback: (data) => { resolve(data) }
+        //     }, true)
+        // })
 
-        const loadingFinishedAction = setSampleParametersLoading(sampleId, options.selectedXParameterIndex + '_' + options.selectedYParameterIndex, { loading: false, loadingMessage: null })
-        currentState = applicationReducer(currentState, loadingFinishedAction)
-        reduxStore.dispatch(loadingFinishedAction)
+        // if (!gateTemplateGroup && gates.length > 0) {
+        //     // Create a Gate Template Group for this parameter combination
+        //     const newGateTemplateGroup = {
+        //         id: uuidv4(),
+        //         title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[options.selectedYParameterIndex].label,
+        //         creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+        //         selectedXParameterIndex: options.selectedXParameterIndex,
+        //         selectedYParameterIndex: options.selectedYParameterIndex,
+        //         selectedXScale: options.selectedXScale,
+        //         selectedYScale: options.selectedYScale,
+        //         machineType: FCSFile.machineType,
+        //         parentGateTemplateId: sample.gateTemplateId,
+        //         childGateTemplateIds: [],
+        //         expectedGates: [],
+        //         typeSpecificData: options
+        //     }
+
+        //     const newGateTemplates = gates.map((gate, index) => {
+        //         let gateTemplate
+
+        //         if (gate.type === constants.GATE_TYPE_POLYGON) {
+        //             gateTemplate = {
+        //                 id: uuidv4(),
+        //                 type: constants.GATE_TYPE_POLYGON,
+        //                 title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + (truePeaks[index].xGroup === 0 ? ' (LOW) · ' : ' (HIGH) · ') + FCSFile.FCSParameters[options.selectedYParameterIndex].label + (truePeaks[index].yGroup === 1 ? ' (LOW)' : ' (HIGH)'),
+        //                 creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+        //                 xGroup: truePeaks[index].xGroup,
+        //                 yGroup: truePeaks[index].yGroup,
+        //                 typeSpecificData: truePeaks[index].homologyParameters
+        //             }
+        //         } else if (gate.type === constants.GATE_TYPE_NEGATIVE) {
+        //             gateTemplate = {
+        //                 id: uuidv4(),
+        //                 type: constants.GATE_TYPE_NEGATIVE,
+        //                 title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[options.selectedYParameterIndex].label + ' Negative Gate',
+        //                 creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+        //                 typeSpecificData: {}
+        //             }
+        //         }
+
+        //         newGateTemplateGroup.childGateTemplateIds.push(gateTemplate.id)
+        //         gate.gateTemplateId = gateTemplate.id
+
+        //         const createGateTemplateAction = createGateTemplateAndAddToWorkspace(workspace.id, gateTemplate)
+        //         currentState = applicationReducer(currentState, createGateTemplateAction)
+        //         reduxStore.dispatch(createGateTemplateAction)
+        //         return gateTemplate
+        //     })
+
+        //     const createGateTemplateGroupAction = createGateTemplateGroupAndAddToWorkspace(workspace.id, newGateTemplateGroup)
+        //     currentState = applicationReducer(currentState, createGateTemplateGroupAction)
+        //     reduxStore.dispatch(createGateTemplateGroupAction)
+        // } else if (gates.length > 0) {
+        //     const gateTemplates = _.filter(currentState.gateTemplates, g => gateTemplateGroup.childGateTemplateIds.includes(g.id))
+        //     truePeaks.map((peak, index) => {
+        //         gates[index].gateTemplateId = _.find(gateTemplates, gt => gt.xGroup === peak.xGroup && gt.yGroup === peak.yGroup).id
+        //     })
+
+        //     // Delete previous gates on this plot
+        //     for (let gate of _.filter(currentState.gates, g => gateTemplateGroup.childGateTemplateIds.includes(g.gateTemplateId) && g.parentSampleId === sampleId)) {
+        //         await api.removeSample(gate.childSampleId)
+        //     }
+        // }
+
+
+        // for (let i = 0; i < gates.length; i++) {
+        //     const gate = gates[i]
+        //     console.log("CREATING NEW GATE", gate)
+        //     api.createSubSampleAndAddToWorkspace(
+        //         workspace.id,
+        //         sampleId,
+        //         {
+        //             filePath: sample.filePath,
+        //             FCSParameters: FCSFile.FCSParameters,
+        //             plotImages: {},
+        //             subSampleIds: [],
+        //             gateTemplateId: gate.gateTemplateId,
+        //             selectedXParameterIndex: options.selectedXParameterIndex,
+        //             selectedYParameterIndex: options.selectedYParameterIndex,
+        //             selectedXScale: options.selectedXScale,
+        //             selectedYScale: options.selectedYScale
+        //         },
+        //         gate,
+        //     )
+        // }
+
+        // let samplesToRecalculate = _.filter(currentState.samples, s => s.gateTemplateId === sample.gateTemplateId && s.id !== sample.id)
+        // // Recalculate the gates on other FCS files
+        // for (let sampleToRecalculate of samplesToRecalculate) {
+        //     api.applyGateTemplatesToSample(sampleToRecalculate.id)
+        // }
+
+        // const loadingFinishedAction = setSampleParametersLoading(sampleId, options.selectedXParameterIndex + '_' + options.selectedYParameterIndex, { loading: false, loadingMessage: null })
+        // currentState = applicationReducer(currentState, loadingFinishedAction)
+        // reduxStore.dispatch(loadingFinishedAction)
 
         return true
+    },
+
+    createUnsavedGatePolygons (gates) {
+        for (let gate of gates) {
+            gate.renderedPolygon = breakLongLinesIntoPoints(gate.gateData.expandedPolygons ? gate.gateData.expandedPolygons[gate.gateCreatorData.widthIndex] : gate.gateData.polygons[gate.gateCreatorData.widthIndex])
+        }
+
+        const overlapFixed = fixOverlappingPolygonsUsingZipper(gates.map(g => g.renderedPolygon))
+
+        for (let i = 0; i < overlapFixed.length; i++) {
+            gates[i].renderedPolygon = overlapFixed[i]
+        }
+    },
+
+    updateUnsavedGate(gateId, parameters) {
+        const gateIndex = _.findIndex(currentState.unsavedGates, g => g.id === gateId)
+        if (gateIndex > -1) {
+            const newGate = _.merge(_.cloneDeep(currentState.unsavedGates[gateIndex]), parameters)
+            newGate.gateCreatorData.widthIndex = Math.min(newGate.gateCreatorData.widthIndex, newGate.gateData.polygons.length - 1)
+            const newUnsavedGates = currentState.unsavedGates.slice(0, gateIndex).concat(newGate).concat(currentState.unsavedGates.slice(gateIndex + 1))
+            api.createUnsavedGatePolygons(newUnsavedGates)
+        
+            const setUnsavedGatesAction = setUnsavedGates(newUnsavedGates)
+            currentState = applicationReducer(currentState, setUnsavedGatesAction)
+            reduxStore.dispatch(setUnsavedGatesAction)
+        } else {
+            console.log('Error in updateUnsavedGate: no gate with id ', gateId, 'was found.')
+        }
     },
 
     recursiveHomology: async (sampleId) => {

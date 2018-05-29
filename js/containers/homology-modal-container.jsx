@@ -22,6 +22,7 @@ const mapStateToProps = (state, ownProps) => {
         selectedGateTemplate,
         selectedSample,
         gateHasChildren,
+        unsavedGates: state.unsavedGates,
         plotWidth: state.plotWidth,
         plotHeight: state.plotHeight,
         modalOptions: state.modals.homology,

@@ -125,4 +125,33 @@ const getScales = (options) => {
     return scales
 }
 
-export { heatMapHSLStringForValue, heatMapRGBForValue, getPlotImageKey, getScales, getPolygonCenter, kernelDensityEstimator, kernelEpanechnikov }
+// Get the min and max points of a polygon. See return value.
+function getPolygonBoundaries (points, index) {
+    let minX = Infinity
+    let maxX = -Infinity
+
+    let minY = Infinity
+    let maxY = -Infinity
+
+    for (let point of points) {
+        if (point[0] < minX) {
+            minX = point[0]
+        }
+
+        if (point[0] > maxX) {
+            maxX = point[0]
+        }
+
+        if (point[1] < minY) {
+            minY = point[1]
+        }
+
+        if (point[1] > maxY) {
+            maxY = point[1]
+        }
+    }
+
+    return [ [ minX, maxX ], [ minY, maxY ] ]
+}
+
+export { heatMapHSLStringForValue, heatMapRGBForValue, getPlotImageKey, getScales, getPolygonCenter, kernelDensityEstimator, kernelEpanechnikov, getPolygonBoundaries }

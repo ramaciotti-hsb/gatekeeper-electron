@@ -2689,6 +2689,10 @@ convert-source-map@^1.5.0:
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/convert-source-map/-/convert-source-map-1.5.0.tgz#9acd70851c6d5dfdd93d9282e5edf94a03ff46b5"
 
+convexhull-js@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/convexhull-js/-/convexhull-js-1.0.0.tgz#e7d7ade8920eddc9ded5fac2f30318328263e02d"
+
 cookie-signature@1.0.6:
   version "1.0.6"
   resolved "https://registry.yarnpkg.com/cookie-signature/-/cookie-signature-1.0.6.tgz#e303a882b342cc3ee8ca513a79999734dab3ae2c"

@@ -31,43 +31,59 @@ const mapStateToProps = (state, ownProps) => {
             newSample.subSampleIds = null
         }
 
-        // Find any gates on this plot
-        const gates = []
-        for (let gate of state.gates) {
-            let selectedXParameterIndex = ownProps.selectedXParameterIndex
-            let selectedYParameterIndex = ownProps.selectedYParameterIndex
-            if (gate.parentSampleId === ownProps.sampleId
-                && gate.selectedXParameterIndex === selectedXParameterIndex
-                && gate.selectedYParameterIndex === selectedYParameterIndex) {
-                gates.push(gate)
-            }
-        }
-
-        // Find gate templates that gates refer to
-        const gateTemplates = gates.map(g => _.find(state.gateTemplates, gt => g.gateTemplateId === gt.id))
-        // Find gate template groups that templates are in
-        const gateTemplateGroups = gateTemplates.map(gt => _.find(state.gateTemplateGroups, g => g.childGateTemplateIds.includes(gt.id)))
-
         // Find the parent sample if there is one
         const parent = _.find(state.samples, s => s.subSampleIds.includes(ownProps.sampleId))
         if (parent) {
             newSample.parentTitle = parent.title
         }
 
-        return {
-            api: state.api,
-            workspace,
-            sample: newSample,
-            gates,
-            gateTemplates,
-            gateTemplateGroups,
-            FCSFile,
-            plotWidth: state.plotWidth,
-            plotHeight: state.plotHeight,
-            plotDisplayWidth: state.plotDisplayWidth,
-            plotDisplayHeight: state.plotDisplayHeight,
-            machineType: FCSFile.machineType,
-            backgroundJobsEnabled: state.backgroundJobsEnabled 
+        if (ownProps.gates) {
+            return {
+                api: state.api,
+                workspace,
+                sample: newSample,
+                gates: ownProps.gates,
+                FCSFile,
+                plotWidth: state.plotWidth,
+                plotHeight: state.plotHeight,
+                plotDisplayWidth: ownProps.plotDisplayWidth || state.plotDisplayWidth,
+                plotDisplayHeight: ownProps.plotDisplayHeight || state.plotDisplayHeight,
+                machineType: FCSFile.machineType,
+                backgroundJobsEnabled: state.backgroundJobsEnabled 
+            }
+        } else {
+            // Find any gates on this plot
+            const gates = []
+            for (let gate of state.gates) {
+                let selectedXParameterIndex = ownProps.selectedXParameterIndex
+                let selectedYParameterIndex = ownProps.selectedYParameterIndex
+                if (gate.parentSampleId === ownProps.sampleId
+                    && gate.selectedXParameterIndex === selectedXParameterIndex
+                    && gate.selectedYParameterIndex === selectedYParameterIndex) {
+                    gates.push(gate)
+                }
+            }
+
+            // Find gate templates that gates refer to
+            const gateTemplates = gates.map(g => _.find(state.gateTemplates, gt => g.gateTemplateId === gt.id))
+            // Find gate template groups that templates are in
+            const gateTemplateGroups = gateTemplates.map(gt => _.find(state.gateTemplateGroups, g => g.childGateTemplateIds.includes(gt.id)))
+
+            return {
+                api: state.api,
+                workspace,
+                sample: newSample,
+                gates,
+                gateTemplates,
+                gateTemplateGroups,
+                FCSFile,
+                plotWidth: state.plotWidth,
+                plotHeight: state.plotHeight,
+                plotDisplayWidth: ownProps.plotDisplayWidth || state.plotDisplayWidth,
+                plotDisplayHeight: ownProps.plotDisplayHeight || state.plotDisplayHeight,
+                machineType: FCSFile.machineType,
+                backgroundJobsEnabled: state.backgroundJobsEnabled 
+            }
         }
     } else {
         return { api: state.api, gates: [], gateTemplates: [], workspace, FCSFile, plotWidth: state.plotWidth, plotHeight: state.plotHeight, backgroundJobsEnabled: state.backgroundJobsEnabled }

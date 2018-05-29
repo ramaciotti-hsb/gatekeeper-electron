@@ -28,6 +28,7 @@
     "babel-cli": "^6.26.0",
     "babel-preset-env": "^1.6.1",
     "body-parser": "^1.18.2",
+    "convexhull-js": "^1.0.0",
     "copy-webpack-plugin": "^4.5.1",
     "d3": "^4.12.0",
     "distance-to-polygon": "^2.0.2",

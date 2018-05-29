@@ -130,6 +130,112 @@
                     }
                 }
             }
+
+            .unsaved-gates {
+                flex-grow: 1;
+                background: #fafafa;
+                flex-direction: column;
+                font-size: 12px;
+
+                & > .title {
+                    font-size: 18px;
+                    color: #777;
+                    font-weight: 200;
+                    padding: 15px;
+                    border-bottom: 1px solid #ddd;
+
+                    .text {
+                        flex-grow: 1;
+                    }
+
+                    .lnr-cross {
+                        font-size: 26px;
+                        cursor: pointer;
+                        @include foregroundHover(#888);
+                        @include foregroundClick(#888);
+                    }
+                }
+
+                .gates {
+                    flex-grow: 1;
+                    overflow-y: scroll;
+                    padding: 0;
+                    align-items: stretch;
+                    flex-direction: column;
+
+                    .gate {
+                        padding: 10px;
+                        border-bottom: 1px solid #ddd;
+                        flex-direction: column;
+
+                        & > .title {
+                            font-size: 13px;
+                            font-weight: 600;
+                            margin-bottom: 10px;
+                        }
+
+                        .width {
+
+                            i {
+                                font-size: 18px;
+                                margin-right: 5px;
+                                cursor: pointer;
+
+                                &:hover {
+                                    color: #555;
+                                }
+
+                                &:active {
+                                    color: $highlight-colour;
+                                }
+                            }
+                        }
+
+                        .parameter {
+                            align-items: center;
+
+                            .text {
+                                flex-grow: 1;
+                            }
+
+                            .value {
+                                margin-right: 5px;
+                                font-size: 18px;
+                                color: #aaa;
+                            }
+                        }
+
+                        .cytof-options {
+                            margin-top: 10px;
+                            flex-direction: column;
+
+                            .title {
+                                font-weight: 600;
+                                color: darken($highlight-colour, 40%);
+                                margin-bottom: 10px;
+                            }
+
+                            .parameter {
+                                cursor: point;
+                                margin-bottom: 10px;
+                                cursor: pointer;
+                                @include foregroundHover(#555)
+                                @include foregroundClick(#555)
+
+                                &.active {
+                                    @include foregroundHover($highlight-colour)
+                                    @include foregroundClick($highlight-colour)
+                                }
+
+                                i {
+                                    font-size: 18px;
+                                    margin-right: 5px;
+                                }
+                            }
+                        }
+                    } // .gate
+                }
+            } // .unsaved-gates
         } // .lower
     } // .homology-modal-inner
 } // .homology-modal-outer

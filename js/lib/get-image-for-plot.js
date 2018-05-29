@@ -151,9 +151,9 @@ export default async (sample, FCSFile, subPopulation, options) => {
         PNGFile = tempPNGFile
     }
 
-    const directory = path.join(options.directory, 'sample-images', sample.id)
+    const directory = path.join(options.assetDirectory, 'sample-images', sample.id)
     const sampleKey = getPlotImageKey(_.merge(options, FCSFile))
-    const fileName = `${directory}/${sampleKey}.png`
+    const fileName = path.join(directory, `${sampleKey}.png`)
     await mkdirpPromise(directory)
     return await packPNGFile(PNGFile, fileName)
 }

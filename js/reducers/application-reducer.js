@@ -32,6 +32,7 @@ let initialState = {
             selectedYParameterIndex: 1
         }
     },
+    unsavedGates: null,
     // These values determine how large the plots generated on the backend are
     plotWidth: 500,
     plotHeight: 500,
@@ -136,6 +137,12 @@ const applicationReducer = (state = initialState, action) => {
     else if (action.type === 'SET_PLOT_DISPLAY_DIMENSIONS') {
         newState.plotDisplayWidth = action.payload.plotDisplayWidth
         newState.plotDisplayHeight = action.payload.plotDisplayHeight
+    }
+    // --------------------------------------------------
+    // Sets unsaved gates which will display on the auto gating modal
+    // --------------------------------------------------
+    else if (action.type === 'SET_UNSAVED_GATES') {
+        newState.unsavedGates = _.cloneDeep(action.payload.unsavedGates)
     }
     // --------------------------------------------------
     // Create a new workspace and select it

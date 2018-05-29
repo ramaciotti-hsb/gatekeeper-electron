@@ -37,3 +37,10 @@ export const toggleShowDisabledParameters = () => {
         type: 'TOGGLE_SHOW_DISABLED_PARAMETERS'
     }
 }
+
+export const setUnsavedGates = (unsavedGates) => {
+    return {
+        type: 'SET_UNSAVED_GATES',
+        payload: { unsavedGates }
+    }
+}

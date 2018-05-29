@@ -33,6 +33,9 @@ export default class BivariatePlot extends Component {
             selectedYScale: this.props.selectedYScale || this.props.workspace.selectedYScale,
             machineType: this.props.FCSFile.machineType || this.props.workspace.machineType
         }
+
+        this.cacheImageKey = null
+        this.cacheImage = null
     }
 
     // -------------------------------------------------------------------------
@@ -250,12 +253,11 @@ export default class BivariatePlot extends Component {
         if (!this.props.sample.plotImages[getPlotImageKey(this.props)]) { return }
         
         var context = canvas.node().getContext('2d')
-        const image = new Image()
-        image.src = this.props.sample.plotImages[getPlotImageKey(this.props)]
 
-        const redrawGraph = () => {
-            context.drawImage(image, 0, 0, this.props.plotDisplayWidth, this.props.plotDisplayHeight)
+        const widthDisplayRatio = this.props.plotDisplayWidth / this.props.plotWidth
+        const heightDisplayRatio = this.props.plotDisplayHeight / this.props.plotHeight
 
+        const redrawGraph = (cacheImage) => {
             // Determine if there are any 2d gates in the subsamples that match these parameters
             let gatesExist = false
             for (let gate of this.props.gates) {
@@ -266,52 +268,58 @@ export default class BivariatePlot extends Component {
             }
             gatesExist = this.state.homologyPeaks.length === 0 && gatesExist
 
+            context.drawImage(cacheImage, 0, 0, this.props.plotDisplayWidth, this.props.plotDisplayHeight)
+            const imageData = context.getImageData(0, 0, this.props.plotDisplayWidth, this.props.plotDisplayHeight);
+            const data = imageData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                // Inside the gate, render as greyscale
+                const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                data[i]     = avg; // red
+                data[i + 1] = avg; // green
+                data[i + 2] = avg; // blue
+            }
+            
+            context.putImageData(imageData, 0, 0);
+
             if (gatesExist) {
                 // Redraw the image and greyscale any points that are outside the gate
-                const imageData = context.getImageData(0, 0, this.props.plotDisplayWidth, this.props.plotDisplayHeight);
-                const data = imageData.data;
-                let gatesToRender = _.filter(this.props.gates, g => g.type === constants.GATE_TYPE_POLYGON)
+                context.beginPath();
 
-                const gateData = gatesToRender.map((gate) => {
-                    const toReturn = {
-                        gateData: gate.gateData.map(p => [ Math.floor(scales.xScale(p[0])) + xOffset, Math.floor(scales.yScale(p[1])) ])
-                    }
-                    if (gate.xCutoffs) {
-                        toReturn.xCutoffs = gate.xCutoffs.map(p => Math.floor(scales.yScale(p)))                        
-                    }
-                    if (gate.yCutoffs) {
-                        toReturn.yCutoffs = gate.yCutoffs.map(p => Math.floor(scales.xScale(p)))                        
-                    }
-                    return toReturn
-                })
+                for (let gate of this.props.gates) {
+                    if (gate.type !== constants.GATE_TYPE_POLYGON) { return }
 
-                for (let i = 0; i < data.length; i += 4) {
-                    // Get the position of the pixel as X and Y in real space
-                    const position = [
-                        i % (this.props.plotDisplayWidth * 4) / 4,
-                        Math.floor(i / (this.props.plotDisplayWidth * 4))
-                    ]
+                    const polygon = gate.renderedPolygon.map(p => [ (p[0] * widthDisplayRatio) + xOffset, p[1] * heightDisplayRatio ])
 
-                    let shouldGreyscale = true
-                    for (let gate of gateData) {
-                        if (pointInsidePolygon(position, gate.gateData)) {
-                            shouldGreyscale = false
-                        } else if ((position[0] < xOffset && gate.xCutoffs && position[1] >= gate.xCutoffs[0] && position[1] <= gate.xCutoffs[1])
-                            || (position[1] > this.props.plotDisplayHeight - yOffset && gate.yCutoffs && position[0] >= gate.yCutoffs[0] + xOffset && position[0] <= gate.yCutoffs[1] + xOffset)) {
-                            shouldGreyscale = false
-                        }
+                    context.moveTo(polygon[0][0], polygon[0][1])
+                    for (let i = 1; i < polygon.length; i++) {
+                        context.lineTo(polygon[i][0], polygon[i][1])
+                    }
+                    context.lineTo(polygon[0][0], polygon[0][1])
+
+                    if (gate.gateData.xCutoffs) {
+                        const xCutoffs = gate.gateData.xCutoffs.map(cutoff => cutoff * widthDisplayRatio)
+                        context.moveTo(0, xCutoffs[0])
+                        context.lineTo(xOffset, xCutoffs[0])
+                        context.lineTo(xOffset, xCutoffs[2])
+                        context.lineTo(0, xCutoffs[2])
+                        context.lineTo(0, xCutoffs[0])
                     }
 
-                    if (shouldGreyscale) {
-                        // Inside the gate, render as greyscale
-                        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                        data[i]     = avg; // red
-                        data[i + 1] = avg; // green
-                        data[i + 2] = avg; // blue
+                    if (gate.gateData.yCutoffs) {
+                        const yCutoffs = gate.gateData.yCutoffs.map(cutoff => cutoff * heightDisplayRatio)
+                        context.moveTo(yCutoffs[0] + xOffset, this.props.plotDisplayWidth)
+                        context.lineTo(yCutoffs[0] + xOffset, this.props.plotDisplayWidth - yOffset)
+                        context.lineTo(yCutoffs[2] + xOffset, this.props.plotDisplayWidth - yOffset)
+                        context.lineTo(yCutoffs[2] + xOffset, this.props.plotDisplayWidth)
+                        context.lineTo(yCutoffs[0] + xOffset, this.props.plotDisplayWidth)
                     }
                 }
-                
-                context.putImageData(imageData, 0, 0);
+
+                context.closePath();
+                context.clip();
+
+                context.drawImage(cacheImage, 0, 0, this.props.plotDisplayWidth, this.props.plotDisplayHeight)
             } else if (this.state.homologyHeight < 100) {
                 // Redraw the image and greyscale any points that are outside the gate
                 const imageData = context.getImageData(0, 0, this.props.plotDisplayWidth, this.props.plotDisplayHeight);
@@ -319,28 +327,11 @@ export default class BivariatePlot extends Component {
                 let gatesToRender = []
 
                 for (let i = 0; i < data.length; i += 4) {
-                    // Get the position of the pixel as X and Y
-                    const position = [
-                        (i % (this.props.plotDisplayWidth * 4)) / 4,
-                        Math.floor(i / (this.props.plotDisplayWidth * 4))
-                    ]
-
-                    if (position[0] < xOffset || position[1] > this.props.plotDisplayHeight - yOffset) {
-                        continue
-                    }
-
-                    // console.log(this.state.densityMap.densityMap[Math.floor(i / (this.props.plotDisplayWidth * 4))])
-                    let shouldGreyscale = !this.state.densityMap.densityMap[position[1]]
-                        || !this.state.densityMap.densityMap[position[1]][position[0] - xOffset]
-                        || this.state.densityMap.densityMap[position[1]][position[0] - xOffset] < (this.state.homologyHeight / this.state.densityMap.maxDensity) * 100
-
-                    if (shouldGreyscale) {
-                        // Inside the gate, render as greyscale
-                        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                        data[i]     = avg; // red
-                        data[i + 1] = avg; // green
-                        data[i + 2] = avg; // blue
-                    }
+                    // Inside the gate, render as greyscale
+                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    data[i]     = avg; // red
+                    data[i + 1] = avg; // green
+                    data[i + 2] = avg; // blue
                 }
                 
                 context.putImageData(imageData, 0, 0);
@@ -356,14 +347,23 @@ export default class BivariatePlot extends Component {
                     context.closePath()
                     context.stroke()
                 }
+            } else {
+                context.drawImage(cacheImage, 0, 0, this.props.plotDisplayWidth, this.props.plotDisplayHeight)
             }
-
 
             let selectionMinX, selectionMaxX, selectionMinY, selectionMaxY
         }
 
-        image.onload = () => {
-            redrawGraph()
+        if (this.cacheImageKey !== getPlotImageKey(this.props)) {
+            this.cacheImageKey = getPlotImageKey(this.props)
+            this.cacheImage = new Image()
+            this.cacheImage.src = this.props.sample.plotImages[getPlotImageKey(this.props)]            
+        } else {
+            redrawGraph(this.cacheImage)
+        }
+
+        this.cacheImage.onload = () => {
+            redrawGraph(this.cacheImage)
         }
     }
 
@@ -399,7 +399,15 @@ export default class BivariatePlot extends Component {
         }
 
         for (let i = 0; i < prevPropGates.length; i++) {
-            if (prevPropGates[i].polygon && prevPropGates[i].length !== this.props.gates[i].polygon.length) {
+            if (!this.props.gates[i]) {
+                shouldReset = true;
+            }
+            // If there are more points in one of the new gates
+            else if (prevPropGates[i].polygon && prevPropGates[i].length !== this.props.gates[i].polygon.length) {
+                shouldReset = true
+            }
+            // If the gate's widthIndex has changed
+            else if (prevPropGates[i].gateCreatorData.widthIndex !== this.props.gates[i].gateCreatorData.widthIndex) {
                 shouldReset = true
             }
         }
@@ -455,12 +463,14 @@ export default class BivariatePlot extends Component {
         })
 
         let tooltip
+        const widthDisplayRatio = this.props.plotDisplayWidth / this.props.plotWidth
+        const heightDisplayRatio = this.props.plotDisplayHeight / this.props.plotHeight
         const gates = this.props.gates.map((gate) => {
             const gateTemplate = _.find(this.props.gateTemplates, gt => gt.id === gate.gateTemplateId)
             const gateTemplateGroup = _.find(this.props.gateTemplateGroups, g => g.childGateTemplateIds.includes(gateTemplate.id))
 
             if (gate.type === constants.GATE_TYPE_POLYGON) {
-                const scaledPoints = gate.gateData.map(p => [ Math.floor(scales.xScale(p[0])) + xOffset, Math.floor(scales.yScale(p[1])) ])
+                const scaledPoints = gate.renderedPolygon.map(p => [ (p[0] * widthDisplayRatio) + xOffset, p[1] * heightDisplayRatio ])
                 const points = scaledPoints.reduce((string, point) => {
                     return string + point[0] + " " + point[1] + " "
                 }, "")
@@ -508,15 +518,25 @@ export default class BivariatePlot extends Component {
                     )
                 }
 
-                return (
-                    <svg onMouseEnter={this.props.updateGateTemplate.bind(null, gateTemplate.id, { highlighted: true })}
-                        onMouseLeave={this.props.updateGateTemplate.bind(null, gateTemplate.id, { highlighted: false })}
-                        onContextMenu={this.showGateTooltip.bind(this, gate.id)}
-                        onClick={this.selectGateTemplate.bind(this, gate.gateTemplateId)}
-                        key={gate.id}>
-                        <polygon points={points} className={'gate' + (gateTemplate.highlighted ? ' highlighted' : '')} />
-                    </svg>
-                )
+                // If this is a real gate template, link mouse events to gate templates and sub samples
+                if (gateTemplate) {
+                    return (
+                        <svg onMouseEnter={this.props.updateGateTemplate.bind(null, gateTemplate.id, { highlighted: true })}
+                            onMouseLeave={this.props.updateGateTemplate.bind(null, gateTemplate.id, { highlighted: false })}
+                            onContextMenu={this.showGateTooltip.bind(this, gate.id)}
+                            onClick={this.selectGateTemplate.bind(this, gate.gateTemplateId)}
+                            key={gate.id}>
+                            <polygon points={points} className={'gate' + (gateTemplate.highlighted ? ' highlighted' : '')} />
+                        </svg>
+                    )
+                // If these are unsaved, sample gates, link them to modal actions
+                } else {
+                    return (
+                        <svg key={gate.id}>
+                            <polygon points={points} className={'gate'} />
+                        </svg>
+                    )
+                }
             }
         })
 

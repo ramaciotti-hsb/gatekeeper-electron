@@ -4,10 +4,12 @@
 
 import constants from './constants'
 import fs from 'fs'
+import mkdirp from 'mkdirp'
 import FCS from 'fcs'
 import _ from 'lodash'
+import path from 'path'
 import * as d3 from 'd3'
-import { getScales, kernelDensityEstimator, kernelEpanechnikov } from './utilities'
+import { getScales, kernelDensityEstimator, kernelEpanechnikov, getPlotImageKey } from './utilities'
 
 // Wrap the read file function from FS in a promise
 const readFileBuffer = (path) => {
@@ -16,6 +18,25 @@ const readFileBuffer = (path) => {
             if (err) rej(err)
             else res(buffer)
         })
+    })
+}
+
+// Wrap the read file function from FS in a promise
+const readFile = (path, opts = 'utf8') => {
+    return new Promise((res, rej) => {
+        fs.readFile(path, opts, (err, data) => {
+            if (err) rej(err)
+            else res(data)
+        })
+    })
+}
+
+const mkdirpPromise = (directory) => {
+    return new Promise((resolve, reject) => {
+        mkdirp(directory, function (error) {
+            if (error) { console.error(error) && reject(error) }
+            resolve()
+        });
     })
 }
 
@@ -36,7 +57,7 @@ const getFCSFileFromPath = async (filePath) => {
     }
 }
 
-export default async function getPopulationForSample (sample, FCSFile, options) {
+async function getPopulationForSampleInternal (sample, FCSFile, options) {
     process.stdout.write(JSON.stringify({ data: 'Reading FCS File: ' + FCSFile.filePath }))
     let FCSFileData
     try  {
@@ -66,10 +87,10 @@ export default async function getPopulationForSample (sample, FCSFile, options) 
                 }
                 // Every point that has a zero in the selected X channel
                 else if (FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex] === 0) {
-                    xChannelZeroes.push(FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex])
+                    xChannelZeroes.push([ FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], i ])
                 // Every point that has a zero in the selected Y channel
                 } else if (FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex] === 0) {
-                    yChannelZeroes.push(FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex])
+                    yChannelZeroes.push([ FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex], i ])
                 } else {
                     aboveZeroPopulation.push([ FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex], FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], i ])
                 }
@@ -149,37 +170,6 @@ export default async function getPopulationForSample (sample, FCSFile, options) 
             }
         }
 
-        // const scale = d3.scaleLog().range([0, 1]domain([1, maxDensity])
-        // maxDensity = 1
-        // for (let y = 0; y < pointCache.length; y++) {
-        //     if (!pointCache[y]) { continue }
-        //     for (let x = 0; x < pointCache[y].length; x++) {
-        //         if (!pointCache[y][x]) { continue }
-        //         pointCache[y][x] = scale(pointCache[y][x])
-        //     }   
-        // }
-
-        // let meanDensity = 0
-        // for (let y = 0; y < pointCache.length; y++) {
-        //     if (!pointCache[y]) { continue }
-        //     for (let x = 0; x < pointCache[y].length; x++) {
-        //         if (!pointCache[y][x]) { continue }
-        //         meanDensity += pointCache[y][x] / ((options.plotWidth - xOffset) * (options.plotHeight - yOffset))
-        //     }   
-        // }
-
-        // // Normalize any extreme outliers from the mean density
-        // for (let y = 0; y < pointCache.length; y++) {
-        //     if (!pointCache[y]) { continue }
-        //     for (let x = 0; x < pointCache[y].length; x++) {
-        //         if (!pointCache[y][x]) { continue }
-        //         if (pointCache[y][x] > meanDensity * 15) {
-        //             const difference = Math.min((maxDensity - pointCache[y][x]) / (maxDensity - (meanDensity * 15)) + 0.5, 1)
-        //             pointCache[y][x] = (meanDensity * 15) + (pointCache[y][x] - meanDensity * 15) * difference
-        //         }
-        //     }   
-        // }
-
         return {
             densityMap: pointCache,
             maxDensity,
@@ -193,16 +183,18 @@ export default async function getPopulationForSample (sample, FCSFile, options) 
         let maxDensity = 0
         
         for (let i = 0; i < points.length; i++) {
-            const point = points[i]
+            const point = points[i][0]
 
             const val = Math.round(scale(point))
+
+            if (val < 0) { continue }
 
             if (!pointCache[val]) {
                 pointCache[val] = 1
             }
 
             // Increment the density of neighbouring points
-            for (let j = val - densityWidth; j < val + densityWidth; j++) {
+            for (let j = Math.max(val - densityWidth, 0); j < Math.min(val + densityWidth, pointCache.length); j++) {
                 if (j === val) { continue }
                 const density = pointCache[j]
 
@@ -245,7 +237,7 @@ export default async function getPopulationForSample (sample, FCSFile, options) 
         realMaxDensity = Math.max(realMaxDensity, zeroDensityY.maxDensity)
     }
 
-    return {
+    const toReturn = {
         subPopulation,
         aboveZeroPopulation,
         xChannelZeroes,
@@ -254,5 +246,26 @@ export default async function getPopulationForSample (sample, FCSFile, options) 
         zeroDensityX,
         zeroDensityY,
         maxDensity: realMaxDensity
+    }
+
+    const directory = path.join(options.assetDirectory, 'sample-images', sample.id)
+    const sampleKey = getPlotImageKey(_.merge(options, FCSFile))
+    const fileName = path.join(directory, `${sampleKey}.json`)
+    await mkdirpPromise(directory)
+    fs.writeFile(fileName, JSON.stringify(toReturn), () => { console.log('population data saved to disk') })
+
+    return toReturn
+}
+
+export default async function getPopulationForSample (sample, FCSFile, options) {
+    const directory = path.join(options.assetDirectory, 'sample-images', sample.id)
+    const sampleKey = getPlotImageKey(_.merge(options, FCSFile))
+    const fileName = path.join(directory, `${sampleKey}.json`)
+
+    try {
+        const cacheFile = await readFile(fileName)
+        return JSON.parse(cacheFile)
+    } catch (error) {
+        return await getPopulationForSampleInternal(sample, FCSFile, options)
     }
 }

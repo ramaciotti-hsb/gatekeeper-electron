@@ -93,12 +93,7 @@ if (cluster.isMaster) {
                             })
                         }
                     }).then((population) => {
-                        const homology = new PersistentHomology({
-                            sample: body.payload.sample,
-                            FCSFile: body.payload.FCSFile,
-                            population,
-                            options: body.payload.options
-                        })
+                        const homology = new PersistentHomology(population, body.payload.FCSFile, body.payload.options)
                         let percentageComplete = 0
                         const data = homology.findPeaks((message) => {
                             // console.log({ jobId: jobId, type: 'loading-update', data: message })
@@ -125,18 +120,12 @@ if (cluster.isMaster) {
                             })
                         }
                     }).then((population) => {
-                        const homology = new PersistentHomology({
-                            sample: body.payload.sample,
-                            FCSFile: body.payload.FCSFile,
-                            population,
-                            options: body.payload.options,
-                            gateTemplates: body.payload.gateTemplates
-                        })
+                        const homology = new PersistentHomology(population, body.payload.FCSFile, body.payload.options)
                         let percentageComplete = 0
                         const data = homology.findPeaksWithTemplate((message) => {
                             // console.log({ jobId: jobId, type: 'loading-update', data: message })
                             // res.send({ jobId: jobId, type: 'loading-update', data: message })
-                        })
+                        }, body.payload.gateTemplates)
                         res.end(JSON.stringify(data))
                     }).catch((error) => {
                         console.log(error)
