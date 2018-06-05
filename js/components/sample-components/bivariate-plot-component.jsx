@@ -260,7 +260,8 @@ export default class BivariatePlot extends Component {
         const redrawGraph = (cacheImage) => {
             // Determine if there are any 2d gates in the subsamples that match these parameters
             let gatesExist = false
-            for (let gate of this.props.gates) {
+            let filteredGates = _.filter(this.props.gates, g => g.type === constants.GATE_TYPE_POLYGON)
+            for (let gate of filteredGates) {
                 if (gate.selectedXParameterIndex === this.props.selectedXParameterIndex && 
                     gate.selectedYParameterIndex === this.props.selectedYParameterIndex) {
                     gatesExist = true
@@ -286,7 +287,7 @@ export default class BivariatePlot extends Component {
                 // Redraw the image and greyscale any points that are outside the gate
                 context.beginPath();
 
-                for (let gate of this.props.gates) {
+                for (let gate of filteredGates) {
                     if (gate.type !== constants.GATE_TYPE_POLYGON) { return }
 
                     const polygon = gate.renderedPolygon.map(p => [ (p[0] * widthDisplayRatio) + xOffset, p[1] * heightDisplayRatio ])
@@ -297,7 +298,7 @@ export default class BivariatePlot extends Component {
                     }
                     context.lineTo(polygon[0][0], polygon[0][1])
 
-                    if (gate.gateData.xCutoffs) {
+                    if (gate.gateData.xCutoffs && gate.gateCreatorData.includeXChannelZeroes !== false) {
                         const xCutoffs = gate.gateData.xCutoffs.map(cutoff => cutoff * widthDisplayRatio)
                         context.moveTo(0, xCutoffs[0])
                         context.lineTo(xOffset, xCutoffs[0])
@@ -306,7 +307,7 @@ export default class BivariatePlot extends Component {
                         context.lineTo(0, xCutoffs[0])
                     }
 
-                    if (gate.gateData.yCutoffs) {
+                    if (gate.gateData.yCutoffs && gate.gateCreatorData.includeYChannelZeroes !== false) {
                         const yCutoffs = gate.gateData.yCutoffs.map(cutoff => cutoff * heightDisplayRatio)
                         context.moveTo(yCutoffs[0] + xOffset, this.props.plotDisplayWidth)
                         context.lineTo(yCutoffs[0] + xOffset, this.props.plotDisplayWidth - yOffset)
@@ -354,8 +355,8 @@ export default class BivariatePlot extends Component {
             let selectionMinX, selectionMaxX, selectionMinY, selectionMaxY
         }
 
-        if (this.cacheImageKey !== getPlotImageKey(this.props)) {
-            this.cacheImageKey = getPlotImageKey(this.props)
+        if (this.cacheImageKey !== this.props.sample.id + '_' + getPlotImageKey(this.props)) {
+            this.cacheImageKey = this.props.sample.id + '_' + getPlotImageKey(this.props)
             this.cacheImage = new Image()
             this.cacheImage.src = this.props.sample.plotImages[getPlotImageKey(this.props)]            
         } else {
@@ -408,6 +409,10 @@ export default class BivariatePlot extends Component {
             }
             // If the gate's widthIndex has changed
             else if (prevPropGates[i].gateCreatorData.widthIndex !== this.props.gates[i].gateCreatorData.widthIndex) {
+                shouldReset = true
+            }
+            // If the inclusion of zero value data has changed
+            else if (prevPropGates[i].gateCreatorData.includeXChannelZeroes !== this.props.gates[i].gateCreatorData.includeXChannelZeroes || prevPropGates[i].gateCreatorData.includeYChannelZeroes !== this.props.gates[i].gateCreatorData.includeYChannelZeroes) {
                 shouldReset = true
             }
         }
@@ -465,7 +470,7 @@ export default class BivariatePlot extends Component {
         let tooltip
         const widthDisplayRatio = this.props.plotDisplayWidth / this.props.plotWidth
         const heightDisplayRatio = this.props.plotDisplayHeight / this.props.plotHeight
-        const gates = this.props.gates.map((gate) => {
+        const gates = _.filter(this.props.gates, g => g.type === constants.GATE_TYPE_POLYGON).map((gate) => {
             const gateTemplate = _.find(this.props.gateTemplates, gt => gt.id === gate.gateTemplateId)
             const gateTemplateGroup = _.find(this.props.gateTemplateGroups, g => g.childGateTemplateIds.includes(gateTemplate.id))
 

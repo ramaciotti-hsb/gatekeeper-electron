@@ -144,34 +144,183 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
             }
             if (!pointCache[yVal][xVal]) {
                 pointCache[yVal][xVal] = 1
+            } else {
+                pointCache[yVal][xVal] += 1
             }
 
-            // Increment the density of neighbouring points
-            for (let y = yVal - densityWidth; y < yVal + densityWidth; y++) {
-                const columnDens = pointCache[y]
-                if (!columnDens) {
-                    pointCache[y] = []
+            // // Increment the density of neighbouring points
+            // for (let y = Math.max(yVal - densityWidth, 0); y < Math.min(yVal + densityWidth, pointCache.length); y++) {
+            //     const columnDens = pointCache[y]
+            //     if (!columnDens) {
+            //         pointCache[y] = []
+            //     }
+
+            //     for (let x = Math.max(xVal - densityWidth, 0); x < xVal + densityWidth; x++) {
+            //         if (x === xVal && y === yVal) { continue }
+
+            //         const rowDens = pointCache[y][x]
+            //         if (!rowDens) {
+            //             pointCache[y][x] = ((1 - Math.abs(xVal - x) / densityWidth) + (1 - Math.abs(yVal - y) / densityWidth))
+            //             // console.log(pointCache[y][x])
+            //         } else {
+            //             pointCache[y][x] += ((1 - Math.abs(xVal - x) / densityWidth) + (1 - Math.abs(yVal - y) / densityWidth))
+            //             if (pointCache[y][x] > maxDensity) {
+            //                 maxDensity = pointCache[y][x]
+            //             }
+            //         }
+            //     }
+            // }
+        }
+
+        const newDensityMap = Array(options.plotHeight).fill(0)
+
+        for (let y = 0; y < options.plotHeight; y++) {
+            newDensityMap[y] = Array(options.plotWidth).fill(0)
+
+            // console.log('row', y)
+            let incrementors = []
+            for (let x = 0; x < options.plotWidth; x++) {
+
+                for (let i = 0; i < incrementors.length; i++) {
+                    incrementors[i].currentValue -= incrementors[i].originalValue / densityWidth
+
+                    if (Math.round(incrementors[i].currentValue * 10) / 10 === 0) {
+                        incrementors.splice(i, 1)
+                        i--
+                    }
                 }
 
-                for (let x = xVal - densityWidth; x < xVal + densityWidth; x++) {
-                    if (x === xVal && y === yVal) { continue }
+                // console.log('incrementors', incrementors)
 
-                    const rowDens = pointCache[y][x]
-                    if (!rowDens) {
-                        pointCache[y][x] = ((1 - Math.abs(xVal - x) / densityWidth) + (1 - Math.abs(yVal - y) / densityWidth))
-                        // console.log(pointCache[y][x])
-                    } else {
-                        pointCache[y][x] += ((1 - Math.abs(xVal - x) / densityWidth) + (1 - Math.abs(yVal - y) / densityWidth))
-                        if (pointCache[y][x] > maxDensity) {
-                            maxDensity = pointCache[y][x]
-                        }
+                for (let i = 0; i < incrementors.length; i++) {
+                    newDensityMap[y][x] += incrementors[i].currentValue
+                }
+
+                if (pointCache[y] && pointCache[y][x]) {
+                    // newDensityMap[y][x] += pointCache[y][x]
+                    incrementors.push({ originalValue: pointCache[y][x], currentValue: pointCache[y][x] })
+                }
+            }
+            // console.log(newDensityMap)
+        }
+
+        // incrementorCache = Array(options.plotWidth).fill(0)
+
+        // console.log('--------------------------------------------------------------------')
+
+        for (let y = 0; y < options.plotHeight; y++) {
+            // console.log('row', y)
+            let incrementors = []
+            for (let x = options.plotWidth - 1; x > -1; x--) {
+
+                for (let i = 0; i < incrementors.length; i++) {
+                    incrementors[i].currentValue -= incrementors[i].originalValue / densityWidth
+
+                    if (Math.round(incrementors[i].currentValue * 10) / 10 === 0) {
+                        incrementors.splice(i, 1)
+                        i--
                     }
+                }
+
+                // console.log('incrementors', incrementors)
+
+                for (let i = 0; i < incrementors.length; i++) {
+                    newDensityMap[y][x] += incrementors[i].currentValue
+                }
+
+                if (pointCache[y] && pointCache[y][x]) {
+                    // newDensityMap[y][x] += pointCache[y][x]
+                    incrementors.push({ originalValue: pointCache[y][x], currentValue: pointCache[y][x] })
+                }
+            }
+            // console.log(newDensityMap)
+        }
+
+        // incrementorCache = Array(options.plotWidth).fill(0)
+
+        // console.log('--------------------------------------------------------------------')
+
+        for (let x = 0; x < options.plotWidth; x++) {
+            // console.log('column', x)
+            let incrementors = []
+            for (let y = 0; y < options.plotHeight; y++) {
+
+                for (let i = 0; i < incrementors.length; i++) {
+                    incrementors[i].currentValue -= incrementors[i].originalValue / densityWidth
+
+                    if (Math.round(incrementors[i].currentValue * 10) / 10 === 0) {
+                        incrementors.splice(i, 1)
+                        i--
+                    }
+                }
+
+                // console.log('incrementors', incrementors)
+
+                for (let i = 0; i < incrementors.length; i++) {
+                    newDensityMap[y][x] += incrementors[i].currentValue
+                }
+
+                if (pointCache[y] && pointCache[y][x]) {
+                    // newDensityMap[y][x] += pointCache[y][x]
+                    incrementors.push({ originalValue: pointCache[y][x], currentValue: pointCache[y][x] })
+                }
+            }
+            // console.log(newDensityMap)
+        }
+
+        // // incrementorCache = Array(options.plotWidth).fill(0)
+
+        // console.log('--------------------------------------------------------------------')
+
+        for (let x = 0; x < options.plotWidth; x++) {
+            // console.log('column', x)
+            let incrementors = []
+            for (let y = options.plotHeight - 1; y > -1; y--) {
+
+                for (let i = 0; i < incrementors.length; i++) {
+                    incrementors[i].currentValue -= incrementors[i].originalValue / densityWidth
+
+                    if (Math.round(incrementors[i].currentValue * 10) / 10 === 0) {
+                        incrementors.splice(i, 1)
+                        i--
+                    }
+                }
+
+                // console.log('incrementors', incrementors)
+
+                for (let i = 0; i < incrementors.length; i++) {
+                    newDensityMap[y][x] += incrementors[i].currentValue
+                }
+
+                if (pointCache[y] && pointCache[y][x]) {
+                    // newDensityMap[y][x] += pointCache[y][x]
+                    incrementors.push({ originalValue: pointCache[y][x], currentValue: pointCache[y][x] })
+                }
+            }
+            // console.log(newDensityMap)
+        }
+
+
+        // console.log('--------------------------------------------------------------------')
+
+        for (let x = 0; x < options.plotWidth; x++) {
+            for (let y = options.plotHeight - 1; y > -1; y--) {
+                if (pointCache[y] && pointCache[y][x]) {
+                    newDensityMap[y][x] += pointCache[y][x]
                 }
             }
         }
 
+        for (let y = 1; y < options.plotHeight - 1; y++) {
+            for (let x = 1; x < options.plotWidth - 1; x++) {
+                const toAdd = (newDensityMap[y - 1][x - 1] + newDensityMap[y - 1][x + 1] + newDensityMap[y + 1][x - 1] + newDensityMap[y + 1][x + 1]) / 4
+                newDensityMap[y][x] += toAdd
+                maxDensity = Math.max(maxDensity, newDensityMap[y][x])                
+            }
+        }
+
         return {
-            densityMap: pointCache,
+            densityMap: newDensityMap,
             maxDensity,
             // meanDensity
         }
@@ -214,6 +363,7 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
     process.stdout.write(JSON.stringify({ data: 'Calculating density' }))
 
     const densityWidth = Math.floor((options.plotWidth + options.plotHeight) * 0.009)
+    console.log(densityWidth)
 
     const densityMap = calculateDensity(aboveZeroPopulation, scales, densityWidth)
 
@@ -245,7 +395,7 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
         densityMap,
         zeroDensityX,
         zeroDensityY,
-        maxDensity: realMaxDensity
+        maxDensity: densityMap.maxDensity
     }
 
     const directory = path.join(options.assetDirectory, 'sample-images', sample.id)

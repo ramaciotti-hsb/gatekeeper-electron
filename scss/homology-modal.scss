@@ -15,6 +15,7 @@
     z-index: 10;
     align-items: center;
     justify-content: center;
+    @include unselectable();
 
     &.active {
         display: flex;
@@ -43,20 +44,36 @@
         .lower {
             flex-direction: row;
 
+            .actions {
+                padding: 10px;
+                border-top: 1px solid #ddd;
+                background: #eee;
+
+                .button {
+                    padding: 8px 12px;
+                    color: #fff;
+                    font-weight: 600;
+                    font-size: 12px;
+                    cursor: pointer;
+                    @include backgroundHover(darken($highlight-colour, 10%));
+                    @include backgroundClick(darken($highlight-colour, 10%));
+                }
+            }
+
             .homology-options {
                 background: #fafafa;
                 flex-direction: column;
                 flex-grow: 1;
-                padding: 15px;
 
                 .title {
                     font-size: 18px;
                     color: #777;
                     font-weight: 200;
-                    margin-bottom: 30px;
+                    margin: 15px 0 30px 15px;
                 }
 
                 .row {
+                    padding: 0 15px;
                     margin-bottom: 15px;
                     align-items: center;
 
@@ -66,21 +83,6 @@
 
                     i {
                         font-size: 18px;
-                    }
-
-                    &.clickable {
-                        cursor: pointer;
-                        @include foregroundHover(#000);
-                        @include foregroundClick(#000);
-
-                        &.active {
-                            @include foregroundHover(darken($highlight-colour, 15%));
-                            @include foregroundClick(darken($highlight-colour, 15%));
-                        }
-
-                        &:hover {
-                            opacity: 1;
-                        }
                     }
 
                     .text {
@@ -109,24 +111,10 @@
                     display: none;
                     color: $red-colour;
                     font-size: 12px;
-                    margin-bottom: 15px;
+                    padding: 15px;
 
                     &.active {
                         display: flex;
-                    }
-                }
-
-                .actions {
-                    margin-bottom: 25px;
-
-                    .calculate-homology {
-                        padding: 8px 12px;
-                        color: #fff;
-                        font-weight: 600;
-                        font-size: 12px;
-                        cursor: pointer;
-                        @include backgroundHover(darken($highlight-colour, 10%));
-                        @include backgroundClick(darken($highlight-colour, 10%));
                     }
                 }
             }
@@ -141,18 +129,88 @@
                     font-size: 18px;
                     color: #777;
                     font-weight: 200;
-                    padding: 15px;
+                    align-items: stretch;
                     border-bottom: 1px solid #ddd;
 
                     .text {
+                        padding-left: 15px;
+                        margin: 10px 0;
                         flex-grow: 1;
                     }
 
-                    .lnr-cross {
-                        font-size: 26px;
+                    .dropdown {
+                        align-items: stretch;
+
+                        &.active {
+                            .inner .icon {
+                                color: #fff;
+                                border-right: 1px solid #666;
+                                background: #666;
+
+                                &:hover {
+                                    background: #666;
+                                }
+
+                                &:active {
+                                    background: #666;
+                                }
+                            }
+                        }
+
+                        .inner {
+                            align-items: stretch;
+
+                            .icon {
+                                padding: 0 12px;
+                                cursor: pointer;                        
+                                align-items: center;
+                                border-right: 1px solid #eee;
+                                @include backgroundHover(#fafafa);
+                                @include backgroundClick(#fafafa);
+                            }
+
+                            .menu {
+                                width: 300px;
+                                align-items: stretch;
+
+                                .menu-inner {
+                                    flex-direction: column;
+                                    align-items: stretch;
+                                    
+                                    .item {
+                                        cursor: pointer;
+                                        @include backgroundHover(#666);
+                                        @include backgroundClick(#666);
+
+                                        &.clickable {
+                                            cursor: pointer;
+
+                                            i {
+                                                margin-right: 15px;
+                                                font-size: 22px;
+                                            }
+
+                                            &.active {
+                                                @include foregroundHover(darken($highlight-colour, 15%));
+                                                @include foregroundClick(darken($highlight-colour, 15%));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    .close-button {
                         cursor: pointer;
+                        align-items: center;
+                        padding: 0 10px;
                         @include foregroundHover(#888);
                         @include foregroundClick(#888);
+                        
+                        .lnr-cross {
+                            font-size: 26px;
+                        }
                     }
                 }
 
@@ -161,9 +219,11 @@
                     overflow-y: scroll;
                     padding: 0;
                     align-items: stretch;
+                    flex-wrap: 0;
                     flex-direction: column;
 
                     .gate {
+                        flex-shrink: 0;
                         padding: 10px;
                         border-bottom: 1px solid #ddd;
                         flex-direction: column;
@@ -171,7 +231,19 @@
                         & > .title {
                             font-size: 13px;
                             font-weight: 600;
+                            margin-bottom: 5px;
+                        }
+
+                        .population-count {
                             margin-bottom: 10px;
+                          
+                            .highlight {
+                                margin-right: 3px;
+                            }
+                        }
+
+                        &.negative .population-count {
+                            margin-bottom: 0;
                         }
 
                         .width {

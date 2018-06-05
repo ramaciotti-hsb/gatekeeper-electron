@@ -51,6 +51,7 @@ const applicationReducer = (state = initialState, action) => {
         gates: state.gates ? state.gates.slice(0) : [],
         gateTemplates: state.gateTemplates ? state.gateTemplates.slice(0) : [],
         gateTemplateGroups: state.gateTemplateGroups ? state.gateTemplateGroups.slice(0) : [],
+        unsavedGates: state.unsavedGates ? state.unsavedGates.slice(0) : null,
         selectedWorkspaceId: state.selectedWorkspaceId,
         sessionLoading: state.sessionLoading,
         backgroundJobsEnabled: state.backgroundJobsEnabled,
@@ -71,6 +72,12 @@ const applicationReducer = (state = initialState, action) => {
     // --------------------------------------------------
     if (action.type === 'SET_SESSION_BROKEN') {
         newState.sessionBroken = action.payload.sessionBroken
+    }
+    // --------------------------------------------------
+    // Reset the inbuilt session to default.
+    // --------------------------------------------------
+    else if (action.type === 'RESET_SESSION') {
+        newState = initialState
     }
     // --------------------------------------------------
     // Override the whole local session with new data.

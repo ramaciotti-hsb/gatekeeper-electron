@@ -13,7 +13,6 @@ import constants from './constants'
 import * as d3 from 'd3'
 import { getPolygonCenter } from './utilities'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
-import * as turf from '@turf/turf'
 
 let CYTOF_HISTOGRAM_WIDTH
 
@@ -131,7 +130,7 @@ export default class PersistentHomology {
                     // console.log(peak, 'has qualified to be added to truePeaks')
                     peak.truePeak = true
                     peak.truePeakWidthIndex = peak.polygons.length - 1
-                    peak.widthIndex = peak.polygons.length - 1
+                    peak.widthIndex = 0
                 }
             }
 
@@ -181,11 +180,11 @@ export default class PersistentHomology {
 
             peaks = this.findPeaksInternal(stepCallback, gateTemplates)
 
-            // Add homology parameters so they can be reused later
+            // Make sure the widthIndex specified by the template doesn't overflow the boundaries of the polygon array
             for (let peak of peaks) {
-                peak.homologyParameters = {
-                    widthIndex: peak.widthIndex
-                }
+                // console.log(peak, 'has qualified to be added to truePeaks')
+                peak.gateCreatorData.truePeakWidthIndex = peak.truePeakWidthIndex
+                peak.gateCreatorData.widthIndex = Math.max(Math.min(peak.polygons.length - 1 - peak.truePeakWidthIndex, peak.gateCreatorData.widthIndex), -peak.truePeakWidthIndex)
             }
 
             // // Create a negative gate including all the uncaptured events if the user specified
@@ -218,8 +217,9 @@ export default class PersistentHomology {
 
         // Add homology parameters so they can be reused later
         for (let peak of peaks) {
-            peak.homologyParameters = {
-                widthIndex: peak.widthIndex
+            peak.gateCreatorData = {
+                truePeakWidthIndex: peak.truePeakWidthIndex,
+                widthIndex: 0
             }
         }
 
@@ -348,7 +348,6 @@ export default class PersistentHomology {
                             height: newPeaks[i].height,
                             id: newPeaks[i].id,
                             truePeak: newPeaks[i].truePeak,
-                            widthIndex: newPeaks[i].widthIndex,
                             truePeakWidthIndex: newPeaks[i].truePeakWidthIndex,
                             xGroup: newPeaks[i].xGroup,
                             yGroup: newPeaks[i].yGroup
@@ -366,12 +365,11 @@ export default class PersistentHomology {
                             const centerPoint = getPolygonCenter(newPeaks[i].polygons.slice(-1)[0])
                             const template = _.find(gateTemplates, g => Math.abs(g.centerPoint[0] - centerPoint[0]) < 20 && Math.abs(g.centerPoint[1] - centerPoint[1]) < 20)
                             if (template) {
-                                newPeaks[i].widthIndex = template.typeSpecificData.widthIndex
+                                newPeaks[i].gateCreatorData = template.typeSpecificData
                                 newPeaks[i].xGroup = template.xGroup
                                 newPeaks[i].yGroup = template.yGroup
+                                newPeaks[i].gateTemplateId = template.id
                             }
-                        } else {
-                            newPeaks[i].widthIndex = newPeaks[i].polygons.length - 1
                         }
                     }
                 }

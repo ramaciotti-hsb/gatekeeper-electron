@@ -30,7 +30,7 @@ const getSubPopulation = require('../lib/get-population-data.js').default
 const getImageForPlot = require('../lib/get-image-for-plot.js').default
 const PersistentHomology = require('../lib/persistent-homology.js').default
 const getFCSMetadata = require('../lib/get-fcs-metadata.js').default
-const findIncludedPositiveEvents = require('../lib/gate-utilities').findIncludedPositiveEvents
+const findIncludedEvents = require('../lib/gate-utilities').findIncludedEvents
 const find1DPeaks = require('../lib/1d-homology').default
 const expandToIncludeZeroes = require('../lib/gate-utilities').expandToIncludeZeroes
 const _ = require('lodash')
@@ -146,8 +146,8 @@ if (cluster.isMaster) {
 // get-included-events
                 } else if (body.type === 'get-included-events') {
                     getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((population) => {
-                        const includeEventIds = findIncludedPositiveEvents(body.payload.polygon, population, body.payload.FCSFile, body.payload.options)
-                        res.end(JSON.stringify(includeEventIds))
+                        const alteredGates = findIncludedEvents(body.payload.gates, population, body.payload.FCSFile, body.payload.options)
+                        res.end(JSON.stringify(alteredGates))
                     }).catch(handleError)
                 }
             }  

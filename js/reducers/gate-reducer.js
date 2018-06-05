@@ -11,20 +11,19 @@ const gates = (state = [], action = {}) => {
     // Create a new gate and add to state
     // --------------------------------------------------
     if (action.type === 'CREATE_GATE') {
-        console.log(action.payload.gate)
         const newGate = {
             id: action.payload.gate.id,
             type: action.payload.gate.type,
             gateData: action.payload.gate.gateData,
+            gateCreatorData: action.payload.gate.gateCreatorData,
+            renderedPolygon: action.payload.gate.renderedPolygon,
             parentSampleId: action.payload.parentSampleId, // The parent population to gate on
             childSampleId: action.payload.childSampleId, // The resulting subpopulation after the gate
             selectedXParameterIndex: action.payload.gate.selectedXParameterIndex,
             selectedYParameterIndex: action.payload.gate.selectedYParameterIndex,
             selectedXScale: action.payload.gate.selectedXScale,
             selectedYScale: action.payload.gate.selectedYScale,
-            gateTemplateId: action.payload.gate.gateTemplateId,
-            xCutoffs: action.payload.gate.xCutoffs,
-            yCutoffs: action.payload.gate.yCutoffs
+            gateTemplateId: action.payload.gate.gateTemplateId
         }
 
         newState.push(newGate)
