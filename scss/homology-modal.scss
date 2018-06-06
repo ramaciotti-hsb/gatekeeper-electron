@@ -48,6 +48,7 @@
                 padding: 10px;
                 border-top: 1px solid #ddd;
                 background: #eee;
+                flex-shrink: 0;
 
                 .button {
                     padding: 8px 12px;
@@ -131,6 +132,7 @@
                     font-weight: 200;
                     align-items: stretch;
                     border-bottom: 1px solid #ddd;
+                    flex-shrink: 0;
 
                     .text {
                         padding-left: 15px;
@@ -219,7 +221,7 @@
                     overflow-y: scroll;
                     padding: 0;
                     align-items: stretch;
-                    flex-wrap: 0;
+                    flex-wrap: nowrap;
                     flex-direction: column;
 
                     .gate {

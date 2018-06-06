@@ -26,11 +26,11 @@ export default class FCSParameterSelector extends Component {
             )
         })
 
-        const values = _.values(this.props.selectedWorkspace.disabledParameters)
-        let someDisabled
-        if (values.length > 0) {
-            someDisabled = values.reduce((current, accumulator) => { return current || accumulator })
-        }
+        const disabledKeys = _.filter(_.keys(this.props.selectedWorkspace.disabledParameters), k => _.find(this.props.selectedFCSFile.FCSParameters, p => p.key === k))
+        let someDisabled = false
+        disabledKeys.map((k) => {
+            someDisabled = this.props.selectedWorkspace.disabledParameters[k] || someDisabled
+        })
 
         return (
             <div className='parameter-selector-outer' style={{ width: this.props.showDisabledParameters ? 'auto' : 0, minWidth: this.props.showDisabledParameters ? 200 : 0 }}>

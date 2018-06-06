@@ -137,7 +137,7 @@ const processJobs = async function () {
     }
 }
 
-for (let i = 0; i < Math.max(os.cpus().length - 2, 1); i++) {
+for (let i = 0; i < Math.max(os.cpus().length - 1, 1); i++) {
     processJobs()
 }
 
@@ -523,13 +523,17 @@ export const api = {
                     currentState = applicationReducer(currentState, loadingAction)
                     reduxStore.dispatch(loadingAction)
                     
-                    let gates = await api.calculateHomology(sampleId, {
+                    const options = {
                         selectedXParameterIndex: templateGroup.selectedXParameterIndex,
                         selectedYParameterIndex: templateGroup.selectedYParameterIndex,
                         selectedXScale: templateGroup.selectedXScale,
                         selectedYScale: templateGroup.selectedYScale,
                         machineType: templateGroup.machineType
-                    })
+                    }
+
+                    await getImageForPlot(sample, FCSFile, options, true)
+
+                    let gates = await api.calculateHomology(sampleId, options)
 
                     gates = api.createGatePolygons(gates)
                     gates = await api.getGateIncludedEvents(gates)
@@ -964,7 +968,7 @@ export const api = {
                 gate = {
                     id: uuidv4(),
                     type: constants.GATE_TYPE_POLYGON,
-                    title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + (peak.xGroup === 0 ? ' (LOW) · ' : ' (HIGH) · ') + FCSFile.FCSParameters[options.selectedYParameterIndex].label + (peak.yGroup === 1 ? ' (LOW)' : ' (HIGH)'),
+                    title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + (peak.xGroup == 0 ? ' (LOW) · ' : ' (HIGH) · ') + FCSFile.FCSParameters[options.selectedYParameterIndex].label + (peak.yGroup == 1 ? ' (LOW)' : ' (HIGH)'),
                     gateData: {
                         polygons: peak.polygons
                     },
@@ -1026,7 +1030,6 @@ export const api = {
                 polygons = gate.gateData.polygons
             }
 
-            console.log(polygons, gate.gateCreatorData)
             gate.renderedPolygon = breakLongLinesIntoPoints(polygons[gate.gateCreatorData.truePeakWidthIndex + gate.gateCreatorData.widthIndex])
         }
 
@@ -1166,7 +1169,7 @@ export const api = {
                 gateTemplate = {
                     id: uuidv4(),
                     type: constants.GATE_TYPE_POLYGON,
-                    title: FCSFile.FCSParameters[gate.selectedXParameterIndex].label + (gate.gateData.xGroup === 0 ? ' (LOW) · ' : ' (HIGH) · ') + FCSFile.FCSParameters[gate.selectedYParameterIndex].label + (gate.gateData.yGroup === 1 ? ' (LOW)' : ' (HIGH)'),
+                    title: gate.title,
                     creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
                     xGroup: gate.xGroup,
                     yGroup: gate.yGroup,
@@ -1176,7 +1179,7 @@ export const api = {
                 gateTemplate = {
                     id: uuidv4(),
                     type: constants.GATE_TYPE_NEGATIVE,
-                    title: FCSFile.FCSParameters[gate.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[gate.selectedYParameterIndex].label + ' Negative Gate',
+                    title: gate.title,
                     creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
                     typeSpecificData: {}
                 }

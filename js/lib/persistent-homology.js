@@ -37,7 +37,7 @@ export default class PersistentHomology {
     // Returns this.truePeaks arranged into groups along the x and y axis
     getAxisGroups (peaks) {
         // Percentage of maximum distance between furthest peak to group together
-        const maxGroupDistance = 0.3
+        const maxGroupDistance = 0.05
         // Divide peaks into groups along the x and y axis
         // Get [minX, maxX] range of peaks along x axis
         let xRange = peaks.reduce((acc, curr) => { return [ Math.min(acc[0], getPolygonCenter(curr.polygons[curr.truePeakWidthIndex])[0]), Math.max(acc[1], getPolygonCenter(curr.polygons[curr.truePeakWidthIndex])[0]) ] }, [Infinity, -Infinity])
@@ -67,7 +67,7 @@ export default class PersistentHomology {
             
                 for (let group of xGroups) {
                     // If the peak is within 10% of an existing group, add it to that group
-                    if (Math.abs(group.position - peakCenter[0]) <= ((xRange[1] - xRange[0]) * 0.3) || Math.abs(group.position - peakCenter[0]) < 20) {
+                    if (Math.abs(group.position - peakCenter[0]) < this.options.plotWidth * maxGroupDistance) {// if (Math.abs(group.position - peakCenter[0]) <= ((xRange[1] - xRange[0]) * maxGroupDistance) || Math.abs(group.position - peakCenter[0]) < 20) {
                         group.peaks.push(peak.id)
                         found = true
                     }
@@ -94,7 +94,7 @@ export default class PersistentHomology {
             
                 for (let group of yGroups) {
                     // If the peak is within 10% of an existing group, add it to that group
-                    if (Math.abs(group.position - peakCenter[1]) <= ((yRange[1] - yRange[0]) * 0.3) || Math.abs(group.position - peakCenter[1]) < 20) {
+                    if (Math.abs(group.position - peakCenter[1]) < this.options.plotHeight * maxGroupDistance) {// if (Math.abs(group.position - peakCenter[1]) <= ((yRange[1] - yRange[0]) * maxGroupDistance) || Math.abs(group.position - peakCenter[1]) < 20) {
                         group.peaks.push(peak.id)
                         found = true
                     }

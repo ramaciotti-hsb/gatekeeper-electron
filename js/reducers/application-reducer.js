@@ -34,11 +34,11 @@ let initialState = {
     },
     unsavedGates: null,
     // These values determine how large the plots generated on the backend are
-    plotWidth: 500,
-    plotHeight: 500,
+    plotWidth: 380,
+    plotHeight: 380,
     // This value determines how large the plot should be displayed on the front end
-    plotDisplayWidth: 500,
-    plotDisplayHeight: 500,
+    plotDisplayWidth: 380,
+    plotDisplayHeight: 380,
     sessionBroken: false,
     api: {}
 }
