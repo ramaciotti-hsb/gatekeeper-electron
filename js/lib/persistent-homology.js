@@ -37,12 +37,12 @@ export default class PersistentHomology {
     // Returns this.truePeaks arranged into groups along the x and y axis
     getAxisGroups (peaks) {
         // Percentage of maximum distance between furthest peak to group together
-        const maxGroupDistance = 0.05
+        const maxGroupDistance = 0.3
         // Divide peaks into groups along the x and y axis
         // Get [minX, maxX] range of peaks along x axis
-        let xRange = peaks.reduce((acc, curr) => { return [ Math.min(acc[0], getPolygonCenter(curr.polygons[curr.truePeakWidthIndex])[0]), Math.max(acc[1], getPolygonCenter(curr.polygons[curr.truePeakWidthIndex])[0]) ] }, [Infinity, -Infinity])
+        let xRange = peaks.reduce((acc, curr) => { return [ Math.min(acc[0], curr.nucleus[0]), Math.max(acc[1], curr.nucleus[0]) ] }, [Infinity, -Infinity])
         // Get [minY, maxY] range of peaks along y axis
-        let yRange = peaks.reduce((acc, curr) => { return [ Math.min(acc[0], getPolygonCenter(curr.polygons[curr.truePeakWidthIndex])[1]), Math.max(acc[1], getPolygonCenter(curr.polygons[curr.truePeakWidthIndex])[1]) ] }, [Infinity, -Infinity])
+        let yRange = peaks.reduce((acc, curr) => { return [ Math.min(acc[0], curr.nucleus[1]), Math.max(acc[1], curr.nucleus[1]) ] }, [Infinity, -Infinity])
         // Create buckets and place peaks into groups along each axis
         // console.log(xRange, yRange)
         // console.log((xRange[1] - xRange[0]) * 0.2, (yRange[1] - yRange[0]) * 0.2)
@@ -67,7 +67,7 @@ export default class PersistentHomology {
             
                 for (let group of xGroups) {
                     // If the peak is within 10% of an existing group, add it to that group
-                    if (Math.abs(group.position - peakCenter[0]) < this.options.plotWidth * maxGroupDistance) {// if (Math.abs(group.position - peakCenter[0]) <= ((xRange[1] - xRange[0]) * maxGroupDistance) || Math.abs(group.position - peakCenter[0]) < 20) {
+                    if (Math.abs(group.position - peakCenter[0]) < (xRange[1] - xRange[0]) * maxGroupDistance) {// if (Math.abs(group.position - peakCenter[0]) <= ((xRange[1] - xRange[0]) * maxGroupDistance) || Math.abs(group.position - peakCenter[0]) < 20) {
                         group.peaks.push(peak.id)
                         found = true
                     }
@@ -94,7 +94,7 @@ export default class PersistentHomology {
             
                 for (let group of yGroups) {
                     // If the peak is within 10% of an existing group, add it to that group
-                    if (Math.abs(group.position - peakCenter[1]) < this.options.plotHeight * maxGroupDistance) {// if (Math.abs(group.position - peakCenter[1]) <= ((yRange[1] - yRange[0]) * maxGroupDistance) || Math.abs(group.position - peakCenter[1]) < 20) {
+                    if (Math.abs(group.position - peakCenter[1]) < (yRange[1] - yRange[0]) * maxGroupDistance) {// if (Math.abs(group.position - peakCenter[1]) <= ((yRange[1] - yRange[0]) * maxGroupDistance) || Math.abs(group.position - peakCenter[1]) < 20) {
                         group.peaks.push(peak.id)
                         found = true
                     }
@@ -111,12 +111,12 @@ export default class PersistentHomology {
         return { xGroups, yGroups } 
     }
 
-    findPeaksInternal (stepCallback, polygonTemplates) {
+    findPeaksInternal (stepCallback) {
         let currentHeight = 100
         let peaks = []
 
         while (currentHeight > 3) {
-            peaks = this.performHomologyIteration(currentHeight, peaks, polygonTemplates)
+            peaks = this.performHomologyIteration(currentHeight, peaks)
             currentHeight = currentHeight - 1
             if (stepCallback) { stepCallback('Gating using Persistent Homology: ' + (100 - currentHeight) + '% complete.') }
         }
@@ -173,32 +173,17 @@ export default class PersistentHomology {
                 return []
             }
 
-            for (let i = 0; i < polygonTemplates.length; i++) {
-                const matchingPeak = _.find(peaks, p => p.yGroup === polygonTemplates[i].yGroup && p.xGroup === polygonTemplates[i].xGroup)
-                polygonTemplates[i].centerPoint = getPolygonCenter(matchingPeak.polygons[matchingPeak.truePeakWidthIndex])
-            }
-
-            peaks = this.findPeaksInternal(stepCallback, gateTemplates)
-
             // Make sure the widthIndex specified by the template doesn't overflow the boundaries of the polygon array
             for (let peak of peaks) {
                 // console.log(peak, 'has qualified to be added to truePeaks')
-                peak.gateCreatorData.truePeakWidthIndex = peak.truePeakWidthIndex
-                peak.gateCreatorData.widthIndex = Math.max(Math.min(peak.polygons.length - 1 - peak.truePeakWidthIndex, peak.gateCreatorData.widthIndex), -peak.truePeakWidthIndex)
+                const template = _.find(gateTemplates, gt => gt.xGroup === peak.xGroup && gt.yGroup === peak.yGroup)
+                if (template) {
+                    peak.gateCreatorData = template.typeSpecificData
+                    peak.gateCreatorData.truePeakWidthIndex = peak.truePeakWidthIndex                    
+                    peak.gateCreatorData.widthIndex = Math.max(Math.min(peak.polygons.length - 1 - peak.gateCreatorData.truePeakWidthIndex, peak.gateCreatorData.widthIndex), -peak.gateCreatorData.truePeakWidthIndex)
+                    peak.gateTemplateId = template.id
+                }
             }
-
-            // // Create a negative gate including all the uncaptured events if the user specified
-            // if (this.options.createNegativeGate) {
-            //     const excludedEventIds = truePeaks.reduce((accumulator, current) => { return accumulator.concat(current.includeEventIds) }, [])
-            //     const gate = {
-            //         type: constants.GATE_TYPE_NEGATIVE,
-            //         gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
-            //         truePeak: true,
-            //         includeEventIds: _.filter(this.population.subPopulation, event => !excludedEventIds.includes(event[2])).map(event => event[2])
-            //     }
-
-            //     this.homologyPeaks.push(gate)
-            // }
 
             return peaks
         }
@@ -239,7 +224,7 @@ export default class PersistentHomology {
         return peaks
     }
 
-    performHomologyIteration (height, peaks, gateTemplates)  {
+    performHomologyIteration (height, peaks)  {
         const newPeaks = peaks.slice(0)
 
         for (let y = 0; y < this.options.plotHeight; y++) {
@@ -287,6 +272,7 @@ export default class PersistentHomology {
                                 polygons: [
                                     [[x, y]]
                                 ],
+                                nucleus: [x, y],
                                 height: 0,
                                 type: constants.GATE_TYPE_POLYGON,
                                 pointsToAdd: []
@@ -336,6 +322,7 @@ export default class PersistentHomology {
 
                     if (jSize < this.options.minPeakSize && newPeaks[j].height > this.options.minPeakHeight) {
                         let newPolygon = newPeaks[i].polygons.slice(-1)[0].concat(newPeaks[j].polygons.slice(-1)[0].slice(0))
+                        let newNucleus = [(newPeaks[i].nucleus[0] + newPeaks[i].nucleus[0] / 2), (newPeaks[i].nucleus[1] + newPeaks[i].nucleus[1] / 2)]
                         // Rebuild polygons after combining
                         const grahamScan = new GrahamScan();
                         newPolygon.map(p => grahamScan.addPoint(p[0], p[1]))
@@ -344,6 +331,7 @@ export default class PersistentHomology {
                         
                         newPeaks.splice(i, 1, {
                             polygons: [ newPolygon ],
+                            nucleus: newPeaks[i].nucleus,
                             type: constants.GATE_TYPE_POLYGON,
                             height: newPeaks[i].height,
                             id: newPeaks[i].id,
@@ -361,16 +349,6 @@ export default class PersistentHomology {
                     } else if (!newPeaks[i].truePeak && iSize > this.options.minPeakSize && newPeaks[i].height > this.options.minPeakHeight) {
                         newPeaks[i].truePeak = true
                         newPeaks[i].truePeakWidthIndex = newPeaks[i].polygons.length - 1
-                        if (gateTemplates) {
-                            const centerPoint = getPolygonCenter(newPeaks[i].polygons.slice(-1)[0])
-                            const template = _.find(gateTemplates, g => Math.abs(g.centerPoint[0] - centerPoint[0]) < 20 && Math.abs(g.centerPoint[1] - centerPoint[1]) < 20)
-                            if (template) {
-                                newPeaks[i].gateCreatorData = template.typeSpecificData
-                                newPeaks[i].xGroup = template.xGroup
-                                newPeaks[i].yGroup = template.yGroup
-                                newPeaks[i].gateTemplateId = template.id
-                            }
-                        }
                     }
                 }
             }

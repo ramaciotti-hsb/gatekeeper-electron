@@ -8,6 +8,7 @@ import React from 'react'
 import { Component } from 'react'
 import _ from 'lodash'
 import '../../scss/workspace-view.scss'
+import constants from '../lib/constants'
 import FCSFileSelector from '../containers/fcs-file-selector-container.jsx'
 
 export default class WorkspaceView extends Component {
@@ -39,7 +40,13 @@ export default class WorkspaceView extends Component {
             })
 
 
-            const totalEvents = childGateTemplates.reduce((accumulator, current) => { return accumulator + current.populationCount }, 0)
+            const totalEvents = childGateTemplates.reduce((accumulator, current) => {
+                if (current.type === constants.GATE_TYPE_POLYGON || current.type === constants.GATE_TYPE_NEGATIVE) {
+                    return accumulator + current.populationCount                    
+                } else {
+                    return accumulator
+                }
+            }, 0)
             return (
                 <div className='sidebar-gate-template-group' key={childGateTemplateGroup.id}>
                     <div className='title'>

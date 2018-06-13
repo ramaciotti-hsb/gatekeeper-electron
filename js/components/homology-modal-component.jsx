@@ -20,6 +20,9 @@ export default class FCSFileSelector extends Component {
             minPeakHeight: Math.round(this.props.plotWidth * 0.04),
             minPeakSize: props.selectedFCSFile.machineType === constants.MACHINE_CYTOF ? 5000 : 1000,
             createNegativeGate: false,
+            selectingComboGate: false,
+            selectedComboGateIds: [],
+            highlightedGateIds: []
         }
     }
 
@@ -48,6 +51,61 @@ export default class FCSFileSelector extends Component {
     toggleCreateNegativeGate () {
         const exists = _.find(this.props.unsavedGates, g => g.type === constants.GATE_TYPE_NEGATIVE)
         this.props.api.setUnsavedNegativeGateVisible(!exists)
+    }
+
+    toggleSelectingComboGate () {
+        this.setState({
+            selectingComboGate: !this.state.selectingComboGate,
+            selectedComboGateIds: []
+        })
+    }
+
+    toggleSelectComboGateWithId (gateId) {
+        let found = false
+        for (let i = 0; i < this.state.selectedComboGateIds.length; i++) {
+            if (this.state.selectedComboGateIds[i] === gateId) {
+                found = true
+                this.state.selectedComboGateIds.splice(i, 1)
+                break
+            }
+        }
+
+        if (!found) {
+            this.state.selectedComboGateIds.push(gateId)
+        }
+
+        this.setState({
+            selectedComboGateIds: this.state.selectedComboGateIds.slice(0)
+        })
+    }
+
+    createComboGate () {
+        this.props.api.createUnsavedComboGate(this.state.selectedComboGateIds)
+        this.setState({
+            selectedComboGateIds: [],
+            selectingComboGate: false
+        })
+    }
+
+    removeComboGate (gateId) {
+        this.props.api.removeUnsavedGate(gateId)
+    }
+
+    setGateHighlight (gateId, highlight) {
+        for (let i = 0; i < this.state.highlightedGateIds.length; i++) {
+            if (this.state.highlightedGateIds[i] === gateId) {
+                this.state.highlightedGateIds.splice(i, 1)
+                break
+            }
+        }
+
+        if (highlight) {
+            this.state.highlightedGateIds.push(gateId)
+        }
+
+        this.setState({
+            highlightedGateIds: this.state.highlightedGateIds.slice(0)
+        })
     }
 
     updateWidthIndex(gate, increment, event) {
@@ -114,6 +172,8 @@ export default class FCSFileSelector extends Component {
 
         if (this.props.unsavedGates) {
             const gates = this.props.unsavedGates.map((gate) => {
+                const highlightGate = this.setGateHighlight.bind(this, gate.id, true)
+                const unHighlightGate = this.setGateHighlight.bind(this, gate.id, false)
                 if (gate.type === constants.GATE_TYPE_POLYGON) {
                     let cytofOptions
                     if (this.props.selectedFCSFile.machineType === constants.MACHINE_CYTOF) {
@@ -131,31 +191,90 @@ export default class FCSFileSelector extends Component {
                             </div>
                         )
                     }
+
                     return (
-                        <div className='gate' key={gate.id}>
-                            <div className='title'>
-                                {gate.title}
+                        <div className={'gate' + (this.state.selectingComboGate ? ' combo-selection' : '') + (this.state.selectedComboGateIds.includes(gate.id) ? ' active' : '')} key={gate.id} onClick={this.state.selectingComboGate ? this.toggleSelectComboGateWithId.bind(this, gate.id) : () => {}}
+                        onMouseOver={highlightGate} onMouseOut={unHighlightGate}>
+                            <div className='left'>
+                                <div className='title'>
+                                    {gate.title}
+                                </div>
+                                <div className='population-count'>
+                                    <div className='highlight'>{gate.includeEventIds.length}</div> events (<div className='highlight'>{(gate.includeEventIds.length / this.props.selectedSample.populationCount * 100).toFixed(1)}%</div> of parent)
+                                </div>
+                                <div className='additional-options'>
+                                    <div className='parameter width'>
+                                        <div className='text'>Additional Width:</div>
+                                        <div className='value'>{gate.gateCreatorData.widthIndex}</div>
+                                        <i className='lnr lnr-plus-circle' onClick={this.updateWidthIndex.bind(this, gate, 1)} />
+                                        <i className='lnr lnr-circle-minus' onClick={this.updateWidthIndex.bind(this, gate, -1)} />
+                                    </div>
+                                    {cytofOptions}
+                                </div>
                             </div>
-                            <div className='population-count'>
-                                <div className='highlight'>{gate.includeEventIds.length}</div> events (<div className='highlight'>{(gate.includeEventIds.length / this.props.selectedSample.populationCount * 100).toFixed(1)}%</div> of parent)
+                            <div className='right'>
+                                <i className='lnr lnr-checkmark-circle' />
                             </div>
-                            <div className='parameter width'>
-                                <div className='text'>Additional Width:</div>
-                                <div className='value'>{gate.gateCreatorData.widthIndex}</div>
-                                <i className='lnr lnr-plus-circle' onClick={this.updateWidthIndex.bind(this, gate, 1)} />
-                                <i className='lnr lnr-circle-minus' onClick={this.updateWidthIndex.bind(this, gate, -1)} />
-                            </div>
-                            {cytofOptions}
                         </div>
                     )
                 } else if (gate.type === constants.GATE_TYPE_NEGATIVE) {
                     return (
-                        <div className='gate negative' key={gate.id}>
-                            <div className='title'>
-                                {gate.title}
+                        <div className={'gate negative' + (this.state.selectingComboGate ? ' combo-selection' : '') + (this.state.selectedComboGateIds.includes(gate.id) ? ' active' : '')} key={gate.id} onClick={this.state.selectingComboGate ? this.toggleSelectComboGateWithId.bind(this, gate.id) : () => {}}
+                        onMouseOver={highlightGate} onMouseOut={unHighlightGate}>
+                            <div className='left'>
+                                <div className='title'>
+                                    {gate.title}
+                                </div>
+                                <div className='population-count'>
+                                    <div className='highlight'>{gate.includeEventIds.length}</div> events (<div className='highlight'>{(gate.includeEventIds.length / this.props.selectedSample.populationCount * 100).toFixed(1)}%</div> of parent)
+                                </div>
                             </div>
-                            <div className='population-count'>
-                                <div className='highlight'>{gate.includeEventIds.length}</div> events (<div className='highlight'>{(gate.includeEventIds.length / this.props.selectedSample.populationCount * 100).toFixed(1)}%</div> of parent)
+                            <div className='dismiss'>
+                                <i className='lnr lnr-cross-circle' onClick={this.toggleCreateNegativeGate.bind(this)} />
+                            </div>
+                            <div className='right'>
+                                <i className='lnr lnr-checkmark-circle' />
+                            </div>
+                        </div>
+                    )
+                } else if (gate.type === constants.GATE_TYPE_COMBO && !this.state.selectingComboGate) {
+                    const includedGates = _.filter(this.props.unsavedGates, g => gate.gateCreatorData.gateIds.includes(g.id))
+                    const comboList = includedGates.map((g) => {
+                        return (
+                            <div className='included-gate' key={g.id}>{g.title}</div>
+                        )
+                    })
+
+                    const highlightGates = () => {
+                        for (let g of includedGates) {
+                            this.setGateHighlight(g.id, true)
+                        }
+                    }
+
+                    const unHighlightGates = () => {
+                        for (let g of includedGates) {
+                            this.setGateHighlight(g.id, false)
+                        }
+                    }
+
+                    return (
+                        <div className='gate combo' key={gate.id} onMouseOver={highlightGates} onMouseOut={unHighlightGates}>
+                            <div className='left'>
+                                <div className='title'>
+                                    {gate.title}
+                                </div>
+                                <div className='population-count'>
+                                    <div className='highlight'>{gate.includeEventIds.length}</div> events (<div className='highlight'>{(gate.includeEventIds.length / this.props.selectedSample.populationCount * 100).toFixed(1)}%</div> of parent)
+                                </div>
+                                <div className='combo-list'>
+                                    {comboList}
+                                </div>
+                            </div>
+                            <div className='dismiss'>
+                                <i className='lnr lnr-cross-circle' onClick={this.removeComboGate.bind(this, gate.id)} />
+                            </div>
+                            <div className='right'>
+                                <i className='lnr lnr-checkmark-circle' />
                             </div>
                         </div>
                     )
@@ -164,8 +283,18 @@ export default class FCSFileSelector extends Component {
 
             const negativeGateExists = _.find(this.props.unsavedGates, g => g.type === constants.GATE_TYPE_NEGATIVE)
 
-            contents = (
-                <div className='unsaved-gates'>
+            let panelTitle
+            if (this.state.selectingComboGate) {
+                panelTitle = (
+                    <div className='title'>
+                        <div className='text'>Select Gates for New Combo Gate</div>
+                        <div className='close-button'>
+                            <i className='lnr lnr-cross' onClick={this.toggleSelectingComboGate.bind(this)}></i>
+                        </div>
+                    </div>
+                )
+            } else {
+                panelTitle = (
                     <div className='title'>
                         <div className='text'>Gates</div>
                         <Dropdown outerClasses='dark' ref={'optionsDropdown'}>
@@ -174,6 +303,10 @@ export default class FCSFileSelector extends Component {
                                 <div className='menu'>
                                     <div className='menu-header'>Gating Options</div>
                                     <div className='menu-inner'>
+                                        <div className='item' onClick={this.toggleSelectingComboGate.bind(this)}>
+                                            <i className={'lnr lnr-link'} />                                        
+                                            <div>Create Combo Gate (Include Events From Multiple Gates)</div>
+                                        </div>
                                         <div className={'item clickable' + (negativeGateExists ? ' active' : '')} onClick={this.toggleCreateNegativeGate.bind(this)}>
                                             <i className={'lnr ' + (negativeGateExists ? 'lnr-checkmark-circle' : 'lnr-circle-minus')} />                                        
                                             <div>Create Negative Gate (Includes All Uncaptured Events)</div>
@@ -186,12 +319,32 @@ export default class FCSFileSelector extends Component {
                             <i className='lnr lnr-cross' onClick={this.props.api.resetUnsavedGates.bind(null)}></i>
                         </div>
                     </div>
-                    <div className='gates'>
-                        {gates}
+                )
+            }
+
+            let actions
+
+            if (this.state.selectingComboGate) {
+                actions = (
+                    <div className='actions'>
+                        <div className={'button apply-gates' + (this.state.selectedComboGateIds.length < 2 ? ' disabled' : '')} onClick={this.createComboGate.bind(this)}>Create Combo Gate</div>
                     </div>
+                )
+            } else {
+                actions = (
                     <div className='actions'>
                         <div className='button apply-gates' onClick={this.applyGatesClicked.bind(this)}>Apply Gates To Sample</div>
                     </div>
+                )
+            }
+
+            contents = (
+                <div className='unsaved-gates'>
+                    {panelTitle}
+                    <div className='gates'>
+                        {gates}
+                    </div>
+                    {actions}
                 </div>
             )
         } else {
@@ -228,7 +381,7 @@ export default class FCSFileSelector extends Component {
                     </div>
                     <div className='lower'>
                         <div className='graph'>
-                            <BivariatePlot gates={this.props.unsavedGates} sampleId={this.props.selectedSample.id} FCSFileId={this.props.selectedFCSFile.id} selectedXParameterIndex={this.props.modalOptions.selectedXParameterIndex} selectedYParameterIndex={this.props.modalOptions.selectedYParameterIndex} selectedXScale={this.props.selectedWorkspace.selectedXScale} selectedYScale={this.props.selectedWorkspace.selectedYScale} plotDisplayWidth={500} plotDisplayHeight={500} />
+                            <BivariatePlot gates={this.props.unsavedGates} highlightedGateIds={this.state.highlightedGateIds} sampleId={this.props.selectedSample.id} FCSFileId={this.props.selectedFCSFile.id} selectedXParameterIndex={this.props.modalOptions.selectedXParameterIndex} selectedYParameterIndex={this.props.modalOptions.selectedYParameterIndex} selectedXScale={this.props.selectedWorkspace.selectedXScale} selectedYScale={this.props.selectedWorkspace.selectedYScale} plotDisplayWidth={500} plotDisplayHeight={500} />
                         </div>
                         {contents}
                     </div>

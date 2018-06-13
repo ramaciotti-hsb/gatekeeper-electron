@@ -985,17 +985,6 @@ export const api = {
                     gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
                     gateCreatorData: peak.gateCreatorData,
                 }
-            } else if (peak.type === constants.GATE_TYPE_NEGATIVE) {
-                gate = {
-                    type: constants.GATE_TYPE_NEGATIVE,
-                    title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[options.selectedYParameterIndex].label + ' Negative Gate',
-                    selectedXParameterIndex: options.selectedXParameterIndex,
-                    selectedYParameterIndex: options.selectedYParameterIndex,
-                    selectedXScale: options.selectedXScale,
-                    selectedYScale: options.selectedYScale,
-                    gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
-                    gateCreatorData: peak.gateCreatorData,
-                }
             }
 
             gates.push(gate)
@@ -1085,6 +1074,14 @@ export const api = {
                 return updatedGate
             })
 
+            // Update event counts on combo gates
+            for (let gate of toSave) {
+                if (gate.type === constants.GATE_TYPE_COMBO) {
+                    const includedGates = _.filter(currentState.unsavedGates, g => gate.gateCreatorData.gateIds.includes(g.id))
+                    gate.includeEventIds = includedGates.reduce((accumulator, current) => { return accumulator.concat(current.includeEventIds) }, [])
+                }
+            }
+
             saveGates(toSave)
         })
     },
@@ -1109,10 +1106,11 @@ export const api = {
     setUnsavedNegativeGateVisible (visible) {
         if (visible) {
             const firstGate = currentState.unsavedGates.slice(0, 1)[0]
+            const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === firstGate.FCSFileId)
             const newGate = {
                 id: uuidv4(),
                 type: constants.GATE_TYPE_NEGATIVE,
-                title: 'Negative Gate',
+                title: FCSFile.FCSParameters[firstGate.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[firstGate.selectedYParameterIndex].label + ' Negative Gate',
                 sampleId: firstGate.sampleId,
                 FCSFileId: firstGate.FCSFileId,
                 selectedXParameterIndex: firstGate.selectedXParameterIndex,
@@ -1139,6 +1137,46 @@ export const api = {
             } else {
                 console.log('Error trying to toggle negative unsaved gate, no negative gate was found.')
             }
+        }
+    },
+
+    createUnsavedComboGate (gateIds) {
+        const firstGate = currentState.unsavedGates.slice(0, 1)[0]
+        const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === firstGate.FCSFileId)
+        const includedGates = _.filter(currentState.unsavedGates, g => gateIds.includes(g.id))
+
+        const newGate = {
+            id: uuidv4(),
+            type: constants.GATE_TYPE_COMBO,
+            title: FCSFile.FCSParameters[firstGate.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[firstGate.selectedYParameterIndex].label + ' Combo Gate',
+            sampleId: firstGate.sampleId,
+            FCSFileId: firstGate.FCSFileId,
+            selectedXParameterIndex: firstGate.selectedXParameterIndex,
+            selectedYParameterIndex: firstGate.selectedYParameterIndex,
+            selectedXScale: firstGate.selectedXScale,
+            selectedYScale: firstGate.selectedYScale,
+            gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+            gateCreatorData: {
+                gateIds: gateIds
+            },
+            includeEventIds: includedGates.reduce((accumulator, current) => { return accumulator.concat(current.includeEventIds) }, [])
+        }
+        const newUnsavedGates = currentState.unsavedGates.concat([newGate])
+        const setUnsavedGatesAction = setUnsavedGates(newUnsavedGates)
+        currentState = applicationReducer(currentState, setUnsavedGatesAction)
+        reduxStore.dispatch(setUnsavedGatesAction)
+    },
+
+    removeUnsavedGate (gateId) {
+        const gateIndex = _.findIndex(currentState.unsavedGates, g => g.id === gateId)
+        if (gateIndex > -1) {
+            const newUnsavedGates = currentState.unsavedGates.slice(0, gateIndex).concat(currentState.unsavedGates.slice(gateIndex + 1))
+        
+            const setUnsavedGatesAction = setUnsavedGates(newUnsavedGates)
+            currentState = applicationReducer(currentState, setUnsavedGatesAction)
+            reduxStore.dispatch(setUnsavedGatesAction)
+        } else {
+            console.log('Error in updateUnsavedGate: no gate with id ', gateId, 'was found.')
         }
     },
 
@@ -1182,6 +1220,14 @@ export const api = {
                     title: gate.title,
                     creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
                     typeSpecificData: {}
+                }
+            } else if (gate.type === constants.GATE_TYPE_COMBO) {
+                gateTemplate = {
+                    id: uuidv4(),
+                    type: constants.GATE_TYPE_COMBO,
+                    title: gate.title,
+                    creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                    typeSpecificData: gate.gateCreatorData
                 }
             }
 

@@ -58,6 +58,12 @@
                     cursor: pointer;
                     @include backgroundHover(darken($highlight-colour, 10%));
                     @include backgroundClick(darken($highlight-colour, 10%));
+
+                    &.disabled {
+                        opacity: 0.7;
+                        background: #bbb;
+                        pointer-events: none;
+                    }
                 }
             }
 
@@ -184,13 +190,13 @@
                                         @include backgroundHover(#666);
                                         @include backgroundClick(#666);
 
+                                        i {
+                                            margin-right: 15px;
+                                            font-size: 22px;
+                                        }
+
                                         &.clickable {
                                             cursor: pointer;
-
-                                            i {
-                                                margin-right: 15px;
-                                                font-size: 22px;
-                                            }
 
                                             &.active {
                                                 @include foregroundHover(darken($highlight-colour, 15%));
@@ -226,85 +232,174 @@
 
                     .gate {
                         flex-shrink: 0;
-                        padding: 10px;
                         border-bottom: 1px solid #ddd;
-                        flex-direction: column;
+                        flex-direction: row;
 
-                        & > .title {
-                            font-size: 13px;
-                            font-weight: 600;
-                            margin-bottom: 5px;
-                        }
-
-                        .population-count {
-                            margin-bottom: 10px;
-                          
-                            .highlight {
-                                margin-right: 3px;
-                            }
-                        }
-
-                        &.negative .population-count {
+                        &.negative .left .population-count, &.combo .population-count {
                             margin-bottom: 0;
                         }
 
-                        .width {
+                        &.combo {
 
-                            i {
-                                font-size: 18px;
-                                margin-right: 5px;
-                                cursor: pointer;
+                            .combo-list {
+                                flex-direction: column;
+                                align-items: flex-start;
 
-                                &:hover {
-                                    color: #555;
-                                }
-
-                                &:active {
-                                    color: $highlight-colour;
+                                .included-gate {
+                                    padding: 8px 12px;
+                                    margin: 5px 0;
+                                    color: #fff;
+                                    border-radius: 5px;
+                                    @include backgroundHover(darken($highlight-colour, 30%))
                                 }
                             }
                         }
 
-                        .parameter {
-                            align-items: center;
-
-                            .text {
-                                flex-grow: 1;
-                            }
-
-                            .value {
-                                margin-right: 5px;
-                                font-size: 18px;
-                                color: #aaa;
-                            }
-                        }
-
-                        .cytof-options {
-                            margin-top: 10px;
+                        .left {
+                            padding: 10px;                            
                             flex-direction: column;
+                            flex-grow: 1;
 
-                            .title {
+                            & > .title {
+                                font-size: 13px;
                                 font-weight: 600;
-                                color: darken($highlight-colour, 40%);
-                                margin-bottom: 10px;
+                                margin-bottom: 5px;
                             }
 
-                            .parameter {
-                                cursor: point;
+                            .population-count {
                                 margin-bottom: 10px;
-                                cursor: pointer;
-                                @include foregroundHover(#555)
-                                @include foregroundClick(#555)
-
-                                &.active {
-                                    @include foregroundHover($highlight-colour)
-                                    @include foregroundClick($highlight-colour)
+                              
+                                .highlight {
+                                    margin-right: 3px;
                                 }
+                            }
+
+                            .width {
 
                                 i {
                                     font-size: 18px;
                                     margin-right: 5px;
+                                    cursor: pointer;
+
+                                    &:hover {
+                                        color: #555;
+                                    }
+
+                                    &:active {
+                                        color: $highlight-colour;
+                                    }
                                 }
+                            }
+
+                            .parameter {
+                                align-items: center;
+
+                                .text {
+                                    flex-grow: 1;
+                                }
+
+                                .value {
+                                    margin-right: 5px;
+                                    font-size: 18px;
+                                    color: #aaa;
+                                }
+                            }
+
+                            .additional-options {
+                                flex-direction: column;
+                            }
+
+                            .cytof-options {
+                                margin-top: 10px;
+                                flex-direction: column;
+
+                                .title {
+                                    font-weight: 600;
+                                    color: darken($highlight-colour, 40%);
+                                    margin-bottom: 10px;
+                                }
+
+                                .parameter {
+                                    cursor: point;
+                                    margin-bottom: 10px;
+                                    cursor: pointer;
+                                    @include foregroundHover(#555)
+                                    @include foregroundClick(#555)
+
+                                    &.active {
+                                        @include foregroundHover($highlight-colour)
+                                        @include foregroundClick($highlight-colour)
+                                    }
+
+                                    i {
+                                        font-size: 18px;
+                                        margin-right: 5px;
+                                    }
+                                }
+                            }
+                        } // .left
+
+                        .dismiss {
+                            cursor: pointer;
+
+                            &:hover {
+                                @include foregroundClick($red-colour);
+                            }
+
+                            i {
+                                font-size: 26px;
+                                align-items: center;
+                                justify-content: center;
+                                display: flex;
+                                padding: 0 15px;
+                            }
+                        }
+
+                        .right {
+                            max-width: 0px;
+                            transition: max-width 0.2s ease;
+
+                            i {
+                                font-size: 26px;
+                                align-items: center;
+                                justify-content: center;
+                                display: flex;
+                                padding: 0 15px;
+                            }
+                        }
+
+                        &.combo-selection {
+                            cursor: pointer;
+                            @include backgroundHover(#fafafa);
+                            @include backgroundClick(#fafafa);
+
+                            &.active {
+                                @include backgroundHover(lighten($highlight-colour, 30%));
+                                @include backgroundClick(lighten($highlight-colour, 30%));
+
+                                .right i {
+                                    color: $highlight-colour;
+                                }
+                            }
+
+                            .left {
+                                padding: 20px;
+                            }
+
+                            .dismiss {
+                                display: none;
+                            }
+
+                            .right {
+                                max-width: 100px;
+                            }
+
+                            .population-count {
+                                margin-bottom: 0;
+                            }
+
+                            .additional-options {
+                                display: none;
                             }
                         }
                     } // .gate

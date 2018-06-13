@@ -44,6 +44,7 @@ const mapStateToProps = (state, ownProps) => {
                 sample: newSample,
                 gates: ownProps.gates,
                 FCSFile,
+                testagain: '1234',
                 plotWidth: state.plotWidth,
                 plotHeight: state.plotHeight,
                 plotDisplayWidth: ownProps.plotDisplayWidth || state.plotDisplayWidth,

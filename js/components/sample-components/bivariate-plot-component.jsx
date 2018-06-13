@@ -479,49 +479,6 @@ export default class BivariatePlot extends Component {
                 const points = scaledPoints.reduce((string, point) => {
                     return string + point[0] + " " + point[1] + " "
                 }, "")
-                
-                if (this.state.visibleGateTooltipId === gate.id) {
-                    const polygonCenter = getPolygonCenter(scaledPoints)
-                    const tooltipWidth = 250
-                    let tooltipHeight = 100
-
-                    let cytofOptions
-                    if (this.props.FCSFile.machineType === constants.MACHINE_CYTOF) {
-                        cytofOptions = (
-                            <div className='cytof-options'>
-                                <div className='title'>Mass Cytometry Options</div>
-                                <div className={'parameter checkbox include-x-zeroes' + (gateTemplate.typeSpecificData.includeXChannelZeroes ? ' active' : '')} onClick={this.updateTypeSpecificData.bind(this, gateTemplate, { includeXChannelZeroes: !gateTemplate.typeSpecificData.includeXChannelZeroes }) }>
-                                    <i className={'lnr ' + (gateTemplate.typeSpecificData.includeXChannelZeroes ? 'lnr-checkmark-circle' : 'lnr-circle-minus')} />
-                                    <div className='text'>Include events with 0 X value</div>
-                                </div>
-                                <div className={'parameter checkbox include-y-zeroes' + (gateTemplate.typeSpecificData.includeYChannelZeroes ? ' active' : '')} onClick={this.updateTypeSpecificData.bind(this, gateTemplate, { includeYChannelZeroes: !gateTemplate.typeSpecificData.includeYChannelZeroes }) }>
-                                    <i className={'lnr ' + (gateTemplate.typeSpecificData.includeYChannelZeroes ? 'lnr-checkmark-circle' : 'lnr-circle-minus')} />
-                                    <div className='text'>Include events with 0 Y value</div>
-                                </div>
-                            </div>
-                        )
-
-                        tooltipHeight = 200
-                    }
-
-                    tooltip = (
-                        <div className="tooltip" style={{width: tooltipWidth, height: tooltipHeight, left: (polygonCenter[0] - tooltipWidth / 2) + this.state.graphMargin.left, top: Math.max((polygonCenter[1] - tooltipHeight * 1.5) + this.state.graphMargin.top, 0)}}
-                            onClick={(event) => { event.stopPropagation() }}>
-                            <div className='tooltip-inner'>
-                                <div className='title'>Gate Template {gateTemplate.id.substring(0, 5)}</div>
-                                <div className='creator'>{gateCreators[gateTemplateGroup.creator]}</div>
-                                <div className='divider'></div>
-                                <div className='parameter width'>
-                                    <div className='text'>Additional Width:</div>
-                                    <div className='value'>{gateTemplate.typeSpecificData.bonusIterations}</div>
-                                    <i className='lnr lnr-plus-circle' onClick={this.updateTypeSpecificData.bind(this, gateTemplate, { bonusIterations: gateTemplate.typeSpecificData.bonusIterations + 10 }) } />
-                                    <i className='lnr lnr-circle-minus' onClick={this.updateTypeSpecificData.bind(this, gateTemplate, { bonusIterations: gateTemplate.typeSpecificData.bonusIterations - 10 }) } />
-                                </div>
-                                {cytofOptions}
-                            </div>
-                        </div>
-                    )
-                }
 
                 // If this is a real gate template, link mouse events to gate templates and sub samples
                 if (gateTemplate) {
@@ -538,7 +495,7 @@ export default class BivariatePlot extends Component {
                 } else {
                     return (
                         <svg key={gate.id}>
-                            <polygon points={points} className={'gate'} />
+                            <polygon points={points} className={'gate' + (this.props.highlightedGateIds && this.props.highlightedGateIds.includes(gate.id) ? ' highlighted' : '')} />
                         </svg>
                     )
                 }
