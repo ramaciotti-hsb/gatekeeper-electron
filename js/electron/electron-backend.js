@@ -535,8 +535,58 @@ export const api = {
 
                     let gates = await api.calculateHomology(sampleId, options)
 
+                    // Create the negative gate if there is one
+                    const negativeGate = _.find(currentState.gateTemplates, gt => templateGroup.childGateTemplateIds.includes(gt.id) && gt.type === constants.GATE_TYPE_NEGATIVE)
+                    if (negativeGate) {
+                        const newGate = {
+                            id: uuidv4(),
+                            type: constants.GATE_TYPE_NEGATIVE,
+                            title: FCSFile.FCSParameters[templateGroup.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[templateGroup.selectedYParameterIndex].label + ' Negative Gate',
+                            sampleId: sampleId,
+                            FCSFileId: FCSFile.id,
+                            gateTemplateId: negativeGate.id,
+                            selectedXParameterIndex: templateGroup.selectedXParameterIndex,
+                            selectedYParameterIndex: templateGroup.selectedYParameterIndex,
+                            selectedXScale: templateGroup.selectedXScale,
+                            selectedYScale: templateGroup.selectedYScale,
+                            gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                            gateCreatorData: {},
+                            includeEventIds: []
+                        }
+
+                        gates.push(newGate)
+                    }
+
                     gates = api.createGatePolygons(gates)
                     gates = await api.getGateIncludedEvents(gates)
+
+                    // Create combo gates AFTER we know which events are in each smaller gate so that they can be concatted for combo gate contents
+                    const comboGates = _.filter(currentState.gateTemplates, gt => templateGroup.childGateTemplateIds.includes(gt.id) && gt.type === constants.GATE_TYPE_COMBO)
+                    for (let comboGate of comboGates) {
+                        console.log(comboGate.typeSpecificData.gateIds)
+                        const includedGates = _.filter(gates, g => comboGate.typeSpecificData.gateTemplateIds.includes(g.gateTemplateId))
+
+                        console.log(includedGates)
+                        const newGate = {
+                            id: uuidv4(),
+                            type: constants.GATE_TYPE_COMBO,
+                            title: FCSFile.FCSParameters[templateGroup.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[templateGroup.selectedYParameterIndex].label + ' Combo Gate',
+                            sampleId: sampleId,
+                            FCSFileId: FCSFile.id,
+                            gateTemplateId: comboGate.id,
+                            selectedXParameterIndex: templateGroup.selectedXParameterIndex,
+                            selectedYParameterIndex: templateGroup.selectedYParameterIndex,
+                            selectedXScale: templateGroup.selectedXScale,
+                            selectedYScale: templateGroup.selectedYScale,
+                            gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                            gateCreatorData: {
+                                gateIds: includedGates.map(g => g.id)
+                            },
+                            includeEventIds: includedGates.reduce((accumulator, current) => { return accumulator.concat(current.includeEventIds) }, [])
+                        }
+
+                        gates.push(newGate)
+                    }
 
                     if (gates.length > 0) {
                         for (let i = 0; i < gates.length; i++) {
@@ -1205,7 +1255,7 @@ export const api = {
 
             if (gate.type === constants.GATE_TYPE_POLYGON) {
                 gateTemplate = {
-                    id: uuidv4(),
+                    id: gate.id,
                     type: constants.GATE_TYPE_POLYGON,
                     title: gate.title,
                     creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
@@ -1215,7 +1265,7 @@ export const api = {
                 }
             } else if (gate.type === constants.GATE_TYPE_NEGATIVE) {
                 gateTemplate = {
-                    id: uuidv4(),
+                    id: gate.id,
                     type: constants.GATE_TYPE_NEGATIVE,
                     title: gate.title,
                     creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
@@ -1223,11 +1273,13 @@ export const api = {
                 }
             } else if (gate.type === constants.GATE_TYPE_COMBO) {
                 gateTemplate = {
-                    id: uuidv4(),
+                    id: gate.id,
                     type: constants.GATE_TYPE_COMBO,
                     title: gate.title,
                     creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
-                    typeSpecificData: gate.gateCreatorData
+                    typeSpecificData: {
+                        gateTemplateIds: gate.gateCreatorData.gateIds
+                    }
                 }
             }
 

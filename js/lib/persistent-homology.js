@@ -44,17 +44,18 @@ export default class PersistentHomology {
         // Get [minY, maxY] range of peaks along y axis
         let yRange = peaks.reduce((acc, curr) => { return [ Math.min(acc[0], curr.nucleus[1]), Math.max(acc[1], curr.nucleus[1]) ] }, [Infinity, -Infinity])
         // Create buckets and place peaks into groups along each axis
-        // console.log(xRange, yRange)
+        console.log(xRange, yRange)
+        for (let peak of peaks) {
+            console.log(peak.nucleus)
+        }
         // console.log((xRange[1] - xRange[0]) * 0.2, (yRange[1] - yRange[0]) * 0.2)
         let xGroups = []
         let yGroups = []
         for (let peak of peaks) {
-            let peakCenter = getPolygonCenter(peak.polygons[peak.truePeakWidthIndex])
-            // console.log(peakCenter)
-            
+        
             const newXGroup = () => {
                 xGroups.push({
-                    position: peakCenter[0],
+                    position: peak.nucleus[0],
                     peaks: [ peak.id ]
                 })
             }
@@ -67,7 +68,7 @@ export default class PersistentHomology {
             
                 for (let group of xGroups) {
                     // If the peak is within 10% of an existing group, add it to that group
-                    if (Math.abs(group.position - peakCenter[0]) < (xRange[1] - xRange[0]) * maxGroupDistance) {// if (Math.abs(group.position - peakCenter[0]) <= ((xRange[1] - xRange[0]) * maxGroupDistance) || Math.abs(group.position - peakCenter[0]) < 20) {
+                    if (Math.abs(group.position - peak.nucleus[0]) < (xRange[1] - xRange[0]) * maxGroupDistance) {// if (Math.abs(group.position - peakCenter[0]) <= ((xRange[1] - xRange[0]) * maxGroupDistance) || Math.abs(group.position - peakCenter[0]) < 20) {
                         group.peaks.push(peak.id)
                         found = true
                     }
@@ -81,7 +82,7 @@ export default class PersistentHomology {
 
             const newYGroup = () => {
                 yGroups.push({
-                    position: peakCenter[1],
+                    position: peak.nucleus[1],
                     peaks: [ peak.id ]
                 })
             }
@@ -94,7 +95,7 @@ export default class PersistentHomology {
             
                 for (let group of yGroups) {
                     // If the peak is within 10% of an existing group, add it to that group
-                    if (Math.abs(group.position - peakCenter[1]) < (yRange[1] - yRange[0]) * maxGroupDistance) {// if (Math.abs(group.position - peakCenter[1]) <= ((yRange[1] - yRange[0]) * maxGroupDistance) || Math.abs(group.position - peakCenter[1]) < 20) {
+                    if (Math.abs(group.position - peak.nucleus[1]) < (yRange[1] - yRange[0]) * maxGroupDistance) {// if (Math.abs(group.position - peakCenter[1]) <= ((yRange[1] - yRange[0]) * maxGroupDistance) || Math.abs(group.position - peakCenter[1]) < 20) {
                         group.peaks.push(peak.id)
                         found = true
                     }
