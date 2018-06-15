@@ -77,6 +77,31 @@
                 flex-direction: column;
                 position: relative;
             }
+
+            .error-overlay {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1;
+                cursor: pointer;
+                background: rgba(192, 41, 66, 0.9);
+
+                &:hover {
+                    background: rgba(192, 41, 66, 1);                    
+                }
+
+                i {
+                    font-size: 22px;
+                    margin-right: 10px;
+                }
+
+                .text {
+                    font-size: 15px;
+                }
+            }
         }
 
         .sidebar-gate-template {

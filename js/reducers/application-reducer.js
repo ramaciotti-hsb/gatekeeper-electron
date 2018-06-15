@@ -9,6 +9,7 @@ import workspaceReducer from './workspace-reducer'
 import gateReducer from './gate-reducer'
 import gateTemplateReducer from './gate-template-reducer'
 import gateTemplateGroupReducer from './gate-template-group-reducer'
+import gatingErrorReducer from './gating-error-reducer'
 import _ from 'lodash'
 import path from 'path'
 import { remote } from 'electron'
@@ -21,6 +22,7 @@ let initialState = {
     gates: gateReducer(),
     gateTemplates: gateTemplateReducer(),
     gateTemplateGroups: gateTemplateGroupReducer(),
+    gatingErrors: gatingErrorReducer(),
     selectedWorkspaceId: null,
     sessionLoading: true, // Display a global loading spinner while the session loads
     backgroundJobsEnabled: true,
@@ -51,6 +53,7 @@ const applicationReducer = (state = initialState, action) => {
         gates: state.gates ? state.gates.slice(0) : [],
         gateTemplates: state.gateTemplates ? state.gateTemplates.slice(0) : [],
         gateTemplateGroups: state.gateTemplateGroups ? state.gateTemplateGroups.slice(0) : [],
+        gatingErrors: state.gatingErrors ? state.gatingErrors.slice(0) : [],
         unsavedGates: state.unsavedGates ? state.unsavedGates.slice(0) : null,
         selectedWorkspaceId: state.selectedWorkspaceId,
         sessionLoading: state.sessionLoading,
@@ -516,6 +519,7 @@ const applicationReducer = (state = initialState, action) => {
         newState.gates = gateReducer(newState.gates, action)
         newState.gateTemplates = gateTemplateReducer(newState.gateTemplates, action)
         newState.gateTemplateGroups = gateTemplateGroupReducer(newState.gateTemplateGroups, action)
+        newState.gatingErrors = gatingErrorReducer(newState.gatingErrors, action)
     }
 
     return newState

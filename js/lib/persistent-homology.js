@@ -133,6 +133,11 @@ export default class PersistentHomology {
                     peak.truePeakWidthIndex = peak.polygons.length - 1
                     peak.widthIndex = 0
                 }
+
+                peak.gateCreatorData = {
+                    truePeakWidthIndex: peak.truePeakWidthIndex,
+                    widthIndex: 0
+                }
             }
 
             return _.filter(peaks, p => p.truePeak)
@@ -146,9 +151,24 @@ export default class PersistentHomology {
         const polygonTemplates = _.filter(gateTemplates, p => p.type === constants.GATE_TYPE_POLYGON)
         // Try and match them to options.gateTemplates
         if (peaks.length !== polygonTemplates.length) {
-            console.log(this.options)
-            console.log('Error, peak number didnt match templates', peaks)
-            return []
+            return {
+                status: constants.STATUS_FAIL,
+                data: {
+                    gates: peaks,
+                    criteria: [
+                        {
+                            'message': 'The same number of populations were found',
+                            'status': constants.STATUS_FAIL,
+                            'information': `${peaks.length} population${peaks.length !== 1 ? ' was' : 's were'} found in this sample, whereas ${gateTemplates.length} population${gateTemplates.length !== 1 ? ' was' : 's were'} expected by the template. Consider adjusting Minimum Peak Size / Height to increase or decrease the number of populations discovered.`
+                        },
+                        {
+                            'message': 'Found populations match the template',
+                            'status': constants.STATUS_FAIL,
+                            'information': 'Populations can\'t be matched to the template if there are two many or two few found populations.'
+                        }
+                    ]
+                }
+            }
         } else {
             const groups = this.getAxisGroups(peaks)
             // console.log(groups)
@@ -168,10 +188,24 @@ export default class PersistentHomology {
             // console.log(groups)
             // If we match along one of the axis, it's likely that the peaks have just shifted order slightly. Re order them so they match the other axis
             if (!orderMatches) {
-                console.log(peaks)
-                console.log(groups)
-                console.log('neither order matches, aborting')
-                return []
+                return {
+                    status: constants.STATUS_FAIL,
+                    data: {
+                        gates: peaks,
+                        criteria: [
+                            {
+                                'message': 'The same number of populations were found',
+                                'status': constants.STATUS_SUCCESS,
+                                'information': ''
+                            },
+                            {
+                                'message': 'Found populations match the template',
+                                'status': constants.STATUS_FAIL,
+                                'information': 'Even though the same number of populations were found, they deviated too much from the template. Consider increasing the "Max Group Distance" parameter.'
+                            }
+                        ]
+                    }
+                }
             }
 
             // Make sure the widthIndex specified by the template doesn't overflow the boundaries of the polygon array
@@ -186,7 +220,12 @@ export default class PersistentHomology {
                 }
             }
 
-            return peaks
+            return {
+                status: constants.STATUS_SUCCESS,
+                data: {
+                    gates: peaks
+                }
+            }
         }
     }
 
@@ -199,14 +238,6 @@ export default class PersistentHomology {
             peak.yGroup = _.findIndex(groups.yGroups, g => g.peaks.includes(peak.id))
             peak.includeXChannelZeroes = true
             peak.includeYChannelZeroes = true
-        }
-
-        // Add homology parameters so they can be reused later
-        for (let peak of peaks) {
-            peak.gateCreatorData = {
-                truePeakWidthIndex: peak.truePeakWidthIndex,
-                widthIndex: 0
-            }
         }
 
         // // Create a negative gate including all the uncaptured events if the user specified
@@ -222,7 +253,12 @@ export default class PersistentHomology {
         //     this.homologyPeaks.push(gate)
         // }
 
-        return peaks
+        return {
+            status: constants.STATUS_SUCCESS,
+            data: {
+                gates: peaks
+            }
+        }
     }
 
     performHomologyIteration (height, peaks)  {

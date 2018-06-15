@@ -9,7 +9,7 @@ export const createGateTemplateGroup = (parameters) => {
     if (!parameters.id) { parameters.id = uuidv4() }
     return {
         type: 'CREATE_GATE_TEMPLATE_GROUP',
-        payload: { gateTemplate: parameters }
+        payload: { gateTemplateGroup: parameters }
     }
 }
 

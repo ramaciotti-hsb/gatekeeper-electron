@@ -47,6 +47,12 @@ export default class WorkspaceView extends Component {
                     return accumulator
                 }
             }, 0)
+
+            let gatingError
+            if (childGateTemplateGroup.gatingError) {
+                gatingError = <div className='error-overlay'><i className='lnr lnr-cross-circle' /><div className='text'>Error Applying Gating Template</div></div>
+            }
+
             return (
                 <div className='sidebar-gate-template-group' key={childGateTemplateGroup.id}>
                     <div className='title'>
@@ -58,6 +64,7 @@ export default class WorkspaceView extends Component {
                     </div>
                     <div className='gate-templates'>
                         <div className={`loader-outer${childGateTemplateGroup.loading && this.props.workspace.selectedFCSFile ? ' active' : ''}`}><div className='loader small'></div></div>
+                        {gatingError}
                         {childrenRendered}
                     </div>
                 </div>

@@ -63,19 +63,19 @@ const mapStateToProps = (state, ownProps) => {
             for (let gateTemplateGroupId of newWorkspace.gateTemplateGroupIds) {
                 const gateTemplateGroup = _.clone(_.find(state.gateTemplateGroups, s => s.id === gateTemplateGroupId))
                 if (gateTemplateGroup) {
+                    const relatedSample = _.find(state.samples, s => s.gateTemplateId === gateTemplateGroup.parentGateTemplateId && s.FCSFileId === newWorkspace.selectedFCSFileId)
+                    // If there are gating errors for this sample and gate template group, mark the group as "errored"
+                    if (relatedSample && _.find(state.gatingErrors, e => e.sampleId === relatedSample.id && e.gateTemplateGroupId === gateTemplateGroupId)) {
+                        gateTemplateGroup.gatingError = true
+                    }
                     // If there are no subsamples for this FCS file and gate template group, mark the gate template as loading
-                    if (!_.find(state.samples, s => gateTemplateGroup.childGateTemplateIds.includes(s.gateTemplateId) && s.FCSFileId === newWorkspace.selectedFCSFileId)) {
+                    else if (!_.find(state.samples, s => gateTemplateGroup.childGateTemplateIds.includes(s.gateTemplateId) && s.FCSFileId === newWorkspace.selectedFCSFileId)) {
                         gateTemplateGroup.loading = true
                     }
                     newWorkspace.gateTemplateGroups.push(gateTemplateGroup)
                 }
             }
             newWorkspace.gateTemplateGroupIds = null
-        }
-
-        let selectedSample
-        if (newWorkspace.selectedSampleId) {
-            selectedSample = _.find(state.samples, s => s.id === newWorkspace.selectedSampleId)
         }
 
         // If there is a highlighted gate, highlight it's subsample

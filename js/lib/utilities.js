@@ -126,7 +126,7 @@ const getScales = (options) => {
 }
 
 // Get the min and max points of a polygon. See return value.
-function getPolygonBoundaries (points, index) {
+function getPolygonBoundaries (points) {
     let minX = Infinity
     let maxX = -Infinity
 

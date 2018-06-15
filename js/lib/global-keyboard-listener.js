@@ -24,6 +24,6 @@ export const registerEscapeKeyListener = (key, listener) => {
     escapeKeyListeners[key] = listener
 }
 
-export const unregisterEscapeKeyListener = (key, listener) => {
+export const deregisterEscapeKeyListener = (key, listener) => {
     delete escapeKeyListeners[key]
 }
