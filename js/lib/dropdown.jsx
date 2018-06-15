@@ -8,7 +8,9 @@ import { Component }        from 'react'
 import ReactDOM             from 'react-dom'
 import _                    from 'lodash'
 import OnClickOutside       from 'react-onclickoutside'
+import uuidv4               from 'uuid/v4'
 import                           '../../scss/dropdown.scss'
+import { registerEscapeKeyListener, deregisterEscapeKeyListener } from './global-keyboard-listener'
 
 /* REQUIRED MARKUP FOR Dropdown CHILDREN:
 <Dropdown>
@@ -57,6 +59,15 @@ class Dropdown extends Component {
 
     handleClickOutside () {
         this.hideDropdown();
+    }
+
+    componentDidMount () {
+        this.keyboardListenerKey = uuidv4()
+        registerEscapeKeyListener(this.keyboardListenerKey, this.hideDropdown.bind(this))
+    }
+
+    componentWillUnmount () {
+        deregisterEscapeKeyListener(this.keyboardListenerKey)   
     }
     
     render () {

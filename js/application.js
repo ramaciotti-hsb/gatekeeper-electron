@@ -1,7 +1,7 @@
-/*
-* This is the outer application wrapper for command pipeline.
-* It kicks off the react application.
-*/
+// -------------------------------------------------------------
+// This is the outer application wrapper for Gatekeeper.
+// It kicks off the react application.
+// -------------------------------------------------------------
 
 import React from 'react'
 import ReactDOM from 'react-dom'
@@ -11,6 +11,7 @@ import Application from './containers/application-container.jsx'
 import applicationReducer from './reducers/application-reducer'
 import '../scss/container.scss'
 import { setStore, api } from './electron/electron-backend.js'
+import { initialize } from './lib/global-keyboard-listener'
 
 const store = createStore(applicationReducer)
 
@@ -22,6 +23,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     ReactDOM.render(<Provider store={store}><Application /></Provider>, document.getElementById('container-outer'))
     store.dispatch({ type: 'SET_API', payload: { api } })
     await api.getSession()
+    initialize()
 })
 
 document.addEventListener('dragleave', function (event) {

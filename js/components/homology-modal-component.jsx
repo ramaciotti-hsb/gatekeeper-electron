@@ -10,6 +10,8 @@ import constants from '../lib/constants'
 import '../../scss/homology-modal.scss'
 import Dropdown from '../lib/dropdown.jsx'
 import BivariatePlot from '../containers/bivariate-plot-container.jsx'
+import uuidv4 from 'uuid/v4'
+import { registerEscapeKeyListener, deregisterEscapeKeyListener } from '../lib/global-keyboard-listener'
 
 export default class FCSFileSelector extends Component {
     
@@ -142,6 +144,15 @@ export default class FCSFileSelector extends Component {
             minPeakSize: this.state.minPeakSize,
             removeExistingGates: true
         }).then(this.modalOuterClicked.bind(this))
+    }
+
+    componentDidMount () {
+        this.keyboardListenerKey = uuidv4()
+        registerEscapeKeyListener(this.keyboardListenerKey, this.modalOuterClicked.bind(this))
+    }
+
+    componentWillUnmount () {
+        deregisterEscapeKeyListener(this.keyboardListenerKey)   
     }
 
     render () {

@@ -10,7 +10,9 @@ import { Component }        from 'react'
 import ReactDOM             from 'react-dom'
 import _                    from 'lodash'
 import OnClickOutside       from 'react-onclickoutside'
+import uuidv4               from 'uuid/v4'
 import                           '../../scss/dropdown-inline.scss'
+import { registerEscapeKeyListener, deregisterEscapeKeyListener } from './global-keyboard-listener'
 
 // The outer menu react element
 class DropdownInline extends Component {
@@ -44,6 +46,15 @@ class DropdownInline extends Component {
         this.setState({
             searchText: event.target.value
         })
+    }
+
+    componentDidMount () {
+        this.keyboardListenerKey = uuidv4()
+        registerEscapeKeyListener(this.keyboardListenerKey, this.hideDropdown.bind(this))
+    }
+
+    componentWillUnmount () {
+        deregisterEscapeKeyListener(this.keyboardListenerKey)   
     }
 
     render () {
