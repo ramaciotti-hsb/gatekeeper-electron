@@ -22,9 +22,42 @@
             flex-shrink: 0;
             border-bottom: 1px solid #ddd;
 
+            .fcs-file-selector-dropdown {
+                margin-right: 15px;
+            }
+
             .dropdown-inline {
                 width: 300px;
-                margin-right: 15px;
+
+                .item {
+                    flex-direction: row;
+
+                    .text {
+                        flex-grow: 1;
+                    }
+
+                    .dot {
+                        width: 10px;
+                        height: 10px;
+                        border-radius: 10px;
+                        background: $highlight-colour;
+                        margin-right: 5px;
+                        display: none;
+                    }
+                }
+
+                .item.selected {
+                    cursor: default;
+                    background: rgba(105, 210, 231, 0.2);
+
+                    .dot {
+                        display: block;
+                    }
+
+                    &:last-child {
+                        border-bottom: none;
+                    }
+                }
             }
 
             .divider {

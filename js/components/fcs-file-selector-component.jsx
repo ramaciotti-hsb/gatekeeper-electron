@@ -49,9 +49,15 @@ export default class FCSFileSelector extends Component {
             }
 
             const FCSFiles = this.props.FCSFiles.map((FCSFile) => {
+                const isSelected = FCSFile.id === this.props.selectedFCSFile.id
                 return {
                     value: FCSFile.title,
-                    component: <div className='item' onClick={this.selectFCSFile.bind(this, FCSFile.id, this.props.workspaceId)} key={FCSFile.id}>{FCSFile.title}</div>
+                    component: (
+                        <div className={'item' + (isSelected ? ' selected' : '')} onClick={isSelected ? () => {} : this.selectFCSFile.bind(this, FCSFile.id, this.props.workspaceId)} key={FCSFile.id}>
+                            <div className='text'>{FCSFile.title}</div>
+                            <div className='dot' />
+                        </div>
+                    )
                 }
             })
 
