@@ -44,17 +44,17 @@ export default class FCSParameterSelector extends Component {
         return (
             <div className='parameter-selector-outer' style={{ width: this.props.showDisabledParameters ? 'auto' : 0, minWidth: this.props.showDisabledParameters ? 200 : 0 }}>
                 <div className='header'>Toggle Parameters</div>
+                <div className='parameter-row toggle-all' onClick={someDisabled ?
+                    this.props.api.setFCSParametersDisabled.bind(null, this.props.selectedWorkspace.id, _.zipObject(this.props.selectedFCSFile.FCSParameters.map(p => p.key), this.props.selectedFCSFile.FCSParameters.map(p => false))) :
+                    this.props.api.setFCSParametersDisabled.bind(null, this.props.selectedWorkspace.id, _.zipObject(this.props.selectedFCSFile.FCSParameters.map(p => p.key), this.props.selectedFCSFile.FCSParameters.map(p => true))) }>
+                    <i className={'lnr lnr-menu-circle'} />
+                    <div className='text'>{someDisabled ? 'Enable All' : 'Disable All'}</div>
+                </div>
+                <div className='parameter-row filter'>
+                    <i className={'lnr lnr-magnifier'} />
+                    <input type='text' placeholder='Filter' value={this.state.filterValue} onChange={this.onFilter.bind(this)} />
+                </div>
                 <div className='parameter-selector-inner'>
-                    <div className='parameter-row toggle-all' onClick={someDisabled ?
-                        this.props.api.setFCSParametersDisabled.bind(null, this.props.selectedWorkspace.id, _.zipObject(this.props.selectedFCSFile.FCSParameters.map(p => p.key), this.props.selectedFCSFile.FCSParameters.map(p => false))) :
-                        this.props.api.setFCSParametersDisabled.bind(null, this.props.selectedWorkspace.id, _.zipObject(this.props.selectedFCSFile.FCSParameters.map(p => p.key), this.props.selectedFCSFile.FCSParameters.map(p => true))) }>
-                        <i className={'lnr lnr-menu-circle'} />
-                        <div className='text'>{someDisabled ? 'Enable All' : 'Disable All'}</div>
-                    </div>
-                    <div className='parameter-row filter'>
-                        <i className={'lnr lnr-magnifier'} />
-                        <input type='text' placeholder='Filter' value={this.state.filterValue} onChange={this.onFilter.bind(this)} />
-                    </div>
                     {parameters}
                 </div>
                 <div className='close-tab' onClick={this.props.api.toggleShowDisabledParameters} >
