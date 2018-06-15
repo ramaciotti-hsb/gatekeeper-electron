@@ -164,7 +164,7 @@ export default class Application extends Component {
 
                 const FCSFile = {
                     filePath: filePath,
-                    title: filePath.split(path.sep).slice(-1), // Returns just the filename without the path
+                    title: filePath.split(path.sep).slice(-1)[0], // Returns just the filename without the path
                     description: 'FCS File',
                 }
                 this.props.api.createFCSFileAndAddToWorkspace(this.props.selectedWorkspaceId, FCSFile)
