@@ -13,10 +13,19 @@ export default class FCSParameterSelector extends Component {
 
     constructor (props) {
         super(props)
+        this.state = {
+            filterValue: ''
+        }
+    }
+
+    onFilter (event) {
+        this.setState({
+            filterValue: event.target.value
+        })
     }
 
     render () {
-        const parameters = this.props.selectedFCSFile.FCSParameters.map((parameter) => {
+        const parameters = _.filter(this.props.selectedFCSFile.FCSParameters, p => p.key.toLowerCase().match(this.state.filterValue.toLowerCase()) || p.label.toLowerCase().match(this.state.filterValue.toLowerCase())).map((parameter) => {
             const disabled = this.props.selectedWorkspace.disabledParameters && this.props.selectedWorkspace.disabledParameters[parameter.key]
             return (
                 <div className={'parameter-row ' + (disabled ? 'disabled' : 'enabled')} key={parameter.key} onClick={this.props.api.setFCSParametersDisabled.bind(null, this.props.selectedWorkspace.id, { [parameter.key]: !disabled })}>
@@ -41,6 +50,10 @@ export default class FCSParameterSelector extends Component {
                         this.props.api.setFCSParametersDisabled.bind(null, this.props.selectedWorkspace.id, _.zipObject(this.props.selectedFCSFile.FCSParameters.map(p => p.key), this.props.selectedFCSFile.FCSParameters.map(p => true))) }>
                         <i className={'lnr lnr-menu-circle'} />
                         <div className='text'>{someDisabled ? 'Enable All' : 'Disable All'}</div>
+                    </div>
+                    <div className='parameter-row filter'>
+                        <i className={'lnr lnr-magnifier'} />
+                        <input type='text' placeholder='Filter' value={this.state.filterValue} onChange={this.onFilter.bind(this)} />
                     </div>
                     {parameters}
                 </div>

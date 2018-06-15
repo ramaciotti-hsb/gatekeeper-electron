@@ -111,6 +111,30 @@ $tab-width: 15px;
                 font-size: 18px;
                 margin-right: 15px;
             }
+
+            &.filter {
+                padding: 5px;
+                background: $menu-colour;
+                position: relative;
+
+                i {
+                    position: absolute;
+                    left: 12px;
+                    color: #fff;
+                    font-size: 17px;
+                }
+                
+                input {
+                    border-radius: 5px;
+                    background: lighten($menu-colour, 10%);
+                    flex-grow: 1;
+                    border: none;
+                    padding: 8px 12px 8px 38px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: #fff;                    
+                }
+            }
         } // .parameter-row
     }
 } // .parameter-selector-outer
