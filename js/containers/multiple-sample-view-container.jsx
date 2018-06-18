@@ -66,6 +66,8 @@ const mapStateToProps = (state, ownProps) => {
             }
         }
 
+        let gatingErrors = _.filter(state.gatingErrors, e => e.sampleId === ownProps.sampleId && _.find(_.filter(state.gateTemplateGroups, g => g.parentGateTemplateId === gateTemplate.id), g2 => g2.id === e.gateTemplateGroupId))
+
         newSample.machineType = newSample.machineType || constants.MACHINE_FLORESCENT
 
         return {
@@ -77,6 +79,7 @@ const mapStateToProps = (state, ownProps) => {
             gateTemplates,
             gateTemplate,
             gateTemplateGroup,
+            gatingErrors,
             parentGateTitle,
             plotWidth: state.plotWidth,
             plotHeight: state.plotHeight,

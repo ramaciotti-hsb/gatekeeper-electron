@@ -518,17 +518,30 @@ export default class BivariatePlot extends Component {
             }
         }
 
+        // Show an error message if automated gates failed to apply
+        let gatingError
+        if (this.props.gatingError) {
+            gatingError = (
+                <div className='error-overlay' onClick={this.props.updateModalParameters.bind(null, 'gatingError', { visible: true, gatingErrorId: this.props.gatingError.id })}>
+                    <div className='red-background' />
+                    <i className='lnr lnr-cross-circle' />
+                    <div className='text'>Error Applying Gating Template</div>
+                </div>
+            )
+        }
+
         return (
             <div className='svg-outer' onClick={this.showGateTooltip.bind(this, null)}>
                 <div className={`loader-outer${isLoading ? ' active' : ''}`}><div className='loader'></div><div className="text">{loadingMessage}</div></div>
+                {gatingError}
                 {/* D3 Axis */}
-                <svg width={this.props.plotDisplayWidth + this.state.graphMargin.left + this.state.graphMargin.right} height={this.props.plotDisplayHeight + this.state.graphMargin.bottom + this.state.graphMargin.top} ref="graph" className='axis'></svg>
+                <svg className={'axis' + (gatingError ? ' gating-error' : '')} width={this.props.plotDisplayWidth + this.state.graphMargin.left + this.state.graphMargin.right} height={this.props.plotDisplayHeight + this.state.graphMargin.bottom + this.state.graphMargin.top} ref="graph"></svg>
                 {/* Gate Paths */}
-                <svg width={this.props.plotDisplayWidth + this.state.graphMargin.left + this.state.graphMargin.right} height={this.props.plotDisplayHeight + this.state.graphMargin.bottom + this.state.graphMargin.top} ref="gates" className='gates'>
+                <svg className={'gates' + (gatingError ? ' gating-error' : '')} width={this.props.plotDisplayWidth + this.state.graphMargin.left + this.state.graphMargin.right} height={this.props.plotDisplayHeight + this.state.graphMargin.bottom + this.state.graphMargin.top} ref="gates">
                     {gates}
                 </svg>
                 {tooltip}
-                <canvas className="canvas" ref="canvas"/>
+                <canvas className={'canvas' + (gatingError ? ' gating-error' : '')} ref="canvas"/>
                 {/*<div className='step' onClick={this.performHomologyIteration.bind(this, 15, 4)}>Step</div>*/}
             </div>
         )

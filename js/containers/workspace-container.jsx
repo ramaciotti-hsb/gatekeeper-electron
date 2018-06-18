@@ -7,6 +7,7 @@ import { createSample, removeSample } from '../actions/sample-actions.js'
 import { selectSample } from '../actions/workspace-actions.js'
 import { updateGateTemplate } from '../actions/gate-template-actions'
 import WorkspaceView from '../components/workspace-component.jsx'
+import { updateModalParameters } from '../actions/application-actions'
 import _ from 'lodash'
 
 const mapStateToProps = (state, ownProps) => {
@@ -65,8 +66,9 @@ const mapStateToProps = (state, ownProps) => {
                 if (gateTemplateGroup) {
                     const relatedSample = _.find(state.samples, s => s.gateTemplateId === gateTemplateGroup.parentGateTemplateId && s.FCSFileId === newWorkspace.selectedFCSFileId)
                     // If there are gating errors for this sample and gate template group, mark the group as "errored"
-                    if (relatedSample && _.find(state.gatingErrors, e => e.sampleId === relatedSample.id && e.gateTemplateGroupId === gateTemplateGroupId)) {
-                        gateTemplateGroup.gatingError = true
+                    const gatingError = _.find(state.gatingErrors, e => e.sampleId === relatedSample.id && e.gateTemplateGroupId === gateTemplateGroupId)
+                    if (relatedSample && gatingError) {
+                        gateTemplateGroup.gatingError = gatingError
                     }
                     // If there are no subsamples for this FCS file and gate template group, mark the gate template as loading
                     else if (!_.find(state.samples, s => gateTemplateGroup.childGateTemplateIds.includes(s.gateTemplateId) && s.FCSFileId === newWorkspace.selectedFCSFileId)) {
@@ -90,6 +92,9 @@ const mapDispatchToProps = dispatch => {
     return {
         updateGateTemplate: (gateTemplateId, parameters) => {
             dispatch(updateGateTemplate(gateTemplateId, parameters))
+        },
+        updateModalParameters: (modalKey, parameters) => {
+            dispatch(updateModalParameters(modalKey, parameters))
         }
     }
 }

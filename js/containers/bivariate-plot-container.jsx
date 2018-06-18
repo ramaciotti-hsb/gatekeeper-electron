@@ -4,6 +4,7 @@
 
 import { connect } from 'react-redux'
 import { createSubSampleAndAddToWorkspace } from '../actions/workspace-actions'
+import { updateModalParameters } from '../actions/application-actions'
 import { updateGateTemplate } from '../actions/gate-template-actions'
 import BivariatePlot from '../components/sample-components/bivariate-plot-component.jsx'
 import _ from 'lodash'
@@ -44,7 +45,6 @@ const mapStateToProps = (state, ownProps) => {
                 sample: newSample,
                 gates: ownProps.gates,
                 FCSFile,
-                testagain: '1234',
                 plotWidth: state.plotWidth,
                 plotHeight: state.plotHeight,
                 plotDisplayWidth: ownProps.plotDisplayWidth || state.plotDisplayWidth,
@@ -67,8 +67,12 @@ const mapStateToProps = (state, ownProps) => {
 
             // Find gate templates that gates refer to
             const gateTemplates = gates.map(g => _.find(state.gateTemplates, gt => g.gateTemplateId === gt.id))
-            // Find gate template groups that templates are in
-            const gateTemplateGroups = gateTemplates.map(gt => _.find(state.gateTemplateGroups, g => g.childGateTemplateIds.includes(gt.id)))
+            const parentGateTemplate = _.find(state.gateTemplates, gt => gt.id === sample.gateTemplateId)
+            let gateTemplateGroup = _.find(state.gateTemplateGroups, g => g.parentGateTemplateId === parentGateTemplate.id && g.selectedXParameterIndex === ownProps.selectedXParameterIndex && g.selectedYParameterIndex === ownProps.selectedYParameterIndex)
+            let gatingError
+            if (gateTemplateGroup) {
+                gatingError = _.find(state.gatingErrors, e => e.gateTemplateGroupId === gateTemplateGroup.id && e.sampleId === ownProps.sampleId)                
+            }
 
             return {
                 api: state.api,
@@ -76,7 +80,8 @@ const mapStateToProps = (state, ownProps) => {
                 sample: newSample,
                 gates,
                 gateTemplates,
-                gateTemplateGroups,
+                gateTemplateGroup,
+                gatingError,
                 FCSFile,
                 plotWidth: state.plotWidth,
                 plotHeight: state.plotHeight,
@@ -95,6 +100,9 @@ const mapDispatchToProps = dispatch => {
     return {
         updateGateTemplate: (gateTemplateId, parameters) => {
             dispatch(updateGateTemplate(gateTemplateId, parameters))
+        },
+        updateModalParameters: (modalKey, parameters) => {
+            dispatch(updateModalParameters(modalKey, parameters))
         }
     }
 }

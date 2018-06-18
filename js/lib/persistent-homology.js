@@ -157,12 +157,12 @@ export default class PersistentHomology {
                     gates: peaks,
                     criteria: [
                         {
-                            'message': 'The same number of populations were found',
+                            'message': 'A different number of populations were found',
                             'status': constants.STATUS_FAIL,
-                            'information': `${peaks.length} population${peaks.length !== 1 ? ' was' : 's were'} found in this sample, whereas ${gateTemplates.length} population${gateTemplates.length !== 1 ? ' was' : 's were'} expected by the template. Consider adjusting Minimum Peak Size / Height to increase or decrease the number of populations discovered.`
+                            'information': `${peaks.length} population${peaks.length === 1 ? ' was' : 's were'} found in this sample, whereas ${gateTemplates.length} population${gateTemplates.length === 1 ? ' was' : 's were'} expected by the template. Consider adjusting Minimum Peak Size / Height to increase or decrease the number of populations discovered.`
                         },
                         {
-                            'message': 'Found populations match the template',
+                            'message': 'Found populations didn\'t match the template',
                             'status': constants.STATUS_FAIL,
                             'information': 'Populations can\'t be matched to the template if there are two many or two few found populations.'
                         }
@@ -199,7 +199,7 @@ export default class PersistentHomology {
                                 'information': ''
                             },
                             {
-                                'message': 'Found populations match the template',
+                                'message': 'Found populations didn\'t match the template',
                                 'status': constants.STATUS_FAIL,
                                 'information': 'Even though the same number of populations were found, they deviated too much from the template. Consider increasing the "Max Group Distance" parameter.'
                             }

@@ -516,7 +516,8 @@ export const api = {
         for (let templateGroup of templateGroups) {
             if (templateGroup.creator === constants.GATE_CREATOR_PERSISTENT_HOMOLOGY) {
                 // If there hasn't been any gate templates generated for this sample, try generating them, otherwise leave them as they are
-                if (!_.find(currentState.gates, g => g.parentSampleId === sampleId && templateGroup.childGateTemplateIds.includes(g.gateTemplateId))) {
+                if (!_.find(currentState.gates, g => g.parentSampleId === sampleId && templateGroup.childGateTemplateIds.includes(g.gateTemplateId))
+                    && !_.find(currentState.gatingErrors, e => e.sampleId === sampleId && e.gateTemplateGroupId === templateGroup.id)) {
                     // Dispatch a redux action to mark the gate template as loading
                     let loadingMessage = 'Creating gates using Persistent Homology...'
 
@@ -621,11 +622,20 @@ export const api = {
                             gates: homologyResult.data.gates,
                             criteria:  homologyResult.data.criteria,
                         }
+
+                        let gates = api.createGatePolygons(homologyResult.data.gates)
+                        gates = await api.getGateIncludedEvents(gates)
                         // Create a gating error
                         const createGatingErrorAction = createGatingError(gatingError)
                         currentState = applicationReducer(currentState, createGatingErrorAction)
                         reduxStore.dispatch(createGatingErrorAction)
+
+                        const loadingFinishedAction = setSampleParametersLoading(sample.id, templateGroup.selectedXParameterIndex + '_' + templateGroup.selectedYParameterIndex, { loading: false, loadingMessage: null })
+                        currentState = applicationReducer(currentState, loadingFinishedAction)
+                        reduxStore.dispatch(loadingFinishedAction)
                     }
+
+                    saveSessionToDisk()
                 }
             }
         }

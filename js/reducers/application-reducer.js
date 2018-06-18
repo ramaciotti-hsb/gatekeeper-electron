@@ -32,6 +32,10 @@ let initialState = {
             visible: false,
             selectedXParameterIndex: 0,
             selectedYParameterIndex: 1
+        },
+        gatingError: {
+            gatingErrorId: null,
+            visible: false,
         }
     },
     unsavedGates: null,
@@ -94,6 +98,7 @@ const applicationReducer = (state = initialState, action) => {
         newState.gates = action.payload.gates ? action.payload.gates.slice(0) : []
         newState.gateTemplates = action.payload.gateTemplates ? action.payload.gateTemplates.slice(0) : []
         newState.gateTemplateGroups = action.payload.gateTemplateGroups ? action.payload.gateTemplateGroups.slice(0) : []
+        newState.gatingErrors = action.payload.gatingErrors ? action.payload.gatingErrors.slice(0) : []
         newState.selectedWorkspaceId = action.payload.selectedWorkspaceId
         newState.backgroundJobsEnabled = action.payload.backgroundJobsEnabled
         newState.plotWidth = action.payload.plotWidth || newState.plotWidth

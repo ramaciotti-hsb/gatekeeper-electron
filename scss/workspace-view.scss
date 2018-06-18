@@ -26,6 +26,13 @@
             white-space: nowrap;
             position: relative;
 
+            &.gating-error {
+
+                .sidebar-gate-template {
+                    filter: blur(5px);
+                }
+            }
+
             .title .text {
                 margin-right: 20px;
             }
@@ -87,10 +94,16 @@
                 justify-content: center;
                 z-index: 1;
                 cursor: pointer;
-                background: rgba(192, 41, 66, 0.9);
+                background: rgba(192, 41, 66, 0.2);
+                color: $red-colour;
+                padding: 0 15px;
 
                 &:hover {
-                    background: rgba(192, 41, 66, 1);                    
+                    background: rgba(192, 41, 66, 0.225);                    
+                }
+
+                &:active {
+                    background: rgba(192, 41, 66, 0.25);                    
                 }
 
                 i {
@@ -99,7 +112,8 @@
                 }
 
                 .text {
-                    font-size: 15px;
+                    font-weight: 600;
+                    font-size: 14px;
                 }
             }
         }

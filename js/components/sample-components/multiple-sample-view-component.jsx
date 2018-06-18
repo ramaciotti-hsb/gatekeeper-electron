@@ -221,30 +221,6 @@ export default class MultipleSampleView extends Component {
             gateGroups[key].gates.push(gate)
         }
 
-        const gateGroupsRendered = _.keys(gateGroups).map((key) => {
-            const gateGroup = gateGroups[key]
-
-            const autoGates = [
-                {
-                    value: 'persistent-homology',
-                    component: <div className='item' onClick={this.calculateHomology.bind(this)} key={'persistent-homology'}>Persistent Homology</div>
-                }
-            ]
-
-            return (
-                <div className='gate-group' key={key}>
-                    <div className='upper'>
-                        <div className='selected-parameters'>{gateGroup.label}</div>
-                        <Dropdown items={autoGates} textLabel={'Auto Gate...'} ref='homologyDropdown' />
-                    </div>
-                    <div className='graph'>
-                        {/*gates*/}
-                        <BivariatePlot sampleId={this.props.sample.id} selectedXParameterIndex={gateGroup.selectedXParameterIndex} selectedYParameterIndex={gateGroup.selectedYParameterIndex} />
-                    </div>
-                </div>
-            )
-        })
-
         let upperTitle
         if (this.props.gateTemplateGroup && this.props.gateTemplateGroup.parentGateTemplateId) {
             upperTitle = <div className='upper'>Subsample of<a onClick={this.props.api.selectGateTemplate.bind(null, this.props.gateTemplateGroup.parentGateTemplateId, this.props.workspace.id)}>{this.props.parentGateTitle}</a></div>

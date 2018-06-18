@@ -13,7 +13,7 @@ import BivariatePlot from '../containers/bivariate-plot-container.jsx'
 import uuidv4 from 'uuid/v4'
 import { registerEscapeKeyListener, deregisterEscapeKeyListener } from '../lib/global-keyboard-listener'
 
-export default class FCSFileSelector extends Component {
+export default class HomologyModal extends Component {
     
     constructor (props) {
         super(props)
