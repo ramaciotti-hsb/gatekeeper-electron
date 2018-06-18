@@ -107,6 +107,10 @@
                     .info {
                         margin-top: 10px;
                         color: #777;
+
+                        &:empty {
+                           display: none;
+                        }
                     }
                 }
             }

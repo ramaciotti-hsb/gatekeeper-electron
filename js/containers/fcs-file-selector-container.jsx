@@ -12,7 +12,15 @@ const mapStateToProps = (state, ownProps) => {
     // Find the selected sample based on the selected FCS file and gate template
     const workspace = _.find(state.workspaces, w => w.id === ownProps.workspaceId)
     const selectedSample = _.find(state.samples, s => ownProps.selectedFCSFile && s.FCSFileId === ownProps.selectedFCSFile.id && s.gateTemplateId === workspace.selectedGateTemplateId) || {}
-    return { api: state.api, FCSFiles: _.filter(state.FCSFiles, fcs => _.find(state.workspaces, w => w.id === ownProps.workspaceId).FCSFileIds.includes(fcs.id)), selectedFCSFile: ownProps.selectedFCSFile, selectedSample, workspaceId: ownProps.workspaceId, backgroundJobsEnabled: state.backgroundJobsEnabled }
+    return {
+        api: state.api,
+        FCSFiles: _.filter(state.FCSFiles, fcs => _.find(state.workspaces, w => w.id === ownProps.workspaceId).FCSFileIds.includes(fcs.id)),
+        selectedFCSFile: ownProps.selectedFCSFile,
+        selectedSample,
+        workspaceId: ownProps.workspaceId,
+        backgroundJobsEnabled: state.backgroundJobsEnabled,
+        unsavedGates: state.unsavedGates
+    }
 }
 
 const mapDispatchToProps = dispatch => {

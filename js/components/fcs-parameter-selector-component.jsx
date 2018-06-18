@@ -7,7 +7,10 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import { Component } from 'react'
 import _ from 'lodash'
+import uuidv4 from 'uuid/v4'
+import constants from '../lib/constants'
 import '../../scss/fcs-parameter-selector.scss'
+import { registerKeyListener, deregisterKeyListener } from '../lib/global-keyboard-listener'
 
 export default class FCSParameterSelector extends Component {
 
@@ -16,6 +19,15 @@ export default class FCSParameterSelector extends Component {
         this.state = {
             filterValue: ''
         }
+    }
+
+    componentDidMount () {
+        this.keyboardListenerId = uuidv4()
+        registerKeyListener(this.keyboardListenerId, constants.CHARACTER_CODE_ESCAPE, () => { this.setState({ filterValue: '' }); this.refs.filterInput.blur() })
+    }
+
+    componentWillUnmount () {
+        deregisterKeyListener(this.keyboardListenerId)   
     }
 
     onFilter (event) {
@@ -52,7 +64,7 @@ export default class FCSParameterSelector extends Component {
                 </div>
                 <div className='parameter-row filter'>
                     <i className={'lnr lnr-magnifier'} />
-                    <input type='text' placeholder='Filter' value={this.state.filterValue} onChange={this.onFilter.bind(this)} />
+                    <input type='text' placeholder='Filter' value={this.state.filterValue} onChange={this.onFilter.bind(this)} ref={'filterInput'} />
                 </div>
                 <div className='parameter-selector-inner'>
                     {parameters}

@@ -11,7 +11,7 @@ import '../../scss/homology-modal.scss'
 import Dropdown from '../lib/dropdown.jsx'
 import BivariatePlot from '../containers/bivariate-plot-container.jsx'
 import uuidv4 from 'uuid/v4'
-import { registerEscapeKeyListener, deregisterEscapeKeyListener } from '../lib/global-keyboard-listener'
+import { registerKeyListener, deregisterKeyListener } from '../lib/global-keyboard-listener'
 
 export default class HomologyModal extends Component {
     
@@ -147,12 +147,13 @@ export default class HomologyModal extends Component {
     }
 
     componentDidMount () {
-        this.keyboardListenerKey = uuidv4()
-        registerEscapeKeyListener(this.keyboardListenerKey, this.modalOuterClicked.bind(this))
+        this.keyboardListenerId = uuidv4()
+        // Hide the modal when the escape key is pressed
+        registerKeyListener(this.keyboardListenerId, constants.CHARACTER_CODE_ESCAPE, this.modalOuterClicked.bind(this))
     }
 
     componentWillUnmount () {
-        deregisterEscapeKeyListener(this.keyboardListenerKey)   
+        deregisterKeyListener(this.keyboardListenerId)   
     }
 
     render () {

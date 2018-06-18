@@ -435,6 +435,11 @@ const applicationReducer = (state = initialState, action) => {
             newState.gateTemplateGroups = gateTemplateGroupReducer(newState.gateTemplateGroups, removeAction)
         }
 
+        // Delete any gating errors that no longer point to a valid gate template group
+        let orphanGatingErrors = _.filter(newState.gatingErrors, e => !_.find(newState.gateTemplateGroups, g => e.gateTemplateGroupId === g.id))
+        for (let error of orphanGatingErrors) {
+            newState.gatingErrors = gatingErrorReducer(newState.gatingErrors, { type: 'REMOVE_GATING_ERROR', payload: { gatingErrorId: error.id } })
+        }
         // Delete any gates that no longer point to a valid gateTemplate (i.e. their parent or child has been deleted)
         let orphanGates = _.filter(newState.gates, g => !_.find(newState.gateTemplates, gt => g.gateTemplateId === gt.id))
         for (let gate of orphanGates) {

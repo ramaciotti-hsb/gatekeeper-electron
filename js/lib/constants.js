@@ -17,4 +17,10 @@ export default {
     // Status / exit codes for generic use
     STATUS_SUCCESS: 'STATUS_SUCCESS',
     STATUS_FAIL: 'STATUS_FAIL',
+    // Keyboard character codes
+    CHARACTER_CODE_ESCAPE: 27,
+    CHARACTER_CODE_LEFT_ARROW: 37,
+    CHARACTER_CODE_UP_ARROW: 38,
+    CHARACTER_CODE_RIGHT_ARROW: 39,
+    CHARACTER_CODE_DOWN_ARROW: 40
 }

@@ -3,8 +3,10 @@ import { Component } from 'react'
 import _ from 'lodash'
 import Dropdown from '../lib/dropdown-inline.jsx'
 import constants from '../lib/constants'
+import uuidv4 from 'uuid/v4'
 import FCSParameterSelector from '../containers/fcs-parameter-selector-container.jsx'
 import MultipleSampleView from '../containers/multiple-sample-view-container.jsx'
+import { registerKeyListener, deregisterKeyListener } from '../lib/global-keyboard-listener'
 
 export default class FCSFileSelector extends Component {
     
@@ -19,10 +21,38 @@ export default class FCSFileSelector extends Component {
         this.setState({ containerWidth: this.refs.container.offsetWidth })
     }
 
+    arrowKeyPressed (characterCode) {
+        // Don't allow the user to switch between FCS files if there are unsaved gates in a gating modal
+        if (this.props.unsavedGates) {
+            console.log('Warning: arrow key navigation of FCS files is disabled while unsaved gates exist.')
+            return
+        }
+        // Get the index of the currently selected FCS file
+        let index = _.findIndex(this.props.FCSFiles, fcs => fcs.id === this.props.selectedFCSFile.id)
+        console.log(index, this.props.FCSFiles.length)
+        let newIndex = index
+        if (characterCode === constants.CHARACTER_CODE_LEFT_ARROW && index > 0) {
+            newIndex = index - 1
+        }
+
+        if (characterCode === constants.CHARACTER_CODE_RIGHT_ARROW && index < this.props.FCSFiles.length - 1) {
+            newIndex = index + 1
+        }
+
+        if (index !== newIndex) {
+            this.props.api.selectFCSFile(this.props.FCSFiles[newIndex].id, this.props.workspaceId)
+        }
+    }
+
     componentDidMount () {
         this.updateContainerSize()
         this.resizeFunction = _.debounce(this.updateContainerSize.bind(this), 100)
         window.addEventListener('resize', this.resizeFunction)
+        // Bind the left and right arrow keys to switch between samples
+        this.leftKeyListenerId = uuidv4()
+        this.rightKeyListenerId = uuidv4()
+        registerKeyListener(this.leftKeyListenerId, constants.CHARACTER_CODE_LEFT_ARROW, this.arrowKeyPressed.bind(this, constants.CHARACTER_CODE_LEFT_ARROW))
+        registerKeyListener(this.rightKeyListenerId, constants.CHARACTER_CODE_RIGHT_ARROW, this.arrowKeyPressed.bind(this, constants.CHARACTER_CODE_RIGHT_ARROW))
     }
 
     componentWillUnmount () {

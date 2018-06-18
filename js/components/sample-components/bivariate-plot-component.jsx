@@ -479,9 +479,14 @@ export default class BivariatePlot extends Component {
                 const points = scaledPoints.reduce((string, point) => {
                     return string + point[0] + " " + point[1] + " "
                 }, "")
+                const center = getPolygonCenter(gate.gateData.polygons[gate.gateCreatorData.truePeakWidthIndex + gate.gateCreatorData.widthIndex])
 
+                let gateTemplatePosition
                 // If this is a real gate template, link mouse events to gate templates and sub samples
                 if (gateTemplate) {
+                    if (this.props.showGateTemplatePositions) {
+                        gateTemplatePosition = <text x={center[0]} y={center[1]}>{gateTemplate.xGroup},{gateTemplate.yGroup}</text>
+                    }
                     return (
                         <svg onMouseEnter={this.props.updateGateTemplate.bind(null, gateTemplate.id, { highlighted: true })}
                             onMouseLeave={this.props.updateGateTemplate.bind(null, gateTemplate.id, { highlighted: false })}
@@ -489,13 +494,18 @@ export default class BivariatePlot extends Component {
                             onClick={this.selectGateTemplate.bind(this, gate.gateTemplateId)}
                             key={gate.id}>
                             <polygon points={points} className={'gate' + (gateTemplate.highlighted ? ' highlighted' : '')} />
+                            {gateTemplatePosition}
                         </svg>
                     )
                 // If these are unsaved, sample gates, link them to modal actions
                 } else {
+                    if (this.props.showGateTemplatePositions) {
+                        gateTemplatePosition = <text x={center[0]} y={center[1]}>{gate.xGroup},{gate.yGroup}</text>
+                    }
                     return (
                         <svg key={gate.id}>
                             <polygon points={points} className={'gate' + (this.props.highlightedGateIds && this.props.highlightedGateIds.includes(gate.id) ? ' highlighted' : '')} />
+                            {gateTemplatePosition}
                         </svg>
                     )
                 }

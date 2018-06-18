@@ -185,7 +185,6 @@ export default class PersistentHomology {
                     orderMatches = false
                 }
             }
-            // console.log(groups)
             // If we match along one of the axis, it's likely that the peaks have just shifted order slightly. Re order them so they match the other axis
             if (!orderMatches) {
                 return {

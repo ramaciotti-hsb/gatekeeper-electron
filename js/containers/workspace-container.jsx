@@ -66,8 +66,8 @@ const mapStateToProps = (state, ownProps) => {
                 if (gateTemplateGroup) {
                     const relatedSample = _.find(state.samples, s => s.gateTemplateId === gateTemplateGroup.parentGateTemplateId && s.FCSFileId === newWorkspace.selectedFCSFileId)
                     // If there are gating errors for this sample and gate template group, mark the group as "errored"
-                    const gatingError = _.find(state.gatingErrors, e => e.sampleId === relatedSample.id && e.gateTemplateGroupId === gateTemplateGroupId)
-                    if (relatedSample && gatingError) {
+                    if (relatedSample) {
+                        const gatingError = _.find(state.gatingErrors, e => e.sampleId === relatedSample.id && e.gateTemplateGroupId === gateTemplateGroupId)                        
                         gateTemplateGroup.gatingError = gatingError
                     }
                     // If there are no subsamples for this FCS file and gate template group, mark the gate template as loading

@@ -5,13 +5,12 @@
 
 import _ from 'lodash'
 
-const escapeKeyListeners = {}
+const keyListeners = {}
 
 const keypressHandler = (event) => {
-    // Escape key
-    if (event.keyCode === 27) {
-        for (let listener of _.values(escapeKeyListeners)) {
-            listener(event)
+    for (let listener of _.values(keyListeners)) {
+        if (listener['key'] === event.keyCode) {
+            listener.listener(event)            
         }
     }
 }
@@ -20,10 +19,10 @@ export const initialize = (event) => {
     document.body.addEventListener('keydown', keypressHandler)
 }
 
-export const registerEscapeKeyListener = (key, listener) => {
-    escapeKeyListeners[key] = listener
+export const registerKeyListener = (listenerId, key, listener) => {
+    keyListeners[listenerId] = { key, listener }
 }
 
-export const deregisterEscapeKeyListener = (key, listener) => {
-    delete escapeKeyListeners[key]
+export const deregisterKeyListener = (listenerId, key, listener) => {
+    delete keyListeners[listenerId]
 }
