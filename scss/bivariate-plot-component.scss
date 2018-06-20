@@ -122,6 +122,18 @@
             position: absolute;
             z-index: 2;
         }
+
+        .group-label {
+
+            text {
+                font: 600 16px 'Open Sans';
+            }
+
+            rect {
+                fill: #fff;
+                fill-opacity: 0.4;
+            }
+        }
     } // svg
 } // .graph
 
@@ -129,121 +141,6 @@
     position: relative;
     flex-direction: column;
     padding-left: 15px;
-
-    .tooltip {
-        font-size: 12px;
-        position: absolute;
-        background: #fff;
-        overflow: visible;
-        border: 2px solid #ddd;   
-        z-index: 3;
-
-        &:after, &:before {
-            top: 100%;
-            left: 50%;
-            border: solid transparent;
-            content: " ";
-            height: 0;
-            width: 0;
-            position: absolute;
-            pointer-events: none;
-        }
-
-        &:after {
-            border-color: rgba(136, 183, 213, 0);
-            border-top-color: #fff;
-            border-width: 10px;
-            margin-left: -10px;
-        }
-        &:before {
-            border-color: rgba(221, 221, 221, 0);
-            border-top-color: #ddd;
-            border-width: 13px;
-            margin-left: -13px;
-        }
-
-        .tooltip-inner {
-            flex-grow: 1;
-            flex-direction: column;
-
-            & > div {
-                padding: 0 10px;
-            }
-
-            .title {
-                padding-top: 5px;
-                font-weight: 600;
-                color: #999;
-                margin-bottom: 5px;
-            }
-
-            .divider {
-                padding: 0;
-                height: 0px;
-                border-top: 1px solid #eee;
-                margin: 10px 0;
-            }
-
-            .width {
-                i {
-                    font-size: 18px;
-                    margin-right: 5px;
-                    cursor: pointer;
-
-                    &:hover {
-                        color: #555;
-                    }
-
-                    &:active {
-                        color: $highlight-colour;
-                    }
-                }
-            }
-
-            .parameter {
-                align-items: center;
-
-                .text {
-                    flex-grow: 1;
-                }
-
-                .value {
-                    margin-right: 5px;
-                    font-size: 18px;
-                    color: #aaa;
-                }
-            }
-
-            .cytof-options {
-                margin-top: 10px;
-                padding-top: 5px;
-                border-top: 1px solid #ddd;
-                flex-direction: column;
-
-                .title {
-                    margin-bottom: 10px;
-                }
-
-                .parameter {
-                    cursor: point;
-                    margin-bottom: 10px;
-                    cursor: pointer;
-                    @include foregroundHover(#555)
-                    @include foregroundClick(#555)
-
-                    &.active {
-                        @include foregroundHover($highlight-colour)
-                        @include foregroundClick($highlight-colour)
-                    }
-
-                    i {
-                        font-size: 18px;
-                        margin-right: 5px;
-                    }
-                }
-            }
-        }
-    }
 
     canvas {
         z-index: 0;

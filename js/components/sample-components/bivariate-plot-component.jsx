@@ -479,13 +479,18 @@ export default class BivariatePlot extends Component {
                 const points = scaledPoints.reduce((string, point) => {
                     return string + point[0] + " " + point[1] + " "
                 }, "")
-                const center = getPolygonCenter(gate.gateData.polygons[gate.gateCreatorData.truePeakWidthIndex + gate.gateCreatorData.widthIndex])
+                const center = getPolygonCenter(gate.gateData.polygons[gate.gateCreatorData.truePeakWidthIndex].map(p => [ (p[0] * widthDisplayRatio) + xOffset, p[1] * heightDisplayRatio ]))
 
                 let gateTemplatePosition
                 // If this is a real gate template, link mouse events to gate templates and sub samples
                 if (gateTemplate) {
                     if (this.props.showGateTemplatePositions) {
-                        gateTemplatePosition = <text x={center[0]} y={center[1]}>{gateTemplate.xGroup},{gateTemplate.yGroup}</text>
+                        gateTemplatePosition = (
+                            <g className='group-label'>
+                                <rect x={center[0] - 12} y={center[1] - 20} width="45" height="30"></rect>
+                                <text x={center[0]} y={center[1]}>{gate.xGroup},{gate.yGroup}</text>
+                            </g>
+                        )
                     }
                     return (
                         <svg onMouseEnter={this.props.updateGateTemplate.bind(null, gateTemplate.id, { highlighted: true })}
@@ -497,10 +502,15 @@ export default class BivariatePlot extends Component {
                             {gateTemplatePosition}
                         </svg>
                     )
-                // If these are unsaved, sample gates, link them to modal actions
+                // If these are unsaved gates, link them to modal actions
                 } else {
                     if (this.props.showGateTemplatePositions) {
-                        gateTemplatePosition = <text x={center[0]} y={center[1]}>{gate.xGroup},{gate.yGroup}</text>
+                        gateTemplatePosition = (
+                            <g className='group-label'>
+                                <rect x={center[0] - 12} y={center[1] - 20} width="45" height="30"></rect>
+                                <text x={center[0]} y={center[1]}>{gate.xGroup},{gate.yGroup}</text>
+                            </g>
+                        )
                     }
                     return (
                         <svg key={gate.id}>

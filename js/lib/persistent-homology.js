@@ -148,6 +148,12 @@ export default class PersistentHomology {
     findPeaksWithTemplate (stepCallback, gateTemplates) {
         // First find true peaks at their original size
         let peaks = this.findPeaksInternal(stepCallback)
+        const groups = this.getAxisGroups(peaks)
+        // console.log(groups)
+        for (let peak of peaks) {
+            peak.xGroup = _.findIndex(groups.xGroups, g => g.peaks.includes(peak.id))
+            peak.yGroup = _.findIndex(groups.yGroups, g => g.peaks.includes(peak.id))
+        }
         const polygonTemplates = _.filter(gateTemplates, p => p.type === constants.GATE_TYPE_POLYGON)
         // Try and match them to options.gateTemplates
         if (peaks.length !== polygonTemplates.length) {
@@ -170,13 +176,6 @@ export default class PersistentHomology {
                 }
             }
         } else {
-            const groups = this.getAxisGroups(peaks)
-            // console.log(groups)
-            for (let peak of peaks) {
-                peak.xGroup = _.findIndex(groups.xGroups, g => g.peaks.includes(peak.id))
-                peak.yGroup = _.findIndex(groups.yGroups, g => g.peaks.includes(peak.id))
-            }
-
             // Compare the orders to the templates
             let orderMatches = true
             for (let i = 0; i < polygonTemplates.length; i++) {
@@ -238,19 +237,6 @@ export default class PersistentHomology {
             peak.includeXChannelZeroes = true
             peak.includeYChannelZeroes = true
         }
-
-        // // Create a negative gate including all the uncaptured events if the user specified
-        // if (this.options.createNegativeGate) {
-        //     const excludedEventIds = peaks.reduce((accumulator, current) => { return accumulator.concat(current.includeEventIds) }, [])
-        //     const gate = {
-        //         type: constants.GATE_TYPE_NEGATIVE,
-        //         gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
-        //         truePeak: true,
-        //         includeEventIds: _.filter(this.population.subPopulation, event => !excludedEventIds.includes(event[2])).map(event => event[2])
-        //     }
-
-        //     this.homologyPeaks.push(gate)
-        // }
 
         return {
             status: constants.STATUS_SUCCESS,

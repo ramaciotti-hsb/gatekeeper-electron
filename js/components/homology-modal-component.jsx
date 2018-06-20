@@ -393,7 +393,19 @@ export default class HomologyModal extends Component {
                     </div>
                     <div className='lower'>
                         <div className='graph'>
-                            <BivariatePlot gates={this.props.unsavedGates} highlightedGateIds={this.state.highlightedGateIds} sampleId={this.props.selectedSample.id} FCSFileId={this.props.selectedFCSFile.id} selectedXParameterIndex={this.props.modalOptions.selectedXParameterIndex} selectedYParameterIndex={this.props.modalOptions.selectedYParameterIndex} selectedXScale={this.props.selectedWorkspace.selectedXScale} selectedYScale={this.props.selectedWorkspace.selectedYScale} plotDisplayWidth={500} plotDisplayHeight={500} />
+                            <BivariatePlot 
+                                gates={this.props.unsavedGates}
+                                highlightedGateIds={this.state.highlightedGateIds}
+                                sampleId={this.props.selectedSample.id}
+                                FCSFileId={this.props.selectedFCSFile.id}
+                                showGateTemplatePositions={true}
+                                selectedXParameterIndex={this.props.modalOptions.selectedXParameterIndex}
+                                selectedYParameterIndex={this.props.modalOptions.selectedYParameterIndex}
+                                selectedXScale={this.props.selectedWorkspace.selectedXScale}
+                                selectedYScale={this.props.selectedWorkspace.selectedYScale}
+                                plotDisplayWidth={500}
+                                plotDisplayHeight={500}
+                            />
                         </div>
                         {contents}
                     </div>
