@@ -92,7 +92,7 @@ export default class GatingErrorModal extends Component {
             <div className={'gating-error-outer' + (this.props.modalVisible === true ? ' active' : '')} onClick={this.modalOuterClicked.bind(this)}>
                 <div className='gating-error-inner' onClick={this.modalInnerClicked} style={{ height: 597 }}>
                     <div className='upper'>
-                        <div className='title'>Automated Gating Errors for {this.props.selectedSample.title}</div>
+                        <div className='title'>{this.props.selectedFCSFile.FCSParameters[this.props.modalOptions.selectedXParameterIndex].label} · {this.props.selectedFCSFile.FCSParameters[this.props.modalOptions.selectedYParameterIndex].label} - Automated Gating Errors for {this.props.selectedSample.title}</div>
                     </div>
                     <div className='lower'>
                         <div className='graph'>

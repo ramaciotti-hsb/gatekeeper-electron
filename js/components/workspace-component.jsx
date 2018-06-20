@@ -54,7 +54,7 @@ export default class WorkspaceView extends Component {
             }
 
             return (
-                <div className={'sidebar-gate-template-group' + (gatingError ? ' gating-error' : '')} key={childGateTemplateGroup.id} onClick={gatingError ? this.props.updateModalParameters.bind(null, 'gatingError', { visible: true, gatingErrorId: childGateTemplateGroup.gatingError.id }) : () => {} }>
+                <div className={'sidebar-gate-template-group' + (gatingError ? ' gating-error' : '')} key={childGateTemplateGroup.id} onClick={gatingError ? this.props.updateModalParameters.bind(null, 'gatingError', { visible: true, gatingErrorId: childGateTemplateGroup.gatingError.id, selectedXParameterIndex: this.props.selectedXParameterIndex, selectedYParameterIndex: this.props.selectedYParameterIndex }) : () => {} }>
                     <div className='title'>
                         <div className='text'>{childGateTemplateGroup.title}</div>
                         <div className='remove-gate-template-group' onClick={this.removeGateTemplateGroup.bind(this, childGateTemplateGroup.id)}>

@@ -28,6 +28,7 @@ const mapStateToProps = (state, ownProps) => {
         gatingError,
         plotWidth: state.plotWidth,
         plotHeight: state.plotHeight,
+        modalOptions: state.modals.gatingError,
         modalVisible: state.modals.gatingError.visible
     }
 }

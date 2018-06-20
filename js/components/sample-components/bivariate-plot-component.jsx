@@ -542,7 +542,7 @@ export default class BivariatePlot extends Component {
         let gatingError
         if (this.props.gatingError) {
             gatingError = (
-                <div className='error-overlay' onClick={this.props.updateModalParameters.bind(null, 'gatingError', { visible: true, gatingErrorId: this.props.gatingError.id })}>
+                <div className='error-overlay' onClick={this.props.updateModalParameters.bind(null, 'gatingError', { visible: true, gatingErrorId: this.props.gatingError.id, selectedXParameterIndex: this.props.selectedXParameterIndex, selectedYParameterIndex: this.props.selectedYParameterIndex })}>
                     <div className='red-background' />
                     <i className='lnr lnr-cross-circle' />
                     <div className='text'>Error Applying Gating Template</div>
