@@ -68,8 +68,10 @@ const pushToQueue = async function (job, priority) {
     let queueToPush = priority ? priorityQueue : jobQueue
     if (!queueToPush[job.jobKey]) {
         queueToPush[job.jobKey] = job
+        return true
     } else {
         console.log("Job rejected as a duplicate is already in the queue")
+        return false
     }
 }
 
@@ -245,7 +247,7 @@ const getImageForPlot = async (sample, FCSFile, options, priority) => {
     const imagePath = await new Promise((resolve, reject) => {
         pushToQueue({
             jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-image-for-plot', payload: { sample, FCSFile, options } } },
-            jobKey: 'image_' + sample.id + '_' + _.values(options).reduce((curr, acc) => { return acc + '_' + curr }, ''),
+            jobKey: 'image_' + sample.id + '_' + _.values(options).reduce((curr, acc) => { return acc + '_' + curr }, '') + (!!priority).toString(),
             checkValidity: () => {
                 let FCSFileUpdated = _.find(currentState.FCSFiles, fcs => FCSFileId === fcs.id)
                 const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sampleId))
