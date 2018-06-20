@@ -21,6 +21,9 @@ function createWindow () {
 
   // win.toggleDevTools()
 
+  // Set the window to the maximum size the browser will allow
+  win.maximize()
+
   // Emitted when the window is closed.
   win.on('closed', () => {
     // Dereference the window object, usually you would store windows
