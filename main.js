@@ -10,7 +10,7 @@ let win
 
 function createWindow () {
   // Create the browser window.
-  win = new BrowserWindow({width: 800, height: 600})
+  win = new BrowserWindow({ show: false })
 
   // and load the index.html of the app.
   win.loadURL(url.format({
@@ -23,6 +23,8 @@ function createWindow () {
 
   // Set the window to the maximum size the browser will allow
   win.maximize()
+
+  win.show()
 
   // Emitted when the window is closed.
   win.on('closed', () => {
