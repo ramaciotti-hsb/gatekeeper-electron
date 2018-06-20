@@ -37,11 +37,13 @@ export const findIncludedEvents = (gates, population, FCSFile, options) => {
         let invertedYCutoffs
 
         if (gate.gateData.xCutoffs) {
-            invertedXCutoffs = [ gate.gateData.xCutoffs ? 0 : scales.yScale.invert(gate.gateData.xCutoffs[2]), scales.yScale.invert(gate.gateData.xCutoffs[0]) ]
+            invertedXCutoffs = [ scales.yScale.invert(gate.gateData.xCutoffs[2]), scales.yScale.invert(gate.gateData.xCutoffs[0]) ]
+            console.log(gate.gateData.xCutoffs)
+            console.log(invertedXCutoffs)
         }
 
         if (gate.gateData.yCutoffs) {
-            invertedYCutoffs = [ gate.gateData.yCutoffs ? 0 : scales.xScale.invert(gate.gateData.yCutoffs[0]), scales.xScale.invert(gate.gateData.yCutoffs[2]) ]
+            invertedYCutoffs = [ scales.xScale.invert(gate.gateData.yCutoffs[0]), scales.xScale.invert(gate.gateData.yCutoffs[2]) ]
         }
 
         for (let i = 0; i < populationCopy.length; i++) {
@@ -120,8 +122,8 @@ export const expandToIncludeZeroes = (xCutoffs, yCutoffs, gates, options) => {
         for (let gate of newGates) {
             const yBoundaries = getPolygonBoundaries(gate.gateData.polygons[gate.gateCreatorData.truePeakWidthIndex + gate.gateCreatorData.widthIndex])[1]
             const centerPoint = getPolygonCenter(gate.gateData.polygons[gate.gateCreatorData.truePeakWidthIndex + gate.gateCreatorData.widthIndex])
-            if (peak >= yBoundaries[0] && peak <= yBoundaries[1] && centerPoint[1] < closestDistance) {
-                closestDistance = centerPoint[1]
+            if (peak >= yBoundaries[0] && peak <= yBoundaries[1] && centerPoint[0] < closestDistance) {
+                closestDistance = centerPoint[0]
                 closestGate = gate
             }
         }

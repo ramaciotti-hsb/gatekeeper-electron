@@ -116,7 +116,7 @@ export default class PersistentHomology {
         let currentHeight = 100
         let peaks = []
 
-        while (currentHeight > 3) {
+        while (currentHeight > 0) {
             peaks = this.performHomologyIteration(currentHeight, peaks)
             currentHeight = currentHeight - 1
             if (stepCallback) { stepCallback('Gating using Persistent Homology: ' + (100 - currentHeight) + '% complete.') }
@@ -136,7 +136,7 @@ export default class PersistentHomology {
 
                 peak.gateCreatorData = {
                     truePeakWidthIndex: peak.truePeakWidthIndex,
-                    widthIndex: 0
+                    widthIndex: Math.max((peak.polygons.length - 3) - peak.truePeakWidthIndex, 0)
                 }
             }
 
