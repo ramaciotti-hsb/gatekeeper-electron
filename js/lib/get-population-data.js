@@ -85,22 +85,22 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
             if (FCSFile.machineType === constants.MACHINE_CYTOF) {
                 // Every point that has a zero in the selected X channel
                 if (point[options.selectedXParameterIndex] === 0 && point[options.selectedYParameterIndex] === 0) {
-                    xChannelZeroes.push([ point[options.selectedXParameterIndex], i ])
+                    xChannelZeroes.push([ point[options.selectedXParameterIndex], sample.includeEventIds[i] ])
                 }
                 // Every point that has a zero in the selected X channel
                 else if (point[options.selectedXParameterIndex] === 0) {
-                    xChannelZeroes.push([ point[options.selectedYParameterIndex], i ])
+                    xChannelZeroes.push([ point[options.selectedYParameterIndex], sample.includeEventIds[i] ])
                 // Every point that has a zero in the selected Y channel
                 } else if (point[options.selectedYParameterIndex] === 0) {
-                    yChannelZeroes.push([ point[options.selectedXParameterIndex], i ])
+                    yChannelZeroes.push([ point[options.selectedXParameterIndex], sample.includeEventIds[i] ])
                 } else {
-                    aboveZeroPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], i ])
+                    aboveZeroPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], sample.includeEventIds[i] ])
                 }
             } else {
-                aboveZeroPopulation.push([ FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex], FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], i ])
+                aboveZeroPopulation.push([ FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex], FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], sample.includeEventIds[i] ])
             }
 
-            subPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], i ])
+            subPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], sample.includeEventIds[i] ])
         }
     } else {
         for (let i = 0; i < FCSFileData.dataAsNumbers.length; i++) {
