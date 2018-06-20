@@ -285,7 +285,6 @@ const applicationReducer = (state = initialState, action) => {
     // --------------------------------------------------    
     } else if (action.type === 'REMOVE_FCS_FILE') {
         // newState.FCSFiles = FCSFileReducer(newState.FCSFiles, action)
-        console.log(action.payload)
         const removeAction = removeFCSFile(action.payload.FCSFileId)
         // Find the workspace that the gateTemplate is inside and remove it from there
         const workspaceIndex = _.findIndex(newState.workspaces, w => w.FCSFileIds.includes(removeAction.payload.FCSFileId))
@@ -518,6 +517,28 @@ const applicationReducer = (state = initialState, action) => {
                 newState.gates = gateReducer(newState.gates, { type: 'REMOVE_GATE', payload: { gateId: gate.id } })
             }
         }
+    } else if (action.type === 'SELECT_FCS_FILE') {
+        // Pass on to the workspace reducer
+        newState.workspaces = workspaceReducer(newState.workspaces, { type: 'SELECT_FCS_FILE', payload: { workspaceId: action.payload.workspaceId, FCSFileId: action.payload.FCSFileId } })
+        const workspace = _.find(newState.workspaces, w => w.id === action.payload.workspaceId)
+        const currentSample = _.find(newState.samples, s => s.FCSFileId === action.payload.FCSFileId && s.gateTemplateId === workspace.selectedGateTemplateId)
+        
+        if (currentSample) {
+            if (newState.modals.homology.visible) {
+                const gateTemplateGroup = _.find(newState.gateTemplateGroups, g => g.selectedXParameterIndex === newState.modals.homology.selectedXParameterIndex && g.selectedYParameterIndex === newState.modals.homology.selectedYParameterIndex && g.parentGateTemplateId === currentSample.gateTemplateId)
+                if (_.find(newState.gatingErrors, e => e.gateTemplateGroupId === gateTemplateGroup.id && e.sampleId === currentSample.id)) {
+                    newState.modals.gatingError = _.merge(newState.modals.gatingError, { visible: true, selectedXParameterIndex: newState.modals.homology.selectedXParameterIndex, selectedYParameterIndex: newState.modals.homology.selectedYParameterIndex })
+                    newState.modals.homology = _.merge(newState.modals.homology, { visible: false })
+                }
+            } else if (newState.modals.gatingError.visible) {
+                const gateTemplateGroup = _.find(newState.gateTemplateGroups, g => g.selectedXParameterIndex === newState.modals.gatingError.selectedXParameterIndex && g.selectedYParameterIndex === newState.modals.gatingError.selectedYParameterIndex && g.parentGateTemplateId === currentSample.gateTemplateId)
+                if (!_.find(newState.gatingErrors, e => e.gateTemplateGroupId === gateTemplateGroup.id && e.sampleId === currentSample.id)) {
+                    newState.modals.homology = _.merge(newState.modals.homology, { visible: true, selectedXParameterIndex: newState.modals.gatingError.selectedXParameterIndex, selectedYParameterIndex: newState.modals.gatingError.selectedYParameterIndex })
+                    newState.modals.gatingError = _.merge(newState.modals.gatingError, { visible: false })
+                }
+            }
+        }
+
     // --------------------------------------------------
     // Pass on any unmatched actions to workspaceReducer and
     // sampleReducer
