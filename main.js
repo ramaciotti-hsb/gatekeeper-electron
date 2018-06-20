@@ -19,7 +19,7 @@ function createWindow () {
     slashes: true
   }))
 
-  win.toggleDevTools()
+  // win.toggleDevTools()
 
   // Emitted when the window is closed.
   win.on('closed', () => {
