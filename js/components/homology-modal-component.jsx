@@ -389,7 +389,7 @@ export default class HomologyModal extends Component {
             <div className={'homology-modal-outer' + (this.props.modalVisible === true ? ' active' : '')} onClick={this.modalOuterClicked.bind(this)}>
                 <div className='homology-modal-inner' onClick={this.modalInnerClicked} style={{ height: 597 }}>
                     <div className='upper'>
-                        <div className='title'>Automated gating using Persistent Homology</div>
+                        <div className='title'>{this.props.selectedFCSFile.FCSParameters[this.props.modalOptions.selectedXParameterIndex].label} · {this.props.selectedFCSFile.FCSParameters[this.props.modalOptions.selectedYParameterIndex].label} - Automated gating using Persistent Homology</div>
                     </div>
                     <div className='lower'>
                         <div className='graph'>
