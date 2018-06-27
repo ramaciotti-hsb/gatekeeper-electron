@@ -19,6 +19,7 @@ import ls from 'ls'
 import rimraf from 'rimraf'
 import GrahamScan from '../lib/graham-scan.js'
 import pointInsidePolygon from 'point-in-polygon'
+import polygonsIntersect from 'polygon-overlap'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import isDev from 'electron-is-dev'
 import { breakLongLinesIntoPoints, fixOverlappingPolygonsUsingZipper } from '../lib/polygon-utilities'
@@ -28,7 +29,7 @@ import { updateSample, removeSample, setSamplePlotImage, setSampleParametersLoad
 import { updateGateTemplate, removeGateTemplate } from '../actions/gate-template-actions'
 import { removeGateTemplateGroup } from '../actions/gate-template-group-actions'
 import { updateFCSFile, removeFCSFile } from '../actions/fcs-file-actions'
-import { createGatingError, removeGatingError } from '../actions/gating-error-actions'
+import { createGatingError, updateGatingError, removeGatingError } from '../actions/gating-error-actions'
 import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace,
     createFCSFileAndAddToWorkspace, selectFCSFile,
     createSampleAndAddToWorkspace, createSubSampleAndAddToWorkspace, selectSample, invertPlotAxis,
@@ -483,6 +484,12 @@ export const api = {
         saveSessionToDisk()
     },
 
+    setGateTemplateExampleGate: function (gateTemplateId, exampleGateId) {
+        const updateAction = updateGateTemplate(gateTemplateId, { exampleGateId })
+        currentState = applicationReducer(currentState, updateAction)
+        reduxStore.dispatch(updateAction)
+    },
+
     removeGateTemplateGroup: async function (gateTemplateGroupId) {
         const removeAction = removeGateTemplateGroup(gateTemplateGroupId)
 
@@ -783,6 +790,12 @@ export const api = {
         currentState = applicationReducer(currentState, createSubSampleAndAddToWorkspace(workspaceId, parentSampleId, backendSample, gate))
         reduxStore.dispatch(createSubSampleAndAddToWorkspace(workspaceId, parentSampleId, sample, gate))
 
+        // If the gate template doesn't have an example gate yet, use this one
+        const gateTemplate = _.find(currentState.gateTemplates, gt => gt.id === gateParameters.gateTemplateId)
+        if (!gateTemplate.exampleGateId) {
+            await api.setGateTemplateExampleGate(gateTemplate.id, gateId)
+        }
+
         const updatedSample = _.find(currentState.samples, s => s.id === sample.id)
 
         getAllPlotImages(updatedSample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
@@ -968,6 +981,10 @@ export const api = {
         homologyOptions.options.plotWidth = currentState.plotWidth
         homologyOptions.options.plotHeight = currentState.plotHeight
 
+        if (options.sampleNuclei) {
+            homologyOptions.options.sampleNuclei = options.sampleNuclei
+        }
+
         // If there are already gating templates defined for this parameter combination
         if (gateTemplateGroup) {
             const gateTemplates = _.filter(currentState.gateTemplates, gt => gateTemplateGroup.childGateTemplateIds.includes(gt.id))
@@ -1029,7 +1046,8 @@ export const api = {
                     type: constants.GATE_TYPE_POLYGON,
                     title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + (peak.xGroup == 0 ? ' (LOW) · ' : ' (HIGH) · ') + FCSFile.FCSParameters[options.selectedYParameterIndex].label + (peak.yGroup == 1 ? ' (LOW)' : ' (HIGH)'),
                     gateData: {
-                        polygons: peak.polygons
+                        polygons: peak.polygons,
+                        nucleus: peak.nucleus
                     },
                     xGroup: peak.xGroup,
                     yGroup: peak.yGroup,
@@ -1083,12 +1101,11 @@ export const api = {
             gate.renderedPolygon = breakLongLinesIntoPoints(polygons[gate.gateCreatorData.truePeakWidthIndex + gate.gateCreatorData.widthIndex])
         }
 
+        // const overlapFixed = fixOverlappingPolygonsUsingZipper(filteredGates.map(g => g.renderedPolygon))
 
-        const overlapFixed = fixOverlappingPolygonsUsingZipper(filteredGates.map(g => g.renderedPolygon))
-
-        for (let i = 0; i < overlapFixed.length; i++) {
-            filteredGates[i].renderedPolygon = overlapFixed[i]
-        }
+        // for (let i = 0; i < overlapFixed.length; i++) {
+            // filteredGates[i].renderedPolygon = overlapFixed[i]
+        // }
 
         return gates
     },
@@ -1336,6 +1353,100 @@ export const api = {
         const loadingFinishedAction = setSampleParametersLoading(sampleId, options.selectedXParameterIndex + '_' + options.selectedYParameterIndex, { loading: false, loadingMessage: null })
         currentState = applicationReducer(currentState, loadingFinishedAction)
         reduxStore.dispatch(loadingFinishedAction)
+    },
+
+    applyErrorHandlerToGatingError: async (gatingErrorId, errorHandler) => {
+        const gatingError = _.find(currentState.gatingErrors, e => e.id === gatingErrorId)
+        const sample = _.find(currentState.samples, s => s.id === gatingError.sampleId)
+        const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
+        const gateTemplateGroup = _.find(currentState.gateTemplateGroups, g => g.id === gatingError.gateTemplateGroupId)
+        const gateTemplates = _.filter(currentState.gateTemplates, gt => gateTemplateGroup.childGateTemplateIds.includes(gt.id))
+
+        let matchingTemplates = []
+        let nonMatchingTemplates = []
+        for (let gateTemplate of gateTemplates) {
+            let foundTemplate = false
+            for (let gate of gatingError.gates) {
+                if (gateTemplate.xGroup === gate.xGroup && gateTemplate.yGroup === gate.yGroup) {
+                    foundTemplate = true
+                    matchingTemplates.push(gateTemplate)
+                }
+            }
+            if (!foundTemplate) {
+                nonMatchingTemplates.push(gateTemplate)
+            }
+        }
+        console.log('Matching templates:', matchingTemplates.length)
+        console.log(matchingTemplates)
+
+        if (matchingTemplates.length === gateTemplates.length - 1) {
+            for (let template of nonMatchingTemplates) {
+                const matchingGate = _.find(currentState.gates, g => g.id === template.exampleGateId)
+                const xNucleusValue = _.find(gatingError.gates, g => g.xGroup === template.xGroup).gateData.nucleus[0]
+                const yNucleusValue = _.find(gatingError.gates, g => g.yGroup === template.yGroup).gateData.nucleus[1]
+
+                // console.log(_.find(gatingError.gates, g => g.xGroup === template.xGroup).gateData.nucleus, matchingGate.gateData.nucleus)
+                // console.log(_.find(gatingError.gates, g => g.yGroup === template.yGroup).gateData.nucleus, matchingGate.gateData.nucleus)
+
+                // const CYTOF_HISTOGRAM_WIDTH = Math.round(Math.min(currentState.plotWidth, currentState.plotHeight) * 0.07)
+
+                // let xOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? CYTOF_HISTOGRAM_WIDTH : 0
+                // let yOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? CYTOF_HISTOGRAM_WIDTH : 0
+                
+                // const scales = getScales({
+                //     selectedXScale: gateTemplateGroup.selectedXScale,
+                //     selectedYScale: gateTemplateGroup.selectedYScale,
+                //     xRange: [ FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].statistics.positiveMin, FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].statistics.max ],
+                //     yRange: [ FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].statistics.positiveMin, FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].statistics.max ],
+                //     width: currentState.plotWidth - xOffset,
+                //     height: currentState.plotHeight - yOffset
+                // })
+
+                // const xDifference = scales.xScale.invert(xNucleusValue) - scales.xScale.invert(matchingGate.gateData.nucleus[0])
+                // const yDifference = scales.yScale.invert(yNucleusValue) - scales.yScale.invert(matchingGate.gateData.nucleus[1])
+                // console.log('xdiff', xDifference, yDifference)
+
+                // const newGate = _.cloneDeep(matchingGate)
+                // const invertedPolygon = newGate.renderedPolygon.map(p => [ Math.round(scales.xScale.invert(p[0]) * 100) / 100, Math.round(scales.yScale.invert(p[1]) * 100) / 100 ])
+                // const offsetPolygon = invertedPolygon.map(p => [ Math.max(p[0] + xDifference, 0.01), Math.max(p[1] + yDifference, 0.01) ])
+                // newGate.renderedPolygon = offsetPolygon.map(p => [ scales.xScale(p[0]), scales.yScale(p[1]) ])
+
+                // for (let gate of gatingError.gates) {
+                //     gate.gateData.expandedXPolygons = null
+                //     gate.gateData.expandedYPolygons = null
+                //     let index = -1
+                //     // while (polygonsIntersect(gate.gateData.polygons[gate.gateCreatorData.truePeakWidthIndex + gate.gateCreatorData.widthIndex + index], newGate.renderedPolygon) && gate.gateCreatorData.truePeakWidthIndex + gate.gateCreatorData.widthIndex + index > 0) {
+                //     //     index--
+                //     // }
+                //     if (index < 0) {
+                //         gate.gateCreatorData.widthIndex = gate.gateCreatorData.widthIndex + index
+                //     }
+                //     console.log(gate.gateCreatorData.widthIndex)
+                // }
+                const options = {
+                    selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
+                    selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
+                    selectedXScale: constants.SCALE_LOG,
+                    selectedYScale: constants.SCALE_LOG,
+                    machineType: FCSFile.machineType,
+                    sampleNuclei: [ [xNucleusValue, yNucleusValue] ]
+                }
+                let gates = (await api.calculateHomology(sample.id, options)).data.gates
+                gates = api.createGatePolygons(gates)
+                gates = await api.getGateIncludedEvents(gates)
+
+                gatingError.gates = null
+                let updateGatingErrorAction = updateGatingError(gatingErrorId, gatingError)
+                currentState = applicationReducer(currentState, updateGatingErrorAction)
+                reduxStore.dispatch(updateGatingErrorAction)
+
+                gatingError.gates = gates
+
+                updateGatingErrorAction = updateGatingError(gatingErrorId, gatingError)
+                currentState = applicationReducer(currentState, updateGatingErrorAction)
+                reduxStore.dispatch(updateGatingErrorAction)
+            }
+        }
     },
 
     recursiveHomology: async (sampleId) => {

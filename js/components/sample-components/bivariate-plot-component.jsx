@@ -479,7 +479,7 @@ export default class BivariatePlot extends Component {
                 const points = scaledPoints.reduce((string, point) => {
                     return string + point[0] + " " + point[1] + " "
                 }, "")
-                const center = getPolygonCenter(gate.gateData.polygons[gate.gateCreatorData.truePeakWidthIndex].map(p => [ (p[0] * widthDisplayRatio) + xOffset, p[1] * heightDisplayRatio ]))
+                const center = [ gate.gateData.nucleus[0] * widthDisplayRatio + xOffset, gate.gateData.nucleus[1] * heightDisplayRatio ]
 
                 let gateTemplatePosition
                 // If this is a real gate template, link mouse events to gate templates and sub samples

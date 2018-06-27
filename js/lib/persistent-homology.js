@@ -7,6 +7,7 @@ import GrahamScan from './graham-scan.js'
 import polygonsIntersect from 'polygon-overlap'
 import pointInsidePolygon from 'point-in-polygon'
 import area from 'area-polygon'
+import hull from 'hull.js'
 import _ from 'lodash'
 import uuidv4 from 'uuid/v4'
 import constants from './constants'
@@ -26,7 +27,8 @@ export default class PersistentHomology {
         this.options = _.merge({
             edgeDistance: options.plotWidth * 0.05,
             minPeakHeight: options.plotHeight * 0.04,
-            minPeakSize: 5000
+            minPeakSize: 5000,
+            sampleNuclei: []
         }, options)
 
         this.population = population
@@ -44,10 +46,10 @@ export default class PersistentHomology {
         // Get [minY, maxY] range of peaks along y axis
         let yRange = peaks.reduce((acc, curr) => { return [ Math.min(acc[0], curr.nucleus[1]), Math.max(acc[1], curr.nucleus[1]) ] }, [Infinity, -Infinity])
         // Create buckets and place peaks into groups along each axis
-        console.log(xRange, yRange)
-        for (let peak of peaks) {
-            console.log(peak.nucleus)
-        }
+        // console.log(xRange, yRange)
+        // for (let peak of peaks) {
+        //     console.log(peak.nucleus)
+        // }
         // console.log((xRange[1] - xRange[0]) * 0.2, (yRange[1] - yRange[0]) * 0.2)
         let xGroups = []
         let yGroups = []
@@ -114,7 +116,24 @@ export default class PersistentHomology {
 
     findPeaksInternal (stepCallback) {
         let currentHeight = 100
-        let peaks = []
+        let peaks = this.options.sampleNuclei.map((n) => {
+            const square = [
+                [n[0] - 25, n[1] - 25],
+                [n[0] + 25, n[1] - 25],
+                [n[0] + 25, n[1] + 25],
+                [n[0] - 25, n[1] + 25],
+            ]
+            return {
+                id: uuidv4(),
+                polygons: [
+                    square
+                ],
+                nucleus: n,
+                height: 0,
+                type: constants.GATE_TYPE_POLYGON,
+                pointsToAdd: []
+            }
+        })
 
         while (currentHeight > 0) {
             peaks = this.performHomologyIteration(currentHeight, peaks)
@@ -310,9 +329,7 @@ export default class PersistentHomology {
             if (peak.pointsToAdd.length > 0) {
                 const polyCopy = peak.polygons.slice(-1)[0].concat(peak.pointsToAdd)
                 // Recalculate the polygon boundary
-                const grahamScan = new GrahamScan();
-                polyCopy.map(p => grahamScan.addPoint(p[0], p[1]))
-                const newPolygon = grahamScan.getHull().map(p => [p.x, p.y])
+                const newPolygon = hull(polyCopy, Infinity)
                 peak.polygons.push(newPolygon)
                 peak.pointsToAdd = []
             }
@@ -352,7 +369,7 @@ export default class PersistentHomology {
                         newPeaks[i].pointsToAdd = []
                         
                         newPeaks.splice(i, 1, {
-                            polygons: [ newPolygon ],
+                            polygons: newPeaks[i].polygons.concat([ newPolygon ]),
                             nucleus: newPeaks[i].nucleus,
                             type: constants.GATE_TYPE_POLYGON,
                             height: newPeaks[i].height,

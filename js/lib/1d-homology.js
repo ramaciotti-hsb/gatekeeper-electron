@@ -8,8 +8,9 @@ import _ from 'lodash'
 export default (data, maxDensity, userOptions) => {
     const defaultOptions = {
         min1DPeakWidth: userOptions.plotWidth * 0.1,
-        inflectionWidth: 20,
-        min1DPeakHeight: 0.05
+        inflectionWidth: 5,
+        min1DPeakHeight: 0.005,
+        knownPeaks: []
     }
 
     const options = _.merge(defaultOptions, userOptions)
@@ -28,6 +29,7 @@ export default (data, maxDensity, userOptions) => {
         }
 
         if (data[i] / maxDensity < options.min1DPeakHeight) {
+            // console.log('ignoring peak that is too small')
             isPeak = false
         }
 
@@ -36,7 +38,7 @@ export default (data, maxDensity, userOptions) => {
         }
     }
     
-    const cutoffs = []
+    let cutoffs = []
     // Capture the peaks by iterating outwards until an inflection point or minimum value is found
     for (let i = 0; i < peaks.length; i++) {
         cutoffs[i] = []
@@ -71,6 +73,11 @@ export default (data, maxDensity, userOptions) => {
             index++
         }
     }
+
+    // peaks = peaks.concat(options.knownPeaks.map(p => p[1]))
+    // cutoffs = cutoffs.concat(options.knownPeaks.map(p => [p[0], p[2]]))
+
+    // console.log(peaks.map((p, index) => { return [cutoffs[index][0], p, cutoffs[index][1]] }))
 
     return peaks.map((p, index) => { return [cutoffs[index][0], p, cutoffs[index][1]] })
 }

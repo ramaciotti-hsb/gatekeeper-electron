@@ -85,6 +85,9 @@ export default class GatingErrorModal extends Component {
             <div className='gating-errors'>
                 <div className='title'>Gating Errors</div>
                 {criteria}
+                <div className='error-handlers'>
+                    <div className='handler' onClick={this.props.api.applyErrorHandlerToGatingError.bind(null, this.props.gatingError.id, { test: 1234 })}>Auto Anchoring</div>
+                </div>
             </div>
         )
 

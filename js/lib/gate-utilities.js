@@ -6,7 +6,9 @@
 import constants from './constants'
 import GrahamScan from './graham-scan.js'
 import _ from 'lodash'
+import hull from 'hull.js'
 import pointInsidePolygon from 'point-in-polygon'
+import { distanceBetweenPoints } from 'distance-to-polygon'
 import { getPolygonCenter, getScales, getPolygonBoundaries } from './utilities'
 
 // Find postive events included inside a particular gate (i.e. both x and y above zero)
@@ -38,8 +40,6 @@ export const findIncludedEvents = (gates, population, FCSFile, options) => {
 
         if (gate.gateData.xCutoffs) {
             invertedXCutoffs = [ scales.yScale.invert(gate.gateData.xCutoffs[2]), scales.yScale.invert(gate.gateData.xCutoffs[0]) ]
-            console.log(gate.gateData.xCutoffs)
-            console.log(invertedXCutoffs)
         }
 
         if (gate.gateData.yCutoffs) {
@@ -84,8 +84,9 @@ export const expandToIncludeZeroes = (xCutoffs, yCutoffs, gates, options) => {
         for (let gate of newGates) {
             const xBoundaries = getPolygonBoundaries(gate.gateData.polygons[gate.gateCreatorData.truePeakWidthIndex + gate.gateCreatorData.widthIndex])[0]
             const centerPoint = getPolygonCenter(gate.gateData.polygons[gate.gateCreatorData.truePeakWidthIndex + gate.gateCreatorData.widthIndex])
-            if (peak >= xBoundaries[0] && peak <= xBoundaries[1] && options.plotHeight - centerPoint[1] < closestDistance) {
-                closestDistance = options.plotHeight - centerPoint[1]
+            const distance = distanceBetweenPoints([peak, options.plotHeight - CYTOF_HISTOGRAM_WIDTH], centerPoint)
+            if (peak >= xBoundaries[0] && peak <= xBoundaries[1] && distance < closestDistance) {
+                closestDistance = distance
                 closestGate = gate
             }
         }
@@ -107,9 +108,11 @@ export const expandToIncludeZeroes = (xCutoffs, yCutoffs, gates, options) => {
                     [yCutoffs[p][2], options.plotHeight - CYTOF_HISTOGRAM_WIDTH]
                 ])
                 // Recalculate the polygon boundary
-                const grahamScan = new GrahamScan();
-                newPolygon.map(p => grahamScan.addPoint(p[0], p[1]))
-                closestGate.gateData.expandedYPolygons[i] = grahamScan.getHull().map(p => [p.x, p.y])
+                // const grahamScan = new GrahamScan();
+                // newPolygon.map(p => grahamScan.addPoint(p[0], p[1]))
+                // closestGate.gateData.expandedYPolygons[i] = grahamScan.getHull().map(p => [p.x, p.y])
+
+                closestGate.gateData.expandedYPolygons[i] = hull(newPolygon, Infinity)
             }
         }
     }
@@ -122,8 +125,10 @@ export const expandToIncludeZeroes = (xCutoffs, yCutoffs, gates, options) => {
         for (let gate of newGates) {
             const yBoundaries = getPolygonBoundaries(gate.gateData.polygons[gate.gateCreatorData.truePeakWidthIndex + gate.gateCreatorData.widthIndex])[1]
             const centerPoint = getPolygonCenter(gate.gateData.polygons[gate.gateCreatorData.truePeakWidthIndex + gate.gateCreatorData.widthIndex])
-            if (peak >= yBoundaries[0] && peak <= yBoundaries[1] && centerPoint[0] < closestDistance) {
-                closestDistance = centerPoint[0]
+            const distance = distanceBetweenPoints([CYTOF_HISTOGRAM_WIDTH, peak], centerPoint)
+
+            if (peak >= yBoundaries[0] && peak <= yBoundaries[1] && distance < closestDistance) {
+                closestDistance = distance
                 closestGate = gate
             }
         }
@@ -145,9 +150,10 @@ export const expandToIncludeZeroes = (xCutoffs, yCutoffs, gates, options) => {
                     [0, xCutoffs[p][2]],
                 ])
                 // Recalculate the polygon boundary
-                const grahamScan = new GrahamScan();
-                newPolygon.map(p => grahamScan.addPoint(p[0], p[1]))
-                closestGate.gateData.expandedXPolygons[i] = grahamScan.getHull().map(p => [p.x, p.y])
+                // const grahamScan = new GrahamScan();
+                // newPolygon.map(p => grahamScan.addPoint(p[0], p[1]))
+                // closestGate.gateData.expandedXPolygons[i] = grahamScan.getHull().map(p => [p.x, p.y])
+                closestGate.gateData.expandedXPolygons[i] = hull(newPolygon, Infinity)
             }
 
             // If this peak has been expanded towards both axis, create a new array for double expansion
@@ -164,9 +170,10 @@ export const expandToIncludeZeroes = (xCutoffs, yCutoffs, gates, options) => {
                     ])
 
                     // Recalculate the polygon boundary
-                    const grahamScan = new GrahamScan();
-                    newPolygon.map(p => grahamScan.addPoint(p[0], p[1]))
-                    closestGate.gateData.doubleExpandedPolygons[i] = grahamScan.getHull().map(p => [p.x, p.y])
+                    // const grahamScan = new GrahamScan();
+                    // newPolygon.map(p => grahamScan.addPoint(p[0], p[1]))
+                    // closestGate.gateData.doubleExpandedPolygons[i] = grahamScan.getHull().map(p => [p.x, p.y])
+                    closestGate.gateData.doubleExpandedPolygons[i] = hull(newPolygon, Infinity)
 
                     closestGate.gateData.xCutoffs[2] = options.plotHeight - CYTOF_HISTOGRAM_WIDTH
                     closestGate.gateData.yCutoffs[0] = 0
