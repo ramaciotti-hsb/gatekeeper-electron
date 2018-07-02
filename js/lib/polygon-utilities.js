@@ -6,7 +6,7 @@ import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import polygonsIntersect from 'polygon-overlap'
 import pointInsidePolygon from 'point-in-polygon'
 import { getPolygonCenter } from './utilities'
-import GrahamScan from './graham-scan.js'
+import hull from 'hull.js'
 import _ from 'lodash'
 
 const getMidPoint = function (x1, y1, x2, y2, per) {
@@ -42,7 +42,7 @@ export const fixOverlappingPolygonsUsingZipper = (polygons) => {
     const newPolygons = polygons.slice(0)
 
     for (let i = 0; i < newPolygons.length; i++) {
-        for (let j = 0; j < newPolygons.length; j++) {
+        for (let j = i + 1; j < newPolygons.length; j++) {
             if (i === j) {
                 continue
             }
@@ -69,11 +69,13 @@ export const fixOverlappingPolygonsUsingZipper = (polygons) => {
                             }
                         }
 
-                        // Get the halfway point between the two points
-                        const halfwayPoint = [ (pointOne[0] + polygonTwo[closestPointIndex][0]) / 2, (pointOne[1] + polygonTwo[closestPointIndex][1]) / 2 ]
-                        // Add the halfway point to both polygons and remove both the original points
-                        polygonOne.splice(p, 1, halfwayPoint)
-                        polygonTwo.splice(closestPointIndex, 1, halfwayPoint)
+                        if (closestPointDistance > 0) {
+                            // Get the halfway point between the two points
+                            const halfwayPoint = [ (pointOne[0] + polygonTwo[closestPointIndex][0]) / 2, (pointOne[1] + polygonTwo[closestPointIndex][1]) / 2 ]
+                            // Add the halfway point to both polygons and remove both the original points
+                            polygonOne.splice(p, 1, halfwayPoint)
+                            polygonTwo.splice(closestPointIndex, 1, halfwayPoint)
+                        }
                     }
                 }
             }
@@ -85,10 +87,8 @@ export const fixOverlappingPolygonsUsingZipper = (polygons) => {
 
     return newPolygons.map((polygon) => {
         // Recalculate the polygon boundary
-        const grahamScan = new GrahamScan();
-        polygon.map(p => grahamScan.addPoint(p[0], p[1]))
-        return grahamScan.getHull().map(p => [p.x, p.y])
+        return hull(polygon, 50)
     })
 
-    return newPolygons
+    // return newPolygons
 }

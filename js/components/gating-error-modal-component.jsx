@@ -23,8 +23,10 @@ export default class GatingErrorModal extends Component {
     }
 
     modalOuterClicked (event) {
-        this.props.updateModalParameters('gatingError', { visible: false })
-        this.props.api.resetUnsavedGates()
+        if (this.props.modalVisible) {
+            this.props.updateModalParameters('gatingError', { visible: false })
+            this.props.api.resetUnsavedGates()
+        }
     }
 
     modalInnerClicked (event) {
@@ -50,6 +52,18 @@ export default class GatingErrorModal extends Component {
 
         this.setState({
             highlightedGateIds: this.state.highlightedGateIds.slice(0)
+        })
+    }
+
+    applyAutoAnchoring () {
+        this.setState({
+            autoAnchoringLoading: true
+        })
+
+        this.props.api.applyErrorHandlerToGatingError(this.props.gatingError.id, { type: constants.GATE_ERROR_HANDLING_AUTO_ANCHOR }).then((result) => {
+            this.setState({
+                autoAnchoringLoading: false
+            })
         })
     }
 
@@ -83,10 +97,15 @@ export default class GatingErrorModal extends Component {
 
         const contents = (
             <div className='gating-errors'>
-                <div className='title'>Gating Errors</div>
+                <div className='title first'>Gating Errors</div>
                 {criteria}
-                <div className='error-handlers'>
-                    <div className='handler' onClick={this.props.api.applyErrorHandlerToGatingError.bind(null, this.props.gatingError.id, { test: 1234 })}>Auto Anchoring</div>
+                <div className='title'>Resolve Errors</div>
+                <div className='handler'>
+                    <div className='title'>Auto Anchoring</div>
+                    <div className='button' onClick={this.applyAutoAnchoring.bind(this)}>
+                        <div className={`loader-outer ${this.state.autoAnchoringLoading ? ' active' : ''}`}><div className='loader small'></div></div>
+                        Perform Auto Anchoring
+                    </div>
                 </div>
             </div>
         )

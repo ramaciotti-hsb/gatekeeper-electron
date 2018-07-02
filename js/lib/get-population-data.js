@@ -74,6 +74,7 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
 
     const subPopulation = []
     const aboveZeroPopulation = []
+    const doubleChannelZeroes = []
     const xChannelZeroes = []
     const yChannelZeroes = []
 
@@ -85,7 +86,7 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
             if (FCSFile.machineType === constants.MACHINE_CYTOF) {
                 // Every point that has a zero in the selected X channel
                 if (point[options.selectedXParameterIndex] === 0 && point[options.selectedYParameterIndex] === 0) {
-                    xChannelZeroes.push([ point[options.selectedXParameterIndex], sample.includeEventIds[i] ])
+                    doubleChannelZeroes.push([ point[options.selectedXParameterIndex], sample.includeEventIds[i] ])
                 }
                 // Every point that has a zero in the selected X channel
                 else if (point[options.selectedXParameterIndex] === 0) {
@@ -107,7 +108,7 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
             if (FCSFile.machineType === constants.MACHINE_CYTOF) {
                 // Every point that has a zero in the selected X channel
                 if (FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex] === 0 && FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex] === 0) {
-                    // doubleChannelZeroes.push(scales.yScale(sample.FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.max))
+                    doubleChannelZeroes.push([ FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], i ])
                 }
                 // Every point that has a zero in the selected X channel
                 else if (FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex] === 0) {
@@ -433,7 +434,7 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
 
         for (let x = 0; x < pointCache.length; x++) {
             if (pointCache[x]) {
-                newDensityMap[x] += pointCache[x]
+                newDensityMap[x] += pointCache[x] / 2
                 if (newDensityMap[x] > maxDensity) {
                     maxDensity = newDensityMap[x]
                 }
@@ -471,10 +472,14 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
     if (zeroDensityY) {
         realMaxDensity = Math.max(realMaxDensity, zeroDensityY.maxDensity)
     }
+    if (doubleChannelZeroes.length > 0) {
+        realMaxDensity = Math.max(realMaxDensity, doubleChannelZeroes.length / 4)   
+    }
 
     const toReturn = {
         subPopulation,
         aboveZeroPopulation,
+        doubleChannelZeroes,
         xChannelZeroes,
         yChannelZeroes,
         densityMap,

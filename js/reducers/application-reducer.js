@@ -68,7 +68,7 @@ const applicationReducer = (state = initialState, action) => {
         plotDisplayWidth: state.plotDisplayWidth,
         plotDisplayHeight: state.plotDisplayHeight,
         sessionBroken: state.sessionBroken,
-        modals: state.modals,
+        modals: _.clone(state.modals),
         api: state.api
     }
 
@@ -517,6 +517,9 @@ const applicationReducer = (state = initialState, action) => {
                 newState.gates = gateReducer(newState.gates, { type: 'REMOVE_GATE', payload: { gateId: gate.id } })
             }
         }
+    // --------------------------------------------------
+    // Select a different FCS File
+    // --------------------------------------------------
     } else if (action.type === 'SELECT_FCS_FILE') {
         // Pass on to the workspace reducer
         newState.workspaces = workspaceReducer(newState.workspaces, { type: 'SELECT_FCS_FILE', payload: { workspaceId: action.payload.workspaceId, FCSFileId: action.payload.FCSFileId } })
@@ -524,13 +527,14 @@ const applicationReducer = (state = initialState, action) => {
         const currentSample = _.find(newState.samples, s => s.FCSFileId === action.payload.FCSFileId && s.gateTemplateId === workspace.selectedGateTemplateId)
         
         if (currentSample) {
-            if (newState.modals.homology.visible) {
+            console.log(newState.modals.gatingError)
+            if (newState.modals.homology.visible === true) {
                 const gateTemplateGroup = _.find(newState.gateTemplateGroups, g => g.selectedXParameterIndex === newState.modals.homology.selectedXParameterIndex && g.selectedYParameterIndex === newState.modals.homology.selectedYParameterIndex && g.parentGateTemplateId === currentSample.gateTemplateId)
                 if (_.find(newState.gatingErrors, e => e.gateTemplateGroupId === gateTemplateGroup.id && e.sampleId === currentSample.id)) {
                     newState.modals.gatingError = _.merge(newState.modals.gatingError, { visible: true, selectedXParameterIndex: newState.modals.homology.selectedXParameterIndex, selectedYParameterIndex: newState.modals.homology.selectedYParameterIndex })
                     newState.modals.homology = _.merge(newState.modals.homology, { visible: false })
                 }
-            } else if (newState.modals.gatingError.visible) {
+            } else if (newState.modals.gatingError.visible === true) {
                 const gateTemplateGroup = _.find(newState.gateTemplateGroups, g => g.selectedXParameterIndex === newState.modals.gatingError.selectedXParameterIndex && g.selectedYParameterIndex === newState.modals.gatingError.selectedYParameterIndex && g.parentGateTemplateId === currentSample.gateTemplateId)
                 if (!_.find(newState.gatingErrors, e => e.gateTemplateGroupId === gateTemplateGroup.id && e.sampleId === currentSample.id)) {
                     newState.modals.homology = _.merge(newState.modals.homology, { visible: true, selectedXParameterIndex: newState.modals.gatingError.selectedXParameterIndex, selectedYParameterIndex: newState.modals.gatingError.selectedYParameterIndex })
@@ -539,6 +543,21 @@ const applicationReducer = (state = initialState, action) => {
             }
         }
 
+    // --------------------------------------------------
+    // Remove a gating error
+    // --------------------------------------------------
+    } else if (action.type === 'REMOVE_GATING_ERROR') {
+        // Pass on to the gating error reducer
+        newState.gatingErrors = gatingErrorReducer(newState.gatingErrors, action)
+        // Hide the gating error modal if it's visible and looking at the current gating error
+        if (newState.modals.gatingError.visible && newState.modals.gatingError.gatingErrorId === action.payload.gatingErrorId) {
+            newState.modals.gatingError = {
+                gatingErrorId: null,
+                visible: false,
+                selectedXParameterIndex: null,
+                selectedYParameterIndex: null
+            }
+        }
     // --------------------------------------------------
     // Pass on any unmatched actions to workspaceReducer and
     // sampleReducer

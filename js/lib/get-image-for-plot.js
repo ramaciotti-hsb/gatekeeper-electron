@@ -117,11 +117,12 @@ export default async (sample, FCSFile, subPopulation, options) => {
 
         // Build a new image with the graph and histograms
         for (let i = 0; i < options.plotWidth * options.plotHeight * 4; i += 4) {
-            // If we're in the bottom left xOffset * yOffset corner, render nothing
+            // If we're in the bottom left xOffset * yOffset corner, render the double zero "1d" histogram
             if (i % (options.plotWidth * 4) <= xOffset * 4 && Math.floor((i) / (options.plotWidth * 4)) >= options.plotHeight - yOffset) {
-                PNGFile.data[i] = 255
-                PNGFile.data[i + 1] = 255
-                PNGFile.data[i + 2] = 255
+                const xColour = heatMapRGBForValue(subPopulation.doubleChannelZeroes.length / 4 / subPopulation.maxDensity)                
+                PNGFile.data[i] = xColour[0]
+                PNGFile.data[i + 1] = xColour[1]
+                PNGFile.data[i + 2] = xColour[2]
                 PNGFile.data[i + 3] = 255 // Alpha channel
             }
             // If we're in the first `xOffset` pixels of a row, render the histogram for the X == 0 points

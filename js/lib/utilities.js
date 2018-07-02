@@ -127,27 +127,27 @@ const getScales = (options) => {
 
 // Get the min and max points of a polygon. See return value.
 function getPolygonBoundaries (points) {
-    let minX = Infinity
-    let maxX = -Infinity
+    let minX = [Infinity, 0]
+    let maxX = [-Infinity, 0]
 
-    let minY = Infinity
-    let maxY = -Infinity
+    let minY = [0, Infinity]
+    let maxY = [0, -Infinity]
 
     for (let point of points) {
-        if (point[0] < minX) {
-            minX = point[0]
+        if (point[0] < minX[0]) {
+            minX = point
         }
 
-        if (point[0] > maxX) {
-            maxX = point[0]
+        if (point[0] > maxX[0]) {
+            maxX = point
         }
 
-        if (point[1] < minY) {
-            minY = point[1]
+        if (point[1] < minY[1]) {
+            minY = point
         }
 
-        if (point[1] > maxY) {
-            maxY = point[1]
+        if (point[1] > maxY[1]) {
+            maxY = point
         }
     }
 

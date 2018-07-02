@@ -35,10 +35,6 @@
             background: #ccc;
             font-weight: 600;
             font-size: 12px;
-            
-            .title {
-            
-            }
         }
 
         .lower {
@@ -72,12 +68,17 @@
                 flex-direction: column;
                 flex-grow: 1;
 
-                .title {
+                & > .title {
                     font-size: 18px;
                     color: #777;
                     font-weight: 200;
                     padding: 10px 15px;
                     border-bottom: 1px solid #ddd;
+                    border-top: 1px solid #ddd;
+
+                    &.first {
+                        border-top: none;
+                    }
                 }
 
                 .row {
@@ -111,6 +112,30 @@
                         &:empty {
                            display: none;
                         }
+                    }
+                }
+
+                .handler {
+                    padding: 10px 15px;
+                    flex-direction: column;
+                    align-items: flex-start;
+                    border-bottom: 1px solid #eee;
+
+                    .title {
+                        font-size: 15px;
+                        font-weight: 200;
+                        margin-bottom: 10px;
+                        color: #555;
+                    }
+
+                    .button {
+                        color: #fff;
+                        padding: 8px 12px;
+                        font-size: 12px;
+                        cursor: pointer;
+                        position: relative;
+                        @include backgroundHover($highlight-colour);
+                        @include backgroundClick($highlight-colour);
                     }
                 }
             }

@@ -315,6 +315,14 @@ export default class BivariatePlot extends Component {
                         context.lineTo(yCutoffs[2] + xOffset, this.props.plotDisplayWidth)
                         context.lineTo(yCutoffs[0] + xOffset, this.props.plotDisplayWidth)
                     }
+
+                    if (gate.gateCreatorData.includeXChannelZeroes === true && gate.gateCreatorData.includeYChannelZeroes === true) {
+                        context.moveTo(0, this.props.plotDisplayWidth - yOffset)
+                        context.lineTo(xOffset, this.props.plotDisplayWidth - yOffset)
+                        context.lineTo(xOffset, this.props.plotDisplayWidth)
+                        context.lineTo(0, this.props.plotDisplayWidth)
+                        context.lineTo(0, this.props.plotDisplayWidth - yOffset)
+                    }
                 }
 
                 context.closePath();

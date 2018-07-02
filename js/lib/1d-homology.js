@@ -8,14 +8,15 @@ import _ from 'lodash'
 export default (data, maxDensity, userOptions) => {
     const defaultOptions = {
         min1DPeakWidth: userOptions.plotWidth * 0.1,
-        inflectionWidth: 5,
-        min1DPeakHeight: 0.005,
+        inflectionWidth: 20,
+        min1DPeakHeight: 0.003,
         knownPeaks: []
     }
 
     const options = _.merge(defaultOptions, userOptions)
 
-    let peaks = []
+    let peaks = options.knownPeaks
+    console.log(options.knownPeaks)
     // Find peaks in the 1d data where one of the channels is zero
     for (let i = 0; i < data.length; i++) {
         let isPeak = true
@@ -73,9 +74,6 @@ export default (data, maxDensity, userOptions) => {
             index++
         }
     }
-
-    // peaks = peaks.concat(options.knownPeaks.map(p => p[1]))
-    // cutoffs = cutoffs.concat(options.knownPeaks.map(p => [p[0], p[2]]))
 
     // console.log(peaks.map((p, index) => { return [cutoffs[index][0], p, cutoffs[index][1]] }))
 

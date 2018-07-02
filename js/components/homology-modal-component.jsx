@@ -19,8 +19,8 @@ export default class HomologyModal extends Component {
         super(props)
         this.state = {
             edgeDistance: this.props.plotWidth * 0.05,
-            minPeakHeight: Math.round(this.props.plotWidth * 0.04),
-            minPeakSize: props.selectedFCSFile.machineType === constants.MACHINE_CYTOF ? 5000 : 1000,
+            minPeakHeight: Math.round(this.props.plotWidth * 0.01),
+            minPeakSize: props.selectedFCSFile.machineType === constants.MACHINE_CYTOF ? 2000 : 1000,
             createNegativeGate: false,
             selectingComboGate: false,
             selectedComboGateIds: [],

@@ -116,22 +116,45 @@ export default class PersistentHomology {
 
     findPeaksInternal (stepCallback) {
         let currentHeight = 100
+        // Add the sample nuclei as small peaks before looking for naturally occuring ones
         let peaks = this.options.sampleNuclei.map((n) => {
-            const square = [
+            const edges = 20
+            const radius = 30
+            const circle = []
+            for (let i = 0; i < edges; i++) {
+                circle.push([
+                    n[0] + radius * Math.cos(2 * Math.PI * i / edges),
+                    n[1] + radius * Math.sin(2 * Math.PI * i / edges)
+                ])
+            }
+
+            console.log(circle)
+            console.log([
                 [n[0] - 25, n[1] - 25],
                 [n[0] + 25, n[1] - 25],
                 [n[0] + 25, n[1] + 25],
                 [n[0] - 25, n[1] + 25],
-            ]
+            ])
+            
+            let includedPoints = []
+            for (let x = n[0] - radius; x < n[0] + radius; x++) {
+                for (let y = n[1] - radius; y < n[1] + radius; y++) {
+                    if (this.population.densityMap.densityMap[y][x] >= 1 && pointInsidePolygon([x, y], circle)) {
+                        console.log('tes')
+                        includedPoints.push([x, y])
+                    }
+                }
+            }
+
             return {
                 id: uuidv4(),
                 polygons: [
-                    square
+                    circle
                 ],
                 nucleus: n,
                 height: 0,
                 type: constants.GATE_TYPE_POLYGON,
-                pointsToAdd: []
+                includedPoints: includedPoints
             }
         })
 
@@ -155,7 +178,7 @@ export default class PersistentHomology {
 
                 peak.gateCreatorData = {
                     truePeakWidthIndex: peak.truePeakWidthIndex,
-                    widthIndex: Math.max((peak.polygons.length - 3) - peak.truePeakWidthIndex, 0)
+                    widthIndex: Math.min(25, peak.polygons.length - peak.truePeakWidthIndex - 1)
                 }
             }
 
@@ -174,74 +197,63 @@ export default class PersistentHomology {
             peak.yGroup = _.findIndex(groups.yGroups, g => g.peaks.includes(peak.id))
         }
         const polygonTemplates = _.filter(gateTemplates, p => p.type === constants.GATE_TYPE_POLYGON)
+        let orderStatus = {
+            'message': 'Found populations match the template',
+            'status': constants.STATUS_SUCCESS,
+            'information': 'Each found population was able to be matched to a gate template.'
+        }
+        // Compare the orders to the templates
+        for (let i = 0; i < peaks.length; i++) {
+            // If there's no matching template for the peak we're looking at
+            if (!_.find(polygonTemplates, polygonTemplate => peaks[i].yGroup === polygonTemplate.yGroup && peaks[i].xGroup === polygonTemplate.xGroup)) {
+                orderStatus = {
+                    'message': 'Found populations didn\'t match the template',
+                    'status': constants.STATUS_FAIL,
+                    'information': 'Consider increasing or the "Max Group Distance" parameter if peaks seem to be in the same shape but have been assigned to different groups.'
+                }
+            }
+        }
+
+        let lengthStatus = {
+            'message': 'The same number of populations were found',
+            'status': constants.STATUS_SUCCESS,
+            'information': ''
+        }
         // Try and match them to options.gateTemplates
         if (peaks.length !== polygonTemplates.length) {
+            lengthStatus = {
+                'message': 'A different number of populations were found',
+                'status': constants.STATUS_FAIL,
+                'information': `${peaks.length} population${peaks.length === 1 ? ' was' : 's were'} found in this sample, whereas ${gateTemplates.length} population${gateTemplates.length === 1 ? ' was' : 's were'} expected by the template. Consider adjusting Minimum Peak Size / Height to increase or decrease the number of populations discovered.`
+            }
+        }
+
+        if (orderStatus.status === constants.STATUS_FAIL || lengthStatus.status === constants.STATUS_FAIL) {
             return {
                 status: constants.STATUS_FAIL,
                 data: {
                     gates: peaks,
-                    criteria: [
-                        {
-                            'message': 'A different number of populations were found',
-                            'status': constants.STATUS_FAIL,
-                            'information': `${peaks.length} population${peaks.length === 1 ? ' was' : 's were'} found in this sample, whereas ${gateTemplates.length} population${gateTemplates.length === 1 ? ' was' : 's were'} expected by the template. Consider adjusting Minimum Peak Size / Height to increase or decrease the number of populations discovered.`
-                        },
-                        {
-                            'message': 'Found populations didn\'t match the template',
-                            'status': constants.STATUS_FAIL,
-                            'information': 'Populations can\'t be matched to the template if there are two many or two few found populations.'
-                        }
-                    ]
+                    criteria: [ lengthStatus, orderStatus ]
                 }
             }
-        } else {
-            // Compare the orders to the templates
-            let orderMatches = true
-            for (let i = 0; i < polygonTemplates.length; i++) {
-                // If there's no matching template for the peak we're looking at
-                if (!_.find(peaks, p => p.yGroup === polygonTemplates[i].yGroup && p.xGroup === polygonTemplates[i].xGroup)) {
-                    orderMatches = false
-                }
-            }
-            // If we match along one of the axis, it's likely that the peaks have just shifted order slightly. Re order them so they match the other axis
-            if (!orderMatches) {
-                return {
-                    status: constants.STATUS_FAIL,
-                    data: {
-                        gates: peaks,
-                        criteria: [
-                            {
-                                'message': 'The same number of populations were found',
-                                'status': constants.STATUS_SUCCESS,
-                                'information': ''
-                            },
-                            {
-                                'message': 'Found populations didn\'t match the template',
-                                'status': constants.STATUS_FAIL,
-                                'information': 'Even though the same number of populations were found, they deviated too much from the template. Consider increasing the "Max Group Distance" parameter.'
-                            }
-                        ]
-                    }
-                }
-            }
+        }
 
-            // Make sure the widthIndex specified by the template doesn't overflow the boundaries of the polygon array
-            for (let peak of peaks) {
-                // console.log(peak, 'has qualified to be added to truePeaks')
-                const template = _.find(gateTemplates, gt => gt.xGroup === peak.xGroup && gt.yGroup === peak.yGroup)
-                if (template) {
-                    peak.gateCreatorData = template.typeSpecificData
-                    peak.gateCreatorData.truePeakWidthIndex = peak.truePeakWidthIndex                    
-                    peak.gateCreatorData.widthIndex = Math.max(Math.min(peak.polygons.length - 1 - peak.gateCreatorData.truePeakWidthIndex, peak.gateCreatorData.widthIndex), -peak.gateCreatorData.truePeakWidthIndex)
-                    peak.gateTemplateId = template.id
-                }
+        // Make sure the widthIndex specified by the template doesn't overflow the boundaries of the polygon array
+        for (let peak of peaks) {
+            // console.log(peak, 'has qualified to be added to truePeaks')
+            const template = _.find(gateTemplates, gt => gt.xGroup === peak.xGroup && gt.yGroup === peak.yGroup)
+            if (template) {
+                peak.gateCreatorData = template.typeSpecificData
+                peak.gateCreatorData.truePeakWidthIndex = peak.truePeakWidthIndex                    
+                peak.gateCreatorData.widthIndex = Math.max(Math.min(peak.polygons.length - 1 - peak.gateCreatorData.truePeakWidthIndex, peak.gateCreatorData.widthIndex), -peak.gateCreatorData.truePeakWidthIndex)
+                peak.gateTemplateId = template.id
             }
+        }
 
-            return {
-                status: constants.STATUS_SUCCESS,
-                data: {
-                    gates: peaks
-                }
+        return {
+            status: constants.STATUS_SUCCESS,
+            data: {
+                gates: peaks
             }
         }
     }
@@ -299,11 +311,8 @@ export default class PersistentHomology {
                         }
 
                         if (closestPeakDistance < this.options.edgeDistance) {
-                            if (newPeaks[closestPeakIndex].pointsToAdd) {
-                                newPeaks[closestPeakIndex].pointsToAdd.push([x, y])
-                            } else {
-                                newPeaks[closestPeakIndex].pointsToAdd = [[x, y]]
-                            }
+                            newPeaks[closestPeakIndex].includedPoints.push([x, y])
+                            newPeaks[closestPeakIndex].recalculate = true
                             foundPeak = true
                         }
 
@@ -316,7 +325,7 @@ export default class PersistentHomology {
                                 nucleus: [x, y],
                                 height: 0,
                                 type: constants.GATE_TYPE_POLYGON,
-                                pointsToAdd: []
+                                includedPoints: [[x, y]]
                             })
                         }
                     }
@@ -326,12 +335,12 @@ export default class PersistentHomology {
 
         // Add new points and recalculate polygons
         for (let peak of newPeaks) {
-            if (peak.pointsToAdd.length > 0) {
-                const polyCopy = peak.polygons.slice(-1)[0].concat(peak.pointsToAdd)
+            if (peak.recalculate) {
                 // Recalculate the polygon boundary
-                const newPolygon = hull(polyCopy, Infinity)
+                peak.includedPoints.length                
+                const newPolygon = hull(peak.includedPoints, 50)
                 peak.polygons.push(newPolygon)
-                peak.pointsToAdd = []
+                peak.recalculate = false
             }
         }
 
@@ -360,17 +369,15 @@ export default class PersistentHomology {
                     const jSize = newPeaks[j].polygons.slice(-1)[0].length < 3 ? 0 : area(newPeaks[j].polygons.slice(-1)[0].map((p) => { return { x: p[0], y: p[1] } }))
 
                     if (jSize < this.options.minPeakSize && newPeaks[j].height > this.options.minPeakHeight) {
-                        let newPolygon = newPeaks[i].polygons.slice(-1)[0].concat(newPeaks[j].polygons.slice(-1)[0].slice(0))
-                        let newNucleus = [(newPeaks[i].nucleus[0] + newPeaks[i].nucleus[0] / 2), (newPeaks[i].nucleus[1] + newPeaks[i].nucleus[1] / 2)]
+                        let newIncludedPoints = newPeaks[i].includedPoints.concat(newPeaks[j].includedPoints)
+                        console.log(newIncludedPoints.length)
                         // Rebuild polygons after combining
-                        const grahamScan = new GrahamScan();
-                        newPolygon.map(p => grahamScan.addPoint(p[0], p[1]))
-                        newPolygon = grahamScan.getHull().map(p => [p.x, p.y])
-                        newPeaks[i].pointsToAdd = []
+                        let newPolygon = hull(newIncludedPoints, 50)
                         
                         newPeaks.splice(i, 1, {
                             polygons: newPeaks[i].polygons.concat([ newPolygon ]),
                             nucleus: newPeaks[i].nucleus,
+                            includedPoints: newIncludedPoints,
                             type: constants.GATE_TYPE_POLYGON,
                             height: newPeaks[i].height,
                             id: newPeaks[i].id,

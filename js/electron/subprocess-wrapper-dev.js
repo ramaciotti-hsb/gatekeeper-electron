@@ -137,8 +137,14 @@ if (cluster.isMaster) {
 // get-expanded-gates
                 } else if (body.type === 'get-expanded-gates') {
                     getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((population) => {
-                        const xCutoffs = find1DPeaks(population.zeroDensityX.densityMap, population.maxDensity, body.payload.options)
-                        const yCutoffs = find1DPeaks(population.zeroDensityY.densityMap, population.maxDensity, body.payload.options)
+                        const xOptions = _.clone(body.payload.options)
+                        xOptions.knownPeaks = xOptions.sampleXChannelZeroPeaks
+                        const xCutoffs = find1DPeaks(population.zeroDensityX.densityMap, population.maxDensity, xOptions)
+                        
+                        const yOptions = _.clone(body.payload.options)
+                        yOptions.knownPeaks = xOptions.sampleYChannelZeroPeaks
+                        const yCutoffs = find1DPeaks(population.zeroDensityY.densityMap, population.maxDensity, yOptions)
+
                         const expandedGates = expandToIncludeZeroes(xCutoffs, yCutoffs, body.payload.gates, body.payload.options)
                         res.end(JSON.stringify(expandedGates))
                     }).catch(handleError)
