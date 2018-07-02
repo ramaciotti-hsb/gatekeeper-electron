@@ -27,17 +27,7 @@ let initialState = {
     sessionLoading: true, // Display a global loading spinner while the session loads
     backgroundJobsEnabled: true,
     showDisabledParameters: true,
-    modals: {
-        homology: {
-            visible: false,
-            selectedXParameterIndex: 0,
-            selectedYParameterIndex: 1
-        },
-        gatingError: {
-            gatingErrorId: null,
-            visible: false,
-        }
-    },
+    gatingModal: {},
     unsavedGates: null,
     // These values determine how large the plots generated on the backend are
     plotWidth: 380,
@@ -68,7 +58,7 @@ const applicationReducer = (state = initialState, action) => {
         plotDisplayWidth: state.plotDisplayWidth,
         plotDisplayHeight: state.plotDisplayHeight,
         sessionBroken: state.sessionBroken,
-        modals: _.clone(state.modals),
+        gatingModal: _.clone(state.gatingModal) || {},
         api: state.api
     }
 
@@ -122,10 +112,31 @@ const applicationReducer = (state = initialState, action) => {
         newState.sessionLoading = action.payload.sessionLoading
     }
     // --------------------------------------------------
-    // Updates parameters for modals
+    // Show a gating modal for a particular sample and
+    // selected X / Y Parameters
     // --------------------------------------------------
-    else if (action.type === 'UPDATE_MODAL_PARAMETERS') {
-        newState.modals[action.payload.modalKey] = _.merge(newState.modals[action.payload.modalKey], action.payload.parameters)
+    else if (action.type === 'SHOW_GATING_MODAL') {
+        newState.gatingModal = {
+            visible: true,
+            selectedXParameterIndex: action.payload.selectedXParameterIndex,
+            selectedYParameterIndex: action.payload.selectedYParameterIndex
+        }
+
+        const sample = _.find(newState.samples, s => s.id === action.payload.sampleId)
+        const gateTemplateGroup = _.find(newState.gateTemplateGroups, g => g.parentGateTemplateId === sample.gateTemplateId && g.selectedXParameterIndex === action.payload.selectedXParameterIndex && g.selectedYParameterIndex === action.payload.selectedYParameterIndex)
+
+        let gatingError = _.find(newState.gatingErrors, e => e.gateTemplateGroupId === gateTemplateGroup.id && e.sampleId === sample.id)
+        if (gatingError) {
+            newState.gatingModal.gatingErrorId = gatingError.id
+        } else {
+            newState.gatingModal.sampleId = sample.id
+        }
+    }
+    // --------------------------------------------------
+    // Hide the gating modal
+    // --------------------------------------------------
+    else if (action.type === 'HIDE_GATING_MODAL') {
+        newState.gatingModal = { visible: false }
     }
     // --------------------------------------------------
     // Disables and re enabled background jobs
@@ -527,19 +538,8 @@ const applicationReducer = (state = initialState, action) => {
         const currentSample = _.find(newState.samples, s => s.FCSFileId === action.payload.FCSFileId && s.gateTemplateId === workspace.selectedGateTemplateId)
         
         if (currentSample) {
-            console.log(newState.modals.gatingError)
-            if (newState.modals.homology.visible === true) {
-                const gateTemplateGroup = _.find(newState.gateTemplateGroups, g => g.selectedXParameterIndex === newState.modals.homology.selectedXParameterIndex && g.selectedYParameterIndex === newState.modals.homology.selectedYParameterIndex && g.parentGateTemplateId === currentSample.gateTemplateId)
-                if (_.find(newState.gatingErrors, e => e.gateTemplateGroupId === gateTemplateGroup.id && e.sampleId === currentSample.id)) {
-                    newState.modals.gatingError = _.merge(newState.modals.gatingError, { visible: true, selectedXParameterIndex: newState.modals.homology.selectedXParameterIndex, selectedYParameterIndex: newState.modals.homology.selectedYParameterIndex })
-                    newState.modals.homology = _.merge(newState.modals.homology, { visible: false })
-                }
-            } else if (newState.modals.gatingError.visible === true) {
-                const gateTemplateGroup = _.find(newState.gateTemplateGroups, g => g.selectedXParameterIndex === newState.modals.gatingError.selectedXParameterIndex && g.selectedYParameterIndex === newState.modals.gatingError.selectedYParameterIndex && g.parentGateTemplateId === currentSample.gateTemplateId)
-                if (!_.find(newState.gatingErrors, e => e.gateTemplateGroupId === gateTemplateGroup.id && e.sampleId === currentSample.id)) {
-                    newState.modals.homology = _.merge(newState.modals.homology, { visible: true, selectedXParameterIndex: newState.modals.gatingError.selectedXParameterIndex, selectedYParameterIndex: newState.modals.gatingError.selectedYParameterIndex })
-                    newState.modals.gatingError = _.merge(newState.modals.gatingError, { visible: false })
-                }
+            if (newState.gatingModal.visible) {
+                newState = applicationReducer(newState, { type: 'SHOW_GATING_MODAL', payload: { selectedXParameterIndex: newState.gatingModal.selectedXParameterIndex, selectedYParameterIndex: newState.gatingModal.selectedYParameterIndex, sampleId: currentSample.id } })
             }
         }
 
@@ -550,13 +550,8 @@ const applicationReducer = (state = initialState, action) => {
         // Pass on to the gating error reducer
         newState.gatingErrors = gatingErrorReducer(newState.gatingErrors, action)
         // Hide the gating error modal if it's visible and looking at the current gating error
-        if (newState.modals.gatingError.visible && newState.modals.gatingError.gatingErrorId === action.payload.gatingErrorId) {
-            newState.modals.gatingError = {
-                gatingErrorId: null,
-                visible: false,
-                selectedXParameterIndex: null,
-                selectedYParameterIndex: null
-            }
+        if (newState.gatingModal.visible && newState.gatingModal.gatingErrorId === action.payload.gatingError.id) {
+            newState = applicationReducer(newState, { type: 'SHOW_GATING_MODAL', payload: { selectedXParameterIndex: newState.gatingModal.selectedXParameterIndex, selectedYParameterIndex: newState.gatingModal.selectedYParameterIndex, sampleId: action.payload.gatingError.sampleId } })
         }
     // --------------------------------------------------
     // Pass on any unmatched actions to workspaceReducer and

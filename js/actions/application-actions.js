@@ -2,11 +2,16 @@
 // Redux actions for interacting with the global application state.
 // -------------------------------------------------------------
 
-// This is also picked up by the application reducer
-export const updateModalParameters = (modalKey, parameters) => {
+export const showGatingModal = (sampleId, selectedXParameterIndex, selectedYParameterIndex) => {
     return {
-        type: 'UPDATE_MODAL_PARAMETERS',
-        payload: { modalKey, parameters }
+        type: 'SHOW_GATING_MODAL',
+        payload: { sampleId, selectedXParameterIndex, selectedYParameterIndex }
+    }
+}
+
+export const hideGatingModal = () => {
+    return {
+        type: 'HIDE_GATING_MODAL'
     }
 }
 

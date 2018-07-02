@@ -4,7 +4,6 @@
 
 import { connect } from 'react-redux'
 import FCSParameterSelector from '../components/fcs-parameter-selector-component.jsx'
-import { updateModalParameters } from '../actions/application-actions'
 import _ from 'lodash'
 
 const mapStateToProps = (state, ownProps) => {

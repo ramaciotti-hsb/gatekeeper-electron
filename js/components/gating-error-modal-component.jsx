@@ -24,7 +24,7 @@ export default class GatingErrorModal extends Component {
 
     modalOuterClicked (event) {
         if (this.props.modalVisible) {
-            this.props.updateModalParameters('gatingError', { visible: false })
+            this.props.hideGatingModal()
             this.props.api.resetUnsavedGates()
         }
     }
@@ -111,7 +111,7 @@ export default class GatingErrorModal extends Component {
         )
 
         return (
-            <div className={'gating-error-outer' + (this.props.modalVisible === true ? ' active' : '')} onClick={this.modalOuterClicked.bind(this)}>
+            <div className={'gating-error-outer' + (this.props.modalOptions.visible === true ? ' active' : '')} onClick={this.modalOuterClicked.bind(this)}>
                 <div className='gating-error-inner' onClick={this.modalInnerClicked} style={{ height: 597 }}>
                     <div className='upper'>
                         <div className='title'>{this.props.selectedFCSFile.FCSParameters[this.props.modalOptions.selectedXParameterIndex].label} · {this.props.selectedFCSFile.FCSParameters[this.props.modalOptions.selectedYParameterIndex].label} - Automated Gating Errors for {this.props.selectedSample.title}</div>

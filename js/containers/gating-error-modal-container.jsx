@@ -4,7 +4,7 @@
 
 import { connect } from 'react-redux'
 import GatingErrorModal from '../components/gating-error-modal-component.jsx'
-import { updateModalParameters } from '../actions/application-actions'
+import { showGatingModal, hideGatingModal } from '../actions/application-actions'
 import _ from 'lodash'
 
 const mapStateToProps = (state, ownProps) => {
@@ -13,7 +13,7 @@ const mapStateToProps = (state, ownProps) => {
     let selectedGateTemplateGroup = {}
     let selectedSample = {}
 
-    let gatingError = _.find(state.gatingErrors, e => e.id === state.modals.gatingError.gatingErrorId)
+    let gatingError = _.find(state.gatingErrors, e => e.id === state.gatingModal.gatingErrorId)
     if (gatingError) {
         selectedGateTemplateGroup = _.find(state.gateTemplateGroups, g => g.id === gatingError.gateTemplateGroupId)
         selectedSample = _.find(state.samples, s => s.id === gatingError.sampleId) || {}
@@ -28,15 +28,22 @@ const mapStateToProps = (state, ownProps) => {
         gatingError,
         plotWidth: state.plotWidth,
         plotHeight: state.plotHeight,
-        modalOptions: state.modals.gatingError,
-        modalVisible: state.modals.gatingError.visible
+        modalOptions: {
+            visible: state.gatingModal.gatingErrorId && state.gatingModal.visible,
+            sampleId: state.gatingModal.sampleId,
+            selectedXParameterIndex: state.gatingModal.selectedXParameterIndex,
+            selectedYParameterIndex: state.gatingModal.selectedYParameterIndex
+        }
     }
 }
 
 const mapDispatchToProps = dispatch => {
     return {
-        updateModalParameters: (modalKey, parameters) => {
-            dispatch(updateModalParameters(modalKey, parameters))
+        showGatingModal: (sampleId, selectedXParameterIndex, selectedYParameterIndex) => {
+            dispatch(showGatingModal(sampleId, selectedXParameterIndex, selectedYParameterIndex))
+        },
+        hideGatingModal: () => {
+            dispatch(hideGatingModal())
         }
     }
 }

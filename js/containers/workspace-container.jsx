@@ -7,7 +7,7 @@ import { createSample, removeSample } from '../actions/sample-actions.js'
 import { selectSample } from '../actions/workspace-actions.js'
 import { updateGateTemplate } from '../actions/gate-template-actions'
 import WorkspaceView from '../components/workspace-component.jsx'
-import { updateModalParameters } from '../actions/application-actions'
+import { showGatingModal } from '../actions/application-actions'
 import _ from 'lodash'
 
 const mapStateToProps = (state, ownProps) => {
@@ -58,6 +58,10 @@ const mapStateToProps = (state, ownProps) => {
             }
         }
 
+        if (newWorkspace.selectedFCSFile && newWorkspace.selectedGateTemplate) {
+            newWorkspace.selectedSample = _.find(state.samples, s => s.gateTemplateId === newWorkspace.selectedGateTemplate.id && s.FCSFileId === newWorkspace.selectedFCSFile.id)
+        }
+
         newWorkspace.gateTemplateGroups = []
         // If the workspace contains gate template groups, find them and add them as complete objects
         if (newWorkspace.gateTemplateGroupIds) {
@@ -93,8 +97,8 @@ const mapDispatchToProps = dispatch => {
         updateGateTemplate: (gateTemplateId, parameters) => {
             dispatch(updateGateTemplate(gateTemplateId, parameters))
         },
-        updateModalParameters: (modalKey, parameters) => {
-            dispatch(updateModalParameters(modalKey, parameters))
+        showGatingModal: (sampleId, selectedXParameterIndex, selectedYParameterIndex) => {
+            dispatch(showGatingModal(sampleId, selectedXParameterIndex, selectedYParameterIndex))
         }
     }
 }
