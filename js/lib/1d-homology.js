@@ -16,7 +16,6 @@ export default (data, maxDensity, userOptions) => {
     const options = _.merge(defaultOptions, userOptions)
 
     let peaks = options.knownPeaks
-    console.log(options.knownPeaks)
     // Find peaks in the 1d data where one of the channels is zero
     for (let i = 0; i < data.length; i++) {
         let isPeak = true
@@ -55,6 +54,9 @@ export default (data, maxDensity, userOptions) => {
             } else if (data[index] < data.slice(index - options.inflectionWidth - 1, index - 1).reduce((acc, curr) => { return acc + curr }, 0) / options.inflectionWidth || data[index] / maxDensity < options.min1DPeakHeight) {
                 lowerCutoffFound = true
                 cutoffs[i][0] = index
+            } else if (peaks.includes(index)) {
+                lowerCutoffFound = true
+                cutoffs[i][0] = index + 5
             }
 
             index--
@@ -69,6 +71,9 @@ export default (data, maxDensity, userOptions) => {
             } else if (data[index] < data.slice(index + 1, index + options.inflectionWidth + 1).reduce((acc, curr) => { return acc + curr }, 0) / options.inflectionWidth || data[index] / maxDensity < options.min1DPeakHeight) {
                 upperCutoffFound = true
                 cutoffs[i][1] = index
+            } else if (peaks.includes(index)) {
+                upperCutoffFound = true
+                cutoffs[i][1] = index - 5
             }
 
             index++

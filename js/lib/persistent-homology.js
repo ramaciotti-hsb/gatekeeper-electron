@@ -127,20 +127,11 @@ export default class PersistentHomology {
                     n[1] + radius * Math.sin(2 * Math.PI * i / edges)
                 ])
             }
-
-            console.log(circle)
-            console.log([
-                [n[0] - 25, n[1] - 25],
-                [n[0] + 25, n[1] - 25],
-                [n[0] + 25, n[1] + 25],
-                [n[0] - 25, n[1] + 25],
-            ])
             
             let includedPoints = []
             for (let x = n[0] - radius; x < n[0] + radius; x++) {
                 for (let y = n[1] - radius; y < n[1] + radius; y++) {
                     if (this.population.densityMap.densityMap[y][x] >= 1 && pointInsidePolygon([x, y], circle)) {
-                        console.log('tes')
                         includedPoints.push([x, y])
                     }
                 }
