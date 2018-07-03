@@ -169,7 +169,8 @@ export default class PersistentHomology {
 
                 peak.gateCreatorData = {
                     truePeakWidthIndex: peak.truePeakWidthIndex,
-                    widthIndex: Math.min(25, peak.polygons.length - peak.truePeakWidthIndex - 1)
+                    // widthIndex: Math.min(25, peak.polygons.length - peak.truePeakWidthIndex - 1)
+                    widthIndex: peak.polygons.length - peak.truePeakWidthIndex - 1
                 }
             }
 
@@ -236,7 +237,8 @@ export default class PersistentHomology {
             if (template) {
                 peak.gateCreatorData = template.typeSpecificData
                 peak.gateCreatorData.truePeakWidthIndex = peak.truePeakWidthIndex                    
-                peak.gateCreatorData.widthIndex = Math.max(Math.min(peak.polygons.length - 1 - peak.gateCreatorData.truePeakWidthIndex, peak.gateCreatorData.widthIndex), -peak.gateCreatorData.truePeakWidthIndex)
+                // peak.gateCreatorData.widthIndex = Math.max(Math.min(peak.polygons.length - 1 - peak.gateCreatorData.truePeakWidthIndex, peak.gateCreatorData.widthIndex), -peak.gateCreatorData.truePeakWidthIndex)
+                peak.gateCreatorData.widthIndex = peak.polygons.length - peak.truePeakWidthIndex - 1
                 peak.gateTemplateId = template.id
             }
         }

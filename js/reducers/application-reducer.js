@@ -547,11 +547,12 @@ const applicationReducer = (state = initialState, action) => {
     // Remove a gating error
     // --------------------------------------------------
     } else if (action.type === 'REMOVE_GATING_ERROR') {
+        const gatingError = _.find(newState.gatingErrors, e => e.id === action.payload.gatingErrorId)
         // Pass on to the gating error reducer
         newState.gatingErrors = gatingErrorReducer(newState.gatingErrors, action)
         // Hide the gating error modal if it's visible and looking at the current gating error
-        if (newState.gatingModal.visible && newState.gatingModal.gatingErrorId === action.payload.gatingError.id) {
-            newState = applicationReducer(newState, { type: 'SHOW_GATING_MODAL', payload: { selectedXParameterIndex: newState.gatingModal.selectedXParameterIndex, selectedYParameterIndex: newState.gatingModal.selectedYParameterIndex, sampleId: action.payload.gatingError.sampleId } })
+        if (newState.gatingModal.visible && newState.gatingModal.gatingErrorId === action.payload.gatingErrorId) {
+            newState = applicationReducer(newState, { type: 'SHOW_GATING_MODAL', payload: { selectedXParameterIndex: newState.gatingModal.selectedXParameterIndex, selectedYParameterIndex: newState.gatingModal.selectedYParameterIndex, sampleId: gatingError.sampleId } })
         }
     // --------------------------------------------------
     // Pass on any unmatched actions to workspaceReducer and

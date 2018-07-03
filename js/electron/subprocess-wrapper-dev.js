@@ -62,6 +62,9 @@ if (cluster.isMaster) {
             } else {
                 getSubPopulation(sample, FCSFile, options).then((data) => {
                     populationCache[key] = data
+                    if (_.keys(populationCache).length > 10) {
+                        delete populationCache[_.keys(populationCache).slice(-1)[0]]
+                    }
                     resolve(data)
                 }).catch((error) => {
                     console.log(error)
