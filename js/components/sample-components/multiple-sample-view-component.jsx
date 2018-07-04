@@ -71,7 +71,7 @@ export default class MultipleSampleView extends Component {
     }
 
     calculateHomology (selectedXParameterIndex, selectedYParameterIndex) {
-        this.props.showGatingModal(this.props.sample.id, selectedXParameterIndex, selectedYParameterIndex)
+        this.props.api.showGatingModal(this.props.sample.id, selectedXParameterIndex, selectedYParameterIndex)
     }
 
     matchLabels(xLabel, yLabel, matchString) {

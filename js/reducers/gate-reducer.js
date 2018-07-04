@@ -23,7 +23,9 @@ const gates = (state = [], action = {}) => {
             selectedYParameterIndex: action.payload.gate.selectedYParameterIndex,
             selectedXScale: action.payload.gate.selectedXScale,
             selectedYScale: action.payload.gate.selectedYScale,
-            gateTemplateId: action.payload.gate.gateTemplateId
+            gateTemplateId: action.payload.gate.gateTemplateId,
+            xGroup: action.payload.gate.xGroup,
+            yGroup: action.payload.gate.yGroup
         }
 
         newState.push(newGate)

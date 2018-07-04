@@ -29,7 +29,7 @@ export default class HomologyModal extends Component {
     }
 
     modalOuterClicked (event) {
-        this.props.hideGatingModal()
+        this.props.api.hideGatingModal()
         this.props.api.resetUnsavedGates()
     }
 

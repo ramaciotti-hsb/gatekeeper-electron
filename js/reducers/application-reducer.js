@@ -11,6 +11,7 @@ import gateTemplateReducer from './gate-template-reducer'
 import gateTemplateGroupReducer from './gate-template-group-reducer'
 import gatingErrorReducer from './gating-error-reducer'
 import _ from 'lodash'
+import uuidv4 from 'uuid/v4'
 import path from 'path'
 import { remote } from 'electron'
 import fs from 'fs'
@@ -125,11 +126,21 @@ const applicationReducer = (state = initialState, action) => {
         const sample = _.find(newState.samples, s => s.id === action.payload.sampleId)
         const gateTemplateGroup = _.find(newState.gateTemplateGroups, g => g.parentGateTemplateId === sample.gateTemplateId && g.selectedXParameterIndex === action.payload.selectedXParameterIndex && g.selectedYParameterIndex === action.payload.selectedYParameterIndex)
 
-        let gatingError = _.find(newState.gatingErrors, e => e.gateTemplateGroupId === gateTemplateGroup.id && e.sampleId === sample.id)
+        let gatingError = _.find(newState.gatingErrors, e => gateTemplateGroup && e.gateTemplateGroupId === gateTemplateGroup.id && e.sampleId === sample.id)
         if (gatingError) {
             newState.gatingModal.gatingErrorId = gatingError.id
         } else {
             newState.gatingModal.sampleId = sample.id
+            if (gateTemplateGroup) {
+                const unsavedGates = _.cloneDeep(_.filter(newState.gates, g => g.parentSampleId === sample.id && gateTemplateGroup.childGateTemplateIds.includes(g.gateTemplateId))).map((g) => {
+                    g.includeEventIds = []
+                    g.FCSFileId = sample.FCSFileId
+                    g.sampleId = sample.id
+                    g.id = uuidv4()
+                    return g
+                })
+                newState.unsavedGates = unsavedGates
+            }
         }
     }
     // --------------------------------------------------
@@ -539,6 +550,7 @@ const applicationReducer = (state = initialState, action) => {
         
         if (currentSample) {
             if (newState.gatingModal.visible) {
+                console.log('visible')
                 newState = applicationReducer(newState, { type: 'SHOW_GATING_MODAL', payload: { selectedXParameterIndex: newState.gatingModal.selectedXParameterIndex, selectedYParameterIndex: newState.gatingModal.selectedYParameterIndex, sampleId: currentSample.id } })
             }
         }

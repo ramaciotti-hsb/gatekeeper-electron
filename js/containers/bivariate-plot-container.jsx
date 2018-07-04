@@ -4,7 +4,6 @@
 
 import { connect } from 'react-redux'
 import { createSubSampleAndAddToWorkspace } from '../actions/workspace-actions'
-import { showGatingModal, hideGatingModal } from '../actions/application-actions'
 import { updateGateTemplate } from '../actions/gate-template-actions'
 import BivariatePlot from '../components/sample-components/bivariate-plot-component.jsx'
 import _ from 'lodash'
@@ -100,12 +99,6 @@ const mapDispatchToProps = dispatch => {
     return {
         updateGateTemplate: (gateTemplateId, parameters) => {
             dispatch(updateGateTemplate(gateTemplateId, parameters))
-        },
-        showGatingModal: (sampleId, selectedXParameterIndex, selectedYParameterIndex) => {
-            dispatch(showGatingModal(sampleId, selectedXParameterIndex, selectedYParameterIndex))
-        },
-        hideGatingModal: () => {
-            dispatch(hideGatingModal())
         }
     }
 }

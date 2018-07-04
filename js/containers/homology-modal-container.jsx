@@ -4,7 +4,6 @@
 
 import { connect } from 'react-redux'
 import HomologyModal from '../components/homology-modal-component.jsx'
-import { showGatingModal, hideGatingModal } from '../actions/application-actions'
 import _ from 'lodash'
 
 const mapStateToProps = (state, ownProps) => {
@@ -36,12 +35,7 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = dispatch => {
     return {
-        showGatingModal: (sampleId, selectedXParameterIndex, selectedYParameterIndex) => {
-            dispatch(showGatingModal(sampleId, selectedXParameterIndex, selectedYParameterIndex))
-        },
-        hideGatingModal: () => {
-            dispatch(hideGatingModal())
-        }
+        
     }
 }
 
