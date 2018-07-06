@@ -23,7 +23,7 @@ export default class GatingErrorModal extends Component {
     }
 
     modalOuterClicked (event) {
-        if (this.props.modalVisible) {
+        if (this.props.modalOptions.visible) {
             this.props.api.hideGatingModal()
             this.props.api.resetUnsavedGates()
         }
