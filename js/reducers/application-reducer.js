@@ -132,12 +132,13 @@ const applicationReducer = (state = initialState, action) => {
         } else {
             newState.gatingModal.sampleId = sample.id
             if (gateTemplateGroup) {
-                const unsavedGates = _.cloneDeep(_.filter(newState.gates, g => g.parentSampleId === sample.id && gateTemplateGroup.childGateTemplateIds.includes(g.gateTemplateId))).map((g) => {
-                    g.includeEventIds = []
-                    g.FCSFileId = sample.FCSFileId
-                    g.sampleId = sample.id
-                    g.id = uuidv4()
-                    return g
+                const unsavedGates = _.cloneDeep(_.filter(newState.gates, g => g.parentSampleId === sample.id && gateTemplateGroup.childGateTemplateIds.includes(g.gateTemplateId))).map((gate) => {
+                    const childSample = _.find(newState.samples, s => s.id === gate.childSampleId)
+                    gate.includeEventIds = childSample.includeEventIds
+                    gate.FCSFileId = sample.FCSFileId
+                    gate.sampleId = sample.id
+                    gate.id = uuidv4()
+                    return gate
                 })
                 newState.unsavedGates = unsavedGates
             }

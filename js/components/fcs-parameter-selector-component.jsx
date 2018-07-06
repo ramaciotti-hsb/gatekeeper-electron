@@ -39,10 +39,14 @@ export default class FCSParameterSelector extends Component {
     render () {
         const parameters = _.filter(this.props.selectedFCSFile.FCSParameters, p => p.key.toLowerCase().match(this.state.filterValue.toLowerCase()) || p.label.toLowerCase().match(this.state.filterValue.toLowerCase())).map((parameter) => {
             const disabled = this.props.selectedWorkspace.disabledParameters && this.props.selectedWorkspace.disabledParameters[parameter.key]
+            let parameterKey
+            if (parameter.key !== parameter.label) {
+                parameterKey = <div className='parameter-key'><div className='middot'>·</div>{parameter.key}</div>
+            }
             return (
                 <div className={'parameter-row ' + (disabled ? 'disabled' : 'enabled')} key={parameter.key} onClick={this.props.api.setFCSParametersDisabled.bind(null, this.props.selectedWorkspace.id, { [parameter.key]: !disabled })}>
                     <i className={'lnr ' + (disabled ? 'lnr-circle-minus' : 'lnr-checkmark-circle')} />
-                    <div className='text'>{parameter.label}</div>
+                    <div className='text'>{parameter.label}{parameterKey}</div>
                 </div>
             )
         })

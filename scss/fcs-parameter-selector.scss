@@ -101,6 +101,14 @@ $tab-width: 15px;
             // @include backgroundClick(lighten($menu-colour, 10%));
         }
 
+        .parameter-key {
+            opacity: 0.6;
+
+            .middot {
+                margin: 0 10px;
+            }
+        }
+
         i {
             font-size: 18px;
             margin-right: 15px;
