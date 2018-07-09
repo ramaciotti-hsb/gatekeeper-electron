@@ -8,8 +8,8 @@ import ReactDOM from 'react-dom'
 import { Component } from 'react'
 import _ from 'lodash'
 import uuidv4 from 'uuid/v4'
-import constants from '../gatekeeper-utilities/constants'
-import '../../scss/fcs-parameter-selector.scss'
+import constants from '../../gatekeeper-utilities/constants'
+import '../scss/fcs-parameter-selector.scss'
 import { registerKeyListener, deregisterKeyListener } from '../lib/global-keyboard-listener'
 
 export default class FCSParameterSelector extends Component {

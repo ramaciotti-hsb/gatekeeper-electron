@@ -6,12 +6,12 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import { Component } from 'react'
 import _ from 'lodash'
-import constants from '../../gatekeeper-utilities/constants'
+import constants from '../../../gatekeeper-utilities/constants'
 import pointInsidePolygon from 'point-in-polygon'
-import { heatMapHSLStringForValue, getScales, getPlotImageKey } from '../../gatekeeper-utilities/utilities'
+import { heatMapHSLStringForValue, getScales, getPlotImageKey } from '../../../gatekeeper-utilities/utilities'
 import BivariatePlot from '../../containers/bivariate-plot-container.jsx'
 import Dropdown from '../../lib/dropdown.jsx'
-import '../../../scss/sample-view/sample-gates.scss'
+import '../../scss/sample-view/sample-gates.scss'
 
 export default class MultipleSampleView extends Component {
 

@@ -1,15 +1,18 @@
 import {ticks} from "d3-array";
 import {format} from "d3-format";
-import constant from "../../../node_modules/d3-scale/src/constant";
-import nice from "../../../node_modules/d3-scale/src/nice";
-import {default as continuous, copy} from "../../../node_modules/d3-scale/src/continuous";
+import constant from "../node_modules/d3-scale/src/constant";
+import nice from "../node_modules/d3-scale/src/nice";
+import {default as continuous, copy} from "../node_modules/d3-scale/src/continuous";
+import Logicle from './logicle-scale.js'
+
+var logicle = new Logicle(262000, 0.4, 4.5, 0.7);
 
 function deinterpolate(a, b) {
-  return function (x) { return Math.asinh(x) / Math.asinh(Math.max(a, b)) }
+  return function (x) { return logicle.scale(x) }
 }
 
 function reinterpolate(a, b) {
-  return function(x) { return a > b ? Math.sinh(11000 - x) : Math.sinh(x) }
+  return function(x) { return a > b ? logicle.inverse(logicle.scale(262000) - x) : logicle.inverse(x) }
 }
 
 function reflect(f) {
@@ -20,7 +23,7 @@ function reflect(f) {
 
 export default function log() {
 
-  var scale = continuous(deinterpolate, reinterpolate).domain([-120, 11000]),
+  var scale = continuous(deinterpolate, reinterpolate).domain([-120, 262000]),
       domain = scale.domain
 
   scale.domain = function(_) {
@@ -28,7 +31,7 @@ export default function log() {
   };
 
   scale.ticks = function(count) {
-    return [-5.0, 0, 10.0, 100.0, 1000.0, 10000.0]
+    return logicle.axisLabels()
   };
 
   scale.tickFormat = function(count, specifier) {

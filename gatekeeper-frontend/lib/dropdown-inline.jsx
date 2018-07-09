@@ -10,9 +10,9 @@ import { Component }        from 'react'
 import ReactDOM             from 'react-dom'
 import _                    from 'lodash'
 import OnClickOutside       from 'react-onclickoutside'
-import constants            from '../gatekeeper-utilities/constants'
+import constants            from '../../gatekeeper-utilities/constants'
 import uuidv4               from 'uuid/v4'
-import                           '../../scss/dropdown-inline.scss'
+import                           '../scss/dropdown-inline.scss'
 import { registerKeyListener, deregisterKeyListener } from './global-keyboard-listener'
 
 // The outer menu react element

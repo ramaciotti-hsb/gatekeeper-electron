@@ -1,0 +1,16 @@
+{
+  "name": "gatekeeper-utilities",
+  "version": "0.0.1",
+  "description": "Javascript utilities for gatekeeper front end, backend and electron code",
+  "main": "index.js",
+  "author": "Nic Barker",
+  "license": "MIT",
+  "dependencies": {
+    "d3-scale": "^2.1.0",
+    "distance-to-polygon": "^2.0.2",
+    "hull.js": "^0.2.10",
+    "lodash": "^4.17.10",
+    "point-in-polygon": "^1.0.1",
+    "polygon-overlap": "^1.0.5"
+  }
+}

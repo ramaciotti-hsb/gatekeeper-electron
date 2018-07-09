@@ -548,7 +548,6 @@ const applicationReducer = (state = initialState, action) => {
         
         if (currentSample) {
             if (newState.gatingModal.visible) {
-                console.log('visible')
                 newState = applicationReducer(newState, { type: 'SHOW_GATING_MODAL', payload: { selectedXParameterIndex: newState.gatingModal.selectedXParameterIndex, selectedYParameterIndex: newState.gatingModal.selectedYParameterIndex, sampleId: currentSample.id } })
             }
         }

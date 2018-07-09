@@ -1,9 +1,9 @@
 import {ticks} from "d3-array";
 import {format} from "d3-format";
 import fs from 'fs'
-import constant from "../../../node_modules/d3-scale/src/constant";
-import nice from "../../../node_modules/d3-scale/src/nice";
-import {default as continuous, copy} from "../../../node_modules/d3-scale/src/continuous";
+import constant from "../node_modules/d3-scale/src/constant";
+import nice from "../node_modules/d3-scale/src/nice";
+import {default as continuous, copy} from "../node_modules/d3-scale/src/continuous";
 
 const logTable = JSON.parse(fs.readFileSync(__dirname + '/../cli-utilities/logTable.json', 'utf8'));
 

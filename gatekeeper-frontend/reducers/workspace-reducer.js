@@ -4,7 +4,7 @@
 
 import uuidv4 from 'uuid/v4'
 import _ from 'lodash'
-import constants from '../gatekeeper-utilities/constants'
+import constants from '../../gatekeeper-utilities/constants'
 
 const initialState = []
 
@@ -116,7 +116,6 @@ const workspaces = (state = initialState, action = {}) => {
     // Select an FCS File that is already within a workspace
     // --------------------------------------------------
     } else if (action.type === 'SELECT_FCS_FILE') {
-        console.log(action.type, action.payload)
         const workspaceIndex = _.findIndex(state, w => w.id === action.payload.workspaceId)
 
         if (workspaceIndex > -1) {

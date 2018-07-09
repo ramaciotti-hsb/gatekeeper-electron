@@ -10,7 +10,7 @@ import _                    from 'lodash'
 import constants            from 'constants'
 import OnClickOutside       from 'react-onclickoutside'
 import uuidv4               from 'uuid/v4'
-import                           '../../scss/dropdown.scss'
+import                           '../scss/dropdown.scss'
 import { registerKeyListener, deregisterKeyListener } from './global-keyboard-listener'
 
 /* REQUIRED MARKUP FOR Dropdown CHILDREN:

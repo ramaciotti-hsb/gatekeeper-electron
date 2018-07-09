@@ -7,11 +7,11 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import { Provider } from 'react-redux'
 import { createStore, applyMiddleware } from 'redux'
-import Application from './containers/application-container.jsx'
-import applicationReducer from './reducers/application-reducer'
-import '../scss/container.scss'
-import { setStore, api } from './gatekeeper-electron/electron-backend.js'
-import { initialize } from './lib/global-keyboard-listener'
+import Application from '../gatekeeper-frontend/containers/application-container.jsx'
+import applicationReducer from '../gatekeeper-frontend/reducers/application-reducer'
+import '../gatekeeper-frontend/scss/container.scss'
+import { setStore, api } from './electron-backend.js'
+import { initialize } from '../gatekeeper-frontend/lib/global-keyboard-listener'
 
 const store = createStore(applicationReducer)
 

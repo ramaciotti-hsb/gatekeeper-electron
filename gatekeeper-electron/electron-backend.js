@@ -22,18 +22,18 @@ import polygonsIntersect from 'polygon-overlap'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import isDev from 'electron-is-dev'
 import { breakLongLinesIntoPoints, fixOverlappingPolygonsUsingZipper } from '../gatekeeper-utilities/polygon-utilities'
-import applicationReducer from '../reducers/application-reducer'
-import { setBackgroundJobsEnabled, setPlotDimensions, setPlotDisplayDimensions, toggleShowDisabledParameters, setUnsavedGates, showGatingModal, hideGatingModal } from '../actions/application-actions'
-import { updateSample, removeSample, setSamplePlotImage, setSampleParametersLoading } from '../actions/sample-actions'
-import { updateGateTemplate, removeGateTemplate } from '../actions/gate-template-actions'
-import { removeGateTemplateGroup } from '../actions/gate-template-group-actions'
-import { updateFCSFile, removeFCSFile } from '../actions/fcs-file-actions'
-import { createGatingError, updateGatingError, removeGatingError } from '../actions/gating-error-actions'
+import applicationReducer from '../gatekeeper-frontend/reducers/application-reducer'
+import { setBackgroundJobsEnabled, setPlotDimensions, setPlotDisplayDimensions, toggleShowDisabledParameters, setUnsavedGates, showGatingModal, hideGatingModal } from '../gatekeeper-frontend/actions/application-actions'
+import { updateSample, removeSample, setSamplePlotImage, setSampleParametersLoading } from '../gatekeeper-frontend/actions/sample-actions'
+import { updateGateTemplate, removeGateTemplate } from '../gatekeeper-frontend/actions/gate-template-actions'
+import { removeGateTemplateGroup } from '../gatekeeper-frontend/actions/gate-template-group-actions'
+import { updateFCSFile, removeFCSFile } from '../gatekeeper-frontend/actions/fcs-file-actions'
+import { createGatingError, updateGatingError, removeGatingError } from '../gatekeeper-frontend/actions/gating-error-actions'
 import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace,
     createFCSFileAndAddToWorkspace, selectFCSFile,
     createSampleAndAddToWorkspace, createSubSampleAndAddToWorkspace, selectSample, invertPlotAxis,
     createGateTemplateAndAddToWorkspace, selectGateTemplate,
-    createGateTemplateGroupAndAddToWorkspace, setFCSParametersDisabled } from '../actions/workspace-actions'
+    createGateTemplateGroupAndAddToWorkspace, setFCSParametersDisabled } from '../gatekeeper-frontend/actions/workspace-actions'
 
 import request from 'request'
 
@@ -50,7 +50,7 @@ let workerFork
 const createFork = function () {
     console.log('starting fork')
     if (isDev) {
-        workerFork = fork(__dirname + '/js/gatekeeper-electron/subprocess-wrapper-dev.js', [ remote.app.getPath('userData') ], { silent: true })
+        workerFork = fork(__dirname + '/gatekeeper-electron/subprocess-wrapper-dev.js', [ remote.app.getPath('userData') ], { silent: true })
     } else {
         workerFork = fork(__dirname + '/webpack-build/fork.bundle.js', [ remote.app.getPath('userData') ], { silent: true })
     }

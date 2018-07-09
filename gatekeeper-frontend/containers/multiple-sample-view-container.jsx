@@ -5,7 +5,7 @@
 import { connect } from 'react-redux'
 import { updateGate } from '../actions/gate-actions'
 import { updateGateTemplate } from '../actions/gate-template-actions'
-import constants from '../gatekeeper-utilities/constants'
+import constants from '../../gatekeeper-utilities/constants'
 import MultipleSampleView from '../components/sample-components/multiple-sample-view-component.jsx'
 import _ from 'lodash'
 
