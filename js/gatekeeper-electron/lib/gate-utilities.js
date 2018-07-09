@@ -3,7 +3,7 @@
 // sub populations
 // -------------------------------------------------------------------------
 
-import constants from '../../lib/constants'
+import constants from '../../gatekeeper-utilities/constants'
 import _ from 'lodash'
 import hull from 'hull.js'
 import pointInsidePolygon from 'point-in-polygon'

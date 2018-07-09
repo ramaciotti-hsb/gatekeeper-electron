@@ -3,7 +3,7 @@
 // -------------------------------------------------------------
 
 import { connect } from 'react-redux'
-import constants from '../lib/constants'
+import constants from '../gatekeeper-utilities/constants'
 import FCSFileSelector from '../components/fcs-file-selector-component.jsx'
 import '../../scss/fcs-file-selector-component.scss'
 import _ from 'lodash'

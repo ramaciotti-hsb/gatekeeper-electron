@@ -13,7 +13,7 @@ import _ from 'lodash'
 import * as d3 from "d3"
 import os from 'os'
 import { getPlotImageKey, heatMapRGBForValue, getScales, getPolygonCenter } from '../gatekeeper-utilities/utilities'
-import constants from '../lib/constants'
+import constants from '../gatekeeper-utilities/constants'
 import { fork } from 'child_process'
 import ls from 'ls'
 import rimraf from 'rimraf'
@@ -50,7 +50,7 @@ let workerFork
 const createFork = function () {
     console.log('starting fork')
     if (isDev) {
-        workerFork = fork(__dirname + '/js/electron/subprocess-wrapper-dev.js', [ remote.app.getPath('userData') ], { silent: true })
+        workerFork = fork(__dirname + '/js/gatekeeper-electron/subprocess-wrapper-dev.js', [ remote.app.getPath('userData') ], { silent: true })
     } else {
         workerFork = fork(__dirname + '/webpack-build/fork.bundle.js', [ remote.app.getPath('userData') ], { silent: true })
     }

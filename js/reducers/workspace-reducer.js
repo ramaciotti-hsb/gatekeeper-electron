@@ -4,7 +4,7 @@
 
 import uuidv4 from 'uuid/v4'
 import _ from 'lodash'
-import constants from '../lib/constants'
+import constants from '../gatekeeper-utilities/constants'
 
 const initialState = []
 

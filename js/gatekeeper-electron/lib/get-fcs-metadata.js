@@ -2,7 +2,7 @@
 // Generates a PNG for a plot with options and saves it to the disk.
 // -------------------------------------------------------------------------
 
-import constants from '../../lib/constants'
+import constants from '../../gatekeeper-utilities/constants'
 import fs from 'fs'
 import FCS from 'fcs'
 import _ from 'lodash'

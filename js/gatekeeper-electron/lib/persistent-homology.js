@@ -9,7 +9,7 @@ import area from 'area-polygon'
 import hull from 'hull.js'
 import _ from 'lodash'
 import uuidv4 from 'uuid/v4'
-import constants from '../../lib/constants'
+import constants from '../../gatekeeper-utilities/constants'
 import { getPolygonCenter } from '../../gatekeeper-utilities/utilities'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 

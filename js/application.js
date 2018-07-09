@@ -10,7 +10,7 @@ import { createStore, applyMiddleware } from 'redux'
 import Application from './containers/application-container.jsx'
 import applicationReducer from './reducers/application-reducer'
 import '../scss/container.scss'
-import { setStore, api } from './electron/electron-backend.js'
+import { setStore, api } from './gatekeeper-electron/electron-backend.js'
 import { initialize } from './lib/global-keyboard-listener'
 
 const store = createStore(applicationReducer)

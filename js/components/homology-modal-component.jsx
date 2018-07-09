@@ -6,7 +6,7 @@
 import React from 'react'
 import { Component } from 'react'
 import _ from 'lodash'
-import constants from '../lib/constants'
+import constants from '../gatekeeper-utilities/constants'
 import '../../scss/homology-modal.scss'
 import Dropdown from '../lib/dropdown.jsx'
 import BivariatePlot from '../containers/bivariate-plot-container.jsx'

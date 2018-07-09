@@ -12,7 +12,7 @@ let nodeModules = fs.readdirSync('./node_modules')
 module.exports = {
     entry: {
         app: './js/application.js',
-        fork: './js/electron/subprocess-wrapper.js'
+        fork: './js/gatekeeper-electron/subprocess-wrapper.js'
     },
     output: {
         path: path.resolve(__dirname, './webpack-build'),

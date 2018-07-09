@@ -8,7 +8,7 @@ import React from 'react'
 import { Component } from 'react'
 import _ from 'lodash'
 import '../../scss/workspace-view.scss'
-import constants from '../lib/constants'
+import constants from '../gatekeeper-utilities/constants'
 import FCSFileSelector from '../containers/fcs-file-selector-container.jsx'
 
 export default class WorkspaceView extends Component {

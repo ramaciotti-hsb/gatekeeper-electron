@@ -8,7 +8,7 @@ import path from 'path'
 import mkdirp from 'mkdirp'
 import fs from 'fs'
 import { getPlotImageKey, heatMapRGBForValue, getScales } from '../../gatekeeper-utilities/utilities'
-import constants from '../../lib/constants'
+import constants from '../../gatekeeper-utilities/constants'
 
 const mkdirpPromise = (directory) => {
     return new Promise((resolve, reject) => {
