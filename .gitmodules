@@ -1,0 +1,6 @@
+[submodule "gatekeeper-frontend"]
+	path = gatekeeper-frontend
+	url = git@github.com:ramaciotti-hsb/gatekeeper-frontend.git
+[submodule "gatekeeper-utilities"]
+	path = gatekeeper-utilities
+	url = git@github.com:ramaciotti-hsb/gatekeeper-utilities.git
