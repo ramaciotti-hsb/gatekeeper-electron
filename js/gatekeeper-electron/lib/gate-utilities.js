@@ -9,7 +9,7 @@ import hull from 'hull.js'
 import pointInsidePolygon from 'point-in-polygon'
 import { distanceBetweenPoints } from 'distance-to-polygon'
 import { getPolygonCenter, getScales, getPolygonBoundaries } from '../../gatekeeper-utilities/utilities'
-import { breakLongLinesIntoPoints } from '../../lib/polygon-utilities'
+import { breakLongLinesIntoPoints } from '../../gatekeeper-utilities/polygon-utilities'
 
 // Find postive events included inside a particular gate (i.e. both x and y above zero)
 export const findIncludedEvents = (gates, population, FCSFile, options) => {
@@ -45,8 +45,6 @@ export const findIncludedEvents = (gates, population, FCSFile, options) => {
         if (gate.gateData.yCutoffs) {
             invertedYCutoffs = [ Math.round(scales.xScale.invert(gate.gateData.yCutoffs[0]) * 100) / 100, Math.round(scales.xScale.invert(gate.gateData.yCutoffs[2]) * 100) / 100 ]
         }
-
-        // console.log(invertedYCutoffs)
 
         for (let i = 0; i < populationCopy.length; i++) {
             const point = populationCopy[i]
