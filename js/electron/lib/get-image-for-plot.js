@@ -2,14 +2,13 @@
 // Generates a PNG for a plot with options and saves it to the disk.
 // -------------------------------------------------------------------------
 
-import constants from './constants'
 import _ from 'lodash'
 import pngjs from 'pngjs'
 import path from 'path'
 import mkdirp from 'mkdirp'
 import fs from 'fs'
-import * as d3 from 'd3'
-import { getPlotImageKey, heatMapRGBForValue, getScales, getPolygonCenter } from './utilities'
+import { getPlotImageKey, heatMapRGBForValue, getScales } from '../../lib/utilities'
+import constants from '../../lib/constants'
 
 const mkdirpPromise = (directory) => {
     return new Promise((resolve, reject) => {
@@ -42,35 +41,6 @@ export default async (sample, FCSFile, subPopulation, options) => {
     const data = []
     let PNGFile
     let tempPNGFile = new pngjs.PNG({ width: options.plotWidth - xOffset, height: options.plotHeight - yOffset });
-    // const colourScale = chroma.scale(['white', 'blue', 'green', 'yellow', 'red'])
-    // const logScale = d3.scaleLog()
-    //         .range([0, 1])
-    //         .base(Math.E)
-    //         .domain([0.01, Math.log(subPopulation.densityMap.maxDensity)])
-    // for (let y = 0; y < subPopulation.densityMap.densityMap.length; y++) {
-    //     const column = subPopulation.densityMap.densityMap[y]
-    //     if (!column) { continue }
-    //     for (let x = 0; x < column.length; x++) {
-    //         let xValue = Math.floor(x * ((options.plotWidth - xOffset) / options.plotWidth))
-    //         let yValue = Math.floor(y * ((options.plotHeight - yOffset) / options.plotHeight))
-    //         const index = (yValue * (options.plotWidth - xOffset) + xValue) * 4
-
-    //         const density = column[x]
-    //         if (!density) {
-    //             tempPNGFile.data[index] = 255
-    //             tempPNGFile.data[index + 1] = 255
-    //             tempPNGFile.data[index + 2] = 255
-    //             tempPNGFile.data[index + 3] = 255
-    //             continue
-    //         }
-    //         const color = colourScale(logScale(subPopulation.densityMap.densityMap[y][x] / subPopulation.densityMap.maxDensity)).rgb()
-    //         // const color = colourScale(subPopulation.densityMap.densityMap[y][x]).rgb()
-    //         tempPNGFile.data[index] = color[0]
-    //         tempPNGFile.data[index + 1] = color[1]
-    //         tempPNGFile.data[index + 2] = color[2]
-    //         tempPNGFile.data[index + 3] = 255
-    //     }
-    // }
 
     let pointRadius = Math.round(((options.plotWidth - xOffset) + (options.plotHeight - yOffset)) / 1000)
 
@@ -87,13 +57,8 @@ export default async (sample, FCSFile, subPopulation, options) => {
 
     for (let i = 0; i < subPopulation.aboveZeroPopulation.length; i++) {
         const point = [ Math.round(scales.xScale(subPopulation.aboveZeroPopulation[i][0])), Math.round(scales.yScale(subPopulation.aboveZeroPopulation[i][1])) ]
-        // if (point[0] >= 0 && point[0] < subPopulation.newDensityMap.densityX.length && point[1] >= 0 && point[1] < subPopulation.newDensityMap.densityY.length) {
         if (subPopulation.densityMap.densityMap[point[1]] && subPopulation.densityMap.densityMap[point[1]][point[0]]) {
-            // console.log(point)
             const color = heatMapRGBForValue(subPopulation.densityMap.densityMap[point[1]][point[0]] / subPopulation.maxDensity)
-            // const density = (subPopulation.newDensityMap.subPopulation.zeroDensityX.densityMap[point[0]][1] * subPopulation.newDensityMap.subPopulation.zeroDensityY.densityMap[point[1]][1]) / subPopulation.newDensityMap.newMaxDensity
-            // console.log(density)
-            // const color = heatMapRGBForValue(density)
             for (let y = point[1] - pointRadius * 2; y < point[1] + pointRadius * 2; y++) {
                 for (let x = point[0] - pointRadius * 2; x < point[0] + pointRadius * 2; x++) {
                     // Draw a circular point of pointDiameter diameter
