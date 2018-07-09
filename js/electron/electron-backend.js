@@ -11,7 +11,6 @@ import fs from 'fs'
 import uuidv4 from 'uuid/v4'
 import _ from 'lodash'
 import * as d3 from "d3"
-import csv from 'fast-csv'
 import os from 'os'
 import { getPlotImageKey, heatMapRGBForValue, getScales, getPolygonCenter } from '../lib/utilities'
 import constants from '../lib/constants'

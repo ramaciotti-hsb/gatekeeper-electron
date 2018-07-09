@@ -12,7 +12,6 @@ import polygonsIntersect from 'polygon-overlap'
 import pointInsidePolygon from 'point-in-polygon'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import constants from '../../lib/constants.js'
-import area from 'area-polygon'
 import { heatMapHSLStringForValue, getPlotImageKey, getScales, getPolygonCenter } from '../../lib/utilities.js'
 import PersistantHomology from '../../lib/persistent-homology'
 import '../../../scss/bivariate-plot-component.scss'
@@ -145,7 +144,7 @@ export default class BivariatePlot extends Component {
 
         // Create bindings for drawing rectangle gates
         const rect = (x, y, w, h) => {
-            // Limit to the area of the scatter plot
+            // Limit to the  of the scatter plot
             if (w > 0) {
                 // If the width is positive, cap at rightmost boundary
                 w = Math.min(w, this.props.plotDisplayWidth - x)

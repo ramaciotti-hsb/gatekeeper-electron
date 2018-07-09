@@ -501,7 +501,6 @@ const applicationReducer = (state = initialState, action) => {
         for (let sampleId of samplesToRemove) {
             const newAction = removeSample(sampleId)
             // Find the workspace that the sample is inside and remove it from there
-            console.log(newState.workspaces)
             const workspaceIndex = _.findIndex(newState.workspaces, w => w.sampleIds.includes(newAction.payload.sampleId))
 
             if (workspaceIndex > -1) {
