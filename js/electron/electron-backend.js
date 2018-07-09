@@ -66,10 +66,6 @@ const priorityQueue = {}
 window.jobQueue = jobQueue
 window.priorityQueue = priorityQueue
 
-setTimeout(function () {
-    console.log(currentState)
-}, 10000)
-
 const pushToQueue = async function (job, priority) {
     let queueToPush = priority ? priorityQueue : jobQueue
     if (!queueToPush[job.jobKey]) {
@@ -177,7 +173,7 @@ workerFork.stdout.on('data', (result) => {
             }
         }
     }
-    console.log(result.toString('utf8'))
+    // console.log(result.toString('utf8'))
 })
 
 workerFork.stderr.on('data', (result) => {
@@ -531,7 +527,6 @@ export const api = {
 
     applyGateTemplatesToSample: async function (sampleId) {
         const sample = _.find(currentState.samples, s => s.id === sampleId)
-        console.log(sampleId, sample)
         const FCSFile = _.find(currentState.FCSFiles, fcs => sample.FCSFileId === fcs.id)
         const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sampleId))
         // Find all template groups that apply to this sample
@@ -1609,13 +1604,10 @@ export const api = {
                     selectedYScale: constants.SCALE_LOG,
                     machineType: FCSFile.machineType
                 }
-                console.log('trying population', workerIndex)
                 const population = await api.getPopulationDataForSample(sampleId, options)
                 // Generate the cached images
-                console.log('trying image', workerIndex)
                 getImageForPlot(sample, options)
 
-                console.log('trying homology', workerIndex)
                 await api.calculateHomology(sample.id, options)
 
                 calculate(workerIndex)

@@ -2,12 +2,11 @@
 // Generates a PNG for a plot with options and saves it to the disk.
 // -------------------------------------------------------------------------
 
-import constants from './constants'
+import constants from '../../lib/constants'
 import fs from 'fs'
 import FCS from 'fcs'
 import _ from 'lodash'
-import * as d3 from 'd3'
-import { getScales } from './utilities'
+import { getScales } from '../../lib/utilities'
 
 // Wrap the read file function from FS in a promise
 const readFileBuffer = (path) => {
