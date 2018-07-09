@@ -26,8 +26,8 @@ let heartbeatTime = process.hrtime()[0]
 
 const assetDirectory = process.argv[2]
 
-const getSubPopulation = require('../lib/get-population-data.js').getPopulationForSample
-const getFullSubSamplePopulation = require('../lib/get-population-data.js').getFullSubSamplePopulation
+const getSubPopulation = require('./lib/get-population-data.js').getPopulationForSample
+const getFullSubSamplePopulation = require('./lib/get-population-data.js').getFullSubSamplePopulation
 const getImageForPlot = require('./lib/get-image-for-plot.js').default
 const PersistentHomology = require('../lib/persistent-homology.js').default
 const getFCSMetadata = require('./lib/get-fcs-metadata.js').default

@@ -4,7 +4,7 @@
 
 const assetDirectory = process.argv[2]
 
-import { getPopulationForSample, getFullSubSamplePopulation } from '../lib/get-population-data.js'
+import { getPopulationForSample, getFullSubSamplePopulation } from './lib/get-population-data.js'
 import fs from 'fs'
 import getImageForPlot from './lib/get-image-for-plot.js'
 import PersistentHomology from '../lib/persistent-homology.js'

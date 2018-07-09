@@ -2,14 +2,13 @@
 // Generates a PNG for a plot with options and saves it to the disk.
 // -------------------------------------------------------------------------
 
-import constants from './constants'
 import fs from 'fs'
 import mkdirp from 'mkdirp'
 import FCS from 'fcs'
 import _ from 'lodash'
 import path from 'path'
-import * as d3 from 'd3'
-import { getScales, kernelDensityEstimator, kernelEpanechnikov, getPlotImageKey } from './utilities'
+import { getScales, getPlotImageKey } from '../../lib/utilities'
+import constants from '../../lib/constants'
 
 // Wrap the read file function from FS in a promise
 const readFileBuffer = (path) => {
@@ -159,22 +158,6 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
         height: options.plotHeight - yOffset
     })
 
-    // process.stdout.write(JSON.stringify({ data: 'Calculating density' }))
-    // // Perform kernel density for each channel then combine for 2d density
-    // const densityX = kernelDensityEstimator(kernelEpanechnikov(options.plotWidth * 0.012), _.range(0, options.plotWidth - xOffset))(subPopulation.map(value => scales.xScale(value[0])))
-    // const densityY = kernelDensityEstimator(kernelEpanechnikov(options.plotHeight * 0.012), _.range(0, options.plotHeight - yOffset))(subPopulation.map(value => scales.yScale(value[1])))
-
-    // let newMaxDensity = 0
-    // for (let i = 0; i < densityX.length; i++) {
-    //     // densityX[i][1] = densityX[i][1] * 100
-    //     for (let j = 0; j < densityY.length; j++) {
-    //         // densityY[j][1] = densityY[j][1] * 100
-    //         if (densityX[i][1] * densityY[j][1] > newMaxDensity) {
-    //             newMaxDensity = densityX[i][1] * densityY[j][1]
-    //         }
-    //     }
-    // }
-
     // Data should be an array of 2d points, in [x, y] format i.e. [[1, 1], [2, 2]]
     const calculateDensity = function (points, scales, densityWidth = 2) {
         // Create a sorted point cache that's accessible by [row][column] for faster density estimation
@@ -195,29 +178,6 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
             } else {
                 pointCache[yVal][xVal] += 1
             }
-
-            // // Increment the density of neighbouring points
-            // for (let y = Math.max(yVal - densityWidth, 0); y < Math.min(yVal + densityWidth, pointCache.length); y++) {
-            //     const columnDens = pointCache[y]
-            //     if (!columnDens) {
-            //         pointCache[y] = []
-            //     }
-
-            //     for (let x = Math.max(xVal - densityWidth, 0); x < xVal + densityWidth; x++) {
-            //         if (x === xVal && y === yVal) { continue }
-
-            //         const rowDens = pointCache[y][x]
-            //         if (!rowDens) {
-            //             pointCache[y][x] = ((1 - Math.abs(xVal - x) / densityWidth) + (1 - Math.abs(yVal - y) / densityWidth))
-            //             // console.log(pointCache[y][x])
-            //         } else {
-            //             pointCache[y][x] += ((1 - Math.abs(xVal - x) / densityWidth) + (1 - Math.abs(yVal - y) / densityWidth))
-            //             if (pointCache[y][x] > maxDensity) {
-            //                 maxDensity = pointCache[y][x]
-            //             }
-            //         }
-            //     }
-            // }
         }
 
         const newDensityMap = Array(options.plotHeight).fill(0)
@@ -387,17 +347,6 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
             if (val < 0) { continue }
 
             pointCache[val] += 1
-
-            // // Increment the density of neighbouring points
-            // for (let j = Math.max(val - densityWidth, 0); j < Math.min(val + densityWidth, pointCache.length); j++) {
-            //     if (j === val) { continue }
-            //     const density = pointCache[j]
-
-            //     pointCache[j] += Math.abs(val - j) / densityWidth
-            //     if (pointCache[j] > maxDensity) {
-            //         maxDensity = pointCache[j]
-            //     }
-            // }
         }
 
         const newDensityMap = Array(points.length).fill(0)
@@ -413,8 +362,6 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
                 }
             }
 
-            // console.log('incrementors', incrementors)
-
             for (let i = 0; i < incrementors.length; i++) {
                 newDensityMap[x] += incrementors[i].currentValue
                 if (newDensityMap[x] > maxDensity) {
@@ -423,7 +370,6 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
             }
 
             if (pointCache[x]) {
-                // newDensityMap[y][x] += pointCache[y][x]
                 incrementors.push({ originalValue: pointCache[x], currentValue: pointCache[x] })
             }
         }
@@ -440,8 +386,6 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
                 }
             }
 
-            // console.log('incrementors', incrementors)
-
             for (let i = 0; i < incrementors.length; i++) {
                 newDensityMap[x] += incrementors[i].currentValue
                 if (newDensityMap[x] > maxDensity) {
@@ -450,7 +394,6 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
             }
 
             if (pointCache[x]) {
-                // newDensityMap[y][x] += pointCache[y][x]
                 incrementors.push({ originalValue: pointCache[x], currentValue: pointCache[x] })
             }
         }
@@ -482,8 +425,6 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
     let maxDensityX
 
     if (FCSFile.machineType === constants.MACHINE_CYTOF) {
-        // densityY = kernelDensityEstimator(kernelEpanechnikov(options.plotWidth * 0.05), _.range(0, options.plotWidth - xOffset))(yChannelZeroes.map(value => scales.xScale(value)))
-        // densityX = kernelDensityEstimator(kernelEpanechnikov(options.plotHeight * 0.05), _.range(0, options.plotHeight - yOffset))(xChannelZeroes.map(value => scales.yScale(value)))
         zeroDensityX = calculateDensity1D(xChannelZeroes, scales.yScale, densityWidth)
         zeroDensityY = calculateDensity1D(yChannelZeroes, scales.xScale, densityWidth)
     }

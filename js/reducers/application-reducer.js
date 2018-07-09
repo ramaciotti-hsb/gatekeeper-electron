@@ -333,8 +333,6 @@ const applicationReducer = (state = initialState, action) => {
 
                     newWorkspace.FCSFileIds = newWorkspace.FCSFileIds.slice(0, selectedFCSFileIndex).concat(newWorkspace.FCSFileIds.slice(selectedFCSFileIndex + 1))
 
-                    console.log('selecting fcs file', newWorkspace.selectedFCSFileId)
-
                     newState.workspaces = newState.workspaces.slice(0, workspaceIndex).concat([ newWorkspace ]).concat(newState.workspaces.slice(workspaceIndex + 1))
                 } else {
                     console.log('REMOVE_FCS_FILE failed: selected FCS file is null or undefined')
