@@ -7,7 +7,7 @@ import pngjs from 'pngjs'
 import path from 'path'
 import mkdirp from 'mkdirp'
 import fs from 'fs'
-import { getPlotImageKey, heatMapRGBForValue, getScales } from '../../lib/utilities'
+import { getPlotImageKey, heatMapRGBForValue, getScales } from '../../gatekeeper-utilities/utilities'
 import constants from '../../lib/constants'
 
 const mkdirpPromise = (directory) => {

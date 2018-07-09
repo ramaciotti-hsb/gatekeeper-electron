@@ -6,7 +6,7 @@ import constants from '../../lib/constants'
 import fs from 'fs'
 import FCS from 'fcs'
 import _ from 'lodash'
-import { getScales } from '../../lib/utilities'
+import { getScales } from '../../gatekeeper-utilities/utilities'
 
 // Wrap the read file function from FS in a promise
 const readFileBuffer = (path) => {

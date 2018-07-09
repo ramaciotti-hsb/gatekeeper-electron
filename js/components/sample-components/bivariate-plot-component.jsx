@@ -12,7 +12,7 @@ import polygonsIntersect from 'polygon-overlap'
 import pointInsidePolygon from 'point-in-polygon'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import constants from '../../lib/constants.js'
-import { heatMapHSLStringForValue, getPlotImageKey, getScales, getPolygonCenter } from '../../lib/utilities.js'
+import { heatMapHSLStringForValue, getPlotImageKey, getScales, getPolygonCenter } from '../../gatekeeper-utilities/utilities'
 import '../../../scss/bivariate-plot-component.scss'
 
 export default class BivariatePlot extends Component {

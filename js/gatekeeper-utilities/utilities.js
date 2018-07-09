@@ -6,22 +6,7 @@ import hslToRGB from 'hsl-to-rgb-for-reals'
 import * as d3 from "d3"
 import logicleScale from '../scales/logicle.js'
 import arcsinScale from '../scales/arcsinh-scale'
-import constants from './constants'
-
-// Calculate 1d density using kernel density estimation for drawing histograms
-const kernelDensityEstimator = function (kernel, X) {
-  return function(V) {
-    return X.map(function(x) {
-      return [x, d3.mean(V, function(v) { return kernel(x - v); })];
-    });
-  };
-}
-
-const kernelEpanechnikov = function (k) {
-  return function(v) {
-    return Math.abs(v /= k) <= 1 ? 0.75 * (1 - v * v) / k : 0;
-  };
-}
+import constants from '../lib/constants'
 
 const heatMapHSLStringForValue = function (value) {
     var h = (1.0 - value) * 240
@@ -154,4 +139,4 @@ function getPolygonBoundaries (points) {
     return [ [ minX, maxX ], [ minY, maxY ] ]
 }
 
-export { heatMapHSLStringForValue, heatMapRGBForValue, getPlotImageKey, getScales, getPolygonCenter, kernelDensityEstimator, kernelEpanechnikov, getPolygonBoundaries }
+export { heatMapHSLStringForValue, heatMapRGBForValue, getPlotImageKey, getScales, getPolygonCenter, getPolygonBoundaries }

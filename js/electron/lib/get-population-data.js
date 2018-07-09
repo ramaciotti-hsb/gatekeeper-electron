@@ -7,7 +7,7 @@ import mkdirp from 'mkdirp'
 import FCS from 'fcs'
 import _ from 'lodash'
 import path from 'path'
-import { getScales, getPlotImageKey } from '../../lib/utilities'
+import { getScales, getPlotImageKey } from '../../gatekeeper-utilities/utilities'
 import constants from '../../lib/constants'
 
 // Wrap the read file function from FS in a promise

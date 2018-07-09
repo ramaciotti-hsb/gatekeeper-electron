@@ -10,7 +10,7 @@ import hull from 'hull.js'
 import _ from 'lodash'
 import uuidv4 from 'uuid/v4'
 import constants from '../../lib/constants'
-import { getPolygonCenter } from '../../lib/utilities'
+import { getPolygonCenter } from '../../gatekeeper-utilities/utilities'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 
 let CYTOF_HISTOGRAM_WIDTH

@@ -5,7 +5,7 @@
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import polygonsIntersect from 'polygon-overlap'
 import pointInsidePolygon from 'point-in-polygon'
-import { getPolygonCenter } from './utilities'
+import { getPolygonCenter } from '../gatekeeper-utilities/utilities'
 import hull from 'hull.js'
 import _ from 'lodash'
 
