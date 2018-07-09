@@ -3,14 +3,14 @@
 // sub populations
 // -------------------------------------------------------------------------
 
-import constants from './constants'
-import GrahamScan from './graham-scan.js'
+import constants from '../../lib/constants'
+import GrahamScan from '../../lib/graham-scan.js'
 import _ from 'lodash'
 import hull from 'hull.js'
 import pointInsidePolygon from 'point-in-polygon'
 import { distanceBetweenPoints } from 'distance-to-polygon'
-import { getPolygonCenter, getScales, getPolygonBoundaries } from './utilities'
-import { breakLongLinesIntoPoints } from './polygon-utilities'
+import { getPolygonCenter, getScales, getPolygonBoundaries } from '../../lib/utilities'
+import { breakLongLinesIntoPoints } from '../../lib/polygon-utilities'
 
 // Find postive events included inside a particular gate (i.e. both x and y above zero)
 export const findIncludedEvents = (gates, population, FCSFile, options) => {
