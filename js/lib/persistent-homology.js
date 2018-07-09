@@ -3,7 +3,6 @@
 // 2d data.
 // -------------------------------------------------------------------------
 
-import GrahamScan from './graham-scan.js'
 import polygonsIntersect from 'polygon-overlap'
 import pointInsidePolygon from 'point-in-polygon'
 import area from 'area-polygon'

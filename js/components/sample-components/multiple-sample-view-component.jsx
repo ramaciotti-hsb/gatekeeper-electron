@@ -106,7 +106,6 @@ export default class MultipleSampleView extends Component {
     }
 
     filterPlots () {
-        console.log('re filter', this.props.FCSFile.FCSParameters.length)
         const combinations = []
         for (let x = 0; x < this.props.FCSFile.FCSParameters.length; x++) {
             // Don't bother displaying the plot if the parameter is disabled

@@ -4,7 +4,6 @@
 // -------------------------------------------------------------------------
 
 import constants from '../../lib/constants'
-import GrahamScan from '../../lib/graham-scan.js'
 import _ from 'lodash'
 import hull from 'hull.js'
 import pointInsidePolygon from 'point-in-polygon'
