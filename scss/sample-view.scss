@@ -76,6 +76,24 @@
                     color: #777;
                     display: block;
                 }
+
+                .file-actions {
+                    margin-top: 10px;
+
+                    .download {
+                        font: 600 12px 'Open Sans';
+                        padding: 7px 11px;
+                        cursor: pointer;
+                        align-items: center;
+                        @include backgroundHover(#ddd);
+                        @include backgroundClick(#ddd);
+
+                        i {
+                            font-size: 18px;
+                            margin-right: 5px;
+                        }
+                    }
+                }
             }
 
             &.gates {

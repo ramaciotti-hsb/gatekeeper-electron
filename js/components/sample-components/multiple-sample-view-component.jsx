@@ -275,6 +275,9 @@ export default class MultipleSampleView extends Component {
                         <div className='lower'>
                             <div className='title'>{this.props.gateTemplate.title}</div>
                             <div className='counts'><abbr className='highlight'>{this.props.sample.populationCount}</abbr> events {/*(<abbr className='highlight'>50%</abbr> of parent)*/}</div>
+                            <div className='file-actions'>
+                                <div className='download csv' onClick={this.props.api.saveSampleAsCSV.bind(null, this.props.sample.id)}><i className='lnr lnr-download' />Save as CSV</div>
+                            </div>
                         </div>
                     </div>
                     <div className='filters'>

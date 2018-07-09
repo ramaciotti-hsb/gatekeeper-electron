@@ -4,7 +4,8 @@
 
 const assetDirectory = process.argv[2]
 
-import getSubPopulation from '../lib/get-population-data.js'
+import { getPopulationForSample, getFullSubSamplePopulation } from '../lib/get-population-data.js'
+import fs from 'fs'
 import getImageForPlot from '../lib/get-image-for-plot.js'
 import PersistentHomology from '../lib/persistent-homology.js'
 import getFCSMetadata from '../lib/get-fcs-metadata.js'
@@ -38,8 +39,11 @@ if (cluster.isMaster) {
             if (populationCache[key]) {
                 resolve(populationCache[key])
             } else {
-                getSubPopulation(sample, FCSFile, options).then((data) => {
+                getPopulationForSample(sample, FCSFile, options).then((data) => {
                     populationCache[key] = data
+                    if (_.keys(populationCache).length > 10) {
+                        delete populationCache[_.keys(populationCache).slice(-1)[0]]
+                    }
                     resolve(data)
                 }).catch((error) => {
                     console.log(error)
@@ -79,6 +83,18 @@ if (cluster.isMaster) {
                 } else if (body.type === 'get-population-data') {
                     getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((data) => { res.end(JSON.stringify(data)) }).catch(handleError)
 
+// save-subsample-to-csv
+                } else if (body.type === 'save-subsample-to-csv') {
+                    getFullSubSamplePopulation(body.payload.sample, body.payload.FCSFile)
+                    .then((data) => {
+                        const header = body.payload.FCSFile.FCSParameters.map(p => p.key).join(',') + '\n'
+                        fs.writeFile(body.payload.filePath, header, function (error) {
+                            fs.appendFile(body.payload.filePath, data.map(p => p[0].join(',')).join('\n'), function (error) {
+                                res.end(JSON.stringify({ status: 'success' }))
+                            });
+                        });
+                    }).catch(handleError)
+
 // get-image-for-plot
                 } else if (body.type === 'get-image-for-plot') {
                     // console.log(body.payload.options)
@@ -115,8 +131,14 @@ if (cluster.isMaster) {
 // get-expanded-gates
                 } else if (body.type === 'get-expanded-gates') {
                     getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((population) => {
-                        const xCutoffs = find1DPeaks(population.zeroDensityX.densityMap, population.maxDensity, body.payload.options)
-                        const yCutoffs = find1DPeaks(population.zeroDensityY.densityMap, population.maxDensity, body.payload.options)
+                        const xOptions = _.clone(body.payload.options)
+                        xOptions.knownPeaks = xOptions.sampleXChannelZeroPeaks
+                        const xCutoffs = find1DPeaks(population.zeroDensityX.densityMap, population.maxDensity, xOptions)
+                        
+                        const yOptions = _.clone(body.payload.options)
+                        yOptions.knownPeaks = xOptions.sampleYChannelZeroPeaks
+                        const yCutoffs = find1DPeaks(population.zeroDensityY.densityMap, population.maxDensity, yOptions)
+
                         const expandedGates = expandToIncludeZeroes(xCutoffs, yCutoffs, body.payload.gates, body.payload.options)
                         res.end(JSON.stringify(expandedGates))
                     }).catch(handleError)

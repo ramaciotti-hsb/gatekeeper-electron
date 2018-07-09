@@ -57,6 +57,29 @@ const getFCSFileFromPath = async (filePath) => {
     }
 }
 
+async function getFullSubSamplePopulation (sample, FCSFile) {
+    process.stdout.write(JSON.stringify({ data: 'Reading FCS File: ' + FCSFile.filePath }))
+    let FCSFileData
+    try  {
+        FCSFileData = await getFCSFileFromPath(FCSFile.filePath)        
+    } catch (error) {
+        process.stderr.write(JSON.stringify(error))
+        return
+    }
+
+    const subPopulation = []
+
+    if (sample.includeEventIds && sample.includeEventIds.length > 0) {
+        for (let i = 0; i < sample.includeEventIds.length; i++) {
+            subPopulation.push([ FCSFileData.dataAsNumbers[sample.includeEventIds[i]], sample.includeEventIds[i] ])
+        }
+    } else {
+        return FCSFileData.dataAsNumbers.map((p, index) => { return [p, index] })
+    }
+
+    return subPopulation
+}
+
 async function getPopulationForSampleInternal (sample, FCSFile, options) {
     process.stdout.write(JSON.stringify({ data: 'Reading FCS File: ' + FCSFile.filePath }))
     let FCSFileData
@@ -497,7 +520,7 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
     return toReturn
 }
 
-export default async function getPopulationForSample (sample, FCSFile, options) {
+async function getPopulationForSample (sample, FCSFile, options) {
     const directory = path.join(options.assetDirectory, 'sample-images', sample.id)
     const sampleKey = getPlotImageKey(_.merge(options, FCSFile))
     const fileName = path.join(directory, `${sampleKey}.json`)
@@ -509,3 +532,5 @@ export default async function getPopulationForSample (sample, FCSFile, options) 
         return await getPopulationForSampleInternal(sample, FCSFile, options)
     }
 }
+
+export { getFullSubSamplePopulation, getPopulationForSample }

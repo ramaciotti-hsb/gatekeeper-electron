@@ -6,10 +6,12 @@
 
 import path from 'path'
 import { remote } from 'electron'
+const { dialog } = remote
 import fs from 'fs'
 import uuidv4 from 'uuid/v4'
 import _ from 'lodash'
 import * as d3 from "d3"
+import csv from 'fast-csv'
 import os from 'os'
 import { getPlotImageKey, heatMapRGBForValue, getScales, getPolygonCenter } from '../lib/utilities'
 import constants from '../lib/constants'
@@ -619,6 +621,7 @@ export const api = {
                                     sampleId,
                                     {
                                         filePath: sample.filePath,
+                                        title: gate.title,
                                         FCSParameters: FCSFile.FCSParameters,
                                         plotImages: {},
                                         subSampleIds: [],
@@ -769,7 +772,7 @@ export const api = {
 
         let sample = {
             id: sampleId,
-            title: parentSample.title,
+            title: sampleParameters.title,
             FCSFileId: parentSample.FCSFileId,
             description: sampleParameters.description,
             gateTemplateId: sampleParameters.gateTemplateId,
@@ -825,6 +828,23 @@ export const api = {
         reduxStore.dispatch(removeAction)
 
         saveSessionToDisk()
+    },
+
+    saveSampleAsCSV: function (sampleId) {
+        const sample = _.find(currentState.samples, s => s.id === sampleId)
+        const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
+        dialog.showSaveDialog({ title: `Save Population as CSV`, message: `Save Population as CSV`, defaultPath: `${sample.title}.csv`, filters: [{ name: 'CSV', extensions: ['csv'] }] }, (filePath) => {
+            if (filePath) {
+                new Promise((resolve, reject) => {
+                    pushToQueue({
+                        jobParameters: { url: 'http://127.0.0.1:3145', json: { type: 'save-subsample-to-csv', payload: { sample, FCSFile, filePath } } },
+                        jobKey: uuidv4(),
+                        checkValidity: () => { return true },
+                        callback: (data) => { resolve(data) }
+                    }, true)
+                })
+            }
+        })
     },
 
 
@@ -1385,6 +1405,7 @@ export const api = {
                 workspace.id,
                 sampleId,
                 {
+                    title: gate.title,
                     filePath: sample.filePath,
                     FCSParameters: FCSFile.FCSParameters,
                     plotImages: {},
@@ -1533,6 +1554,7 @@ export const api = {
                             sample.id,
                             {
                                 filePath: sample.filePath,
+                                title: gate.title,
                                 FCSParameters: FCSFile.FCSParameters,
                                 plotImages: {},
                                 subSampleIds: [],

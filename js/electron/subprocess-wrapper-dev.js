@@ -26,13 +26,15 @@ let heartbeatTime = process.hrtime()[0]
 
 const assetDirectory = process.argv[2]
 
-const getSubPopulation = require('../lib/get-population-data.js').default
+const getSubPopulation = require('../lib/get-population-data.js').getPopulationForSample
+const getFullSubSamplePopulation = require('../lib/get-population-data.js').getFullSubSamplePopulation
 const getImageForPlot = require('../lib/get-image-for-plot.js').default
 const PersistentHomology = require('../lib/persistent-homology.js').default
 const getFCSMetadata = require('../lib/get-fcs-metadata.js').default
 const findIncludedEvents = require('../lib/gate-utilities').findIncludedEvents
 const find1DPeaks = require('../lib/1d-homology').default
 const expandToIncludeZeroes = require('../lib/gate-utilities').expandToIncludeZeroes
+const fs = require('fs')
 const _ = require('lodash')
 
 const cluster = require('cluster');
@@ -103,6 +105,18 @@ if (cluster.isMaster) {
 // get-population-data
                 } else if (body.type === 'get-population-data') {
                     getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((data) => { res.end(JSON.stringify(data)) }).catch(handleError)
+
+// save-subsample-to-csv
+                } else if (body.type === 'save-subsample-to-csv') {
+                    getFullSubSamplePopulation(body.payload.sample, body.payload.FCSFile)
+                    .then((data) => {
+                        const header = body.payload.FCSFile.FCSParameters.map(p => p.key).join(',') + '\n'
+                        fs.writeFile(body.payload.filePath, header, function (error) {
+                            fs.appendFile(body.payload.filePath, data.map(p => p[0].join(',')).join('\n'), function (error) {
+                                res.end(JSON.stringify({ status: 'success' }))
+                            });
+                        });
+                    }).catch(handleError)
 
 // get-image-for-plot
                 } else if (body.type === 'get-image-for-plot') {

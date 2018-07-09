@@ -1,6 +1,6 @@
 {
   "name": "Gatekeeper",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "author": "Nic Barker",
   "description": "An electron based GUI for analysing flow cytometry data.",
   "main": "main.js",
@@ -35,6 +35,7 @@
     "electron-is-dev": "^0.3.0",
     "exit-hook": "^1.1.1",
     "express": "^4.16.3",
+    "fast-csv": "^2.4.1",
     "fcs": "^0.0.7",
     "graham-scan": "^0.0.0",
     "hsl-to-rgb-for-reals": "^1.1.0",
