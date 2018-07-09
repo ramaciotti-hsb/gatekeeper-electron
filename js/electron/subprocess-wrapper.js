@@ -10,7 +10,7 @@ import getImageForPlot from '../lib/get-image-for-plot.js'
 import PersistentHomology from '../lib/persistent-homology.js'
 import getFCSMetadata from '../lib/get-fcs-metadata.js'
 import { findIncludedEvents } from '../lib/gate-utilities'
-import find1DPeaks from '../lib/1d-homology'
+import find1DPeaks from './lib/1d-homology'
 import { expandToIncludeZeroes } from '../lib/gate-utilities'
 import _ from 'lodash'
 
