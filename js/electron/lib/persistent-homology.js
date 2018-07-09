@@ -9,9 +9,8 @@ import area from 'area-polygon'
 import hull from 'hull.js'
 import _ from 'lodash'
 import uuidv4 from 'uuid/v4'
-import constants from './constants'
-import * as d3 from 'd3'
-import { getPolygonCenter } from './utilities'
+import constants from '../../lib/constants'
+import { getPolygonCenter } from '../../lib/utilities'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 
 let CYTOF_HISTOGRAM_WIDTH
@@ -45,11 +44,6 @@ export default class PersistentHomology {
         // Get [minY, maxY] range of peaks along y axis
         let yRange = peaks.reduce((acc, curr) => { return [ Math.min(acc[0], curr.nucleus[1]), Math.max(acc[1], curr.nucleus[1]) ] }, [Infinity, -Infinity])
         // Create buckets and place peaks into groups along each axis
-        // console.log(xRange, yRange)
-        // for (let peak of peaks) {
-        //     console.log(peak.nucleus)
-        // }
-        // console.log((xRange[1] - xRange[0]) * 0.2, (yRange[1] - yRange[0]) * 0.2)
         let xGroups = []
         let yGroups = []
         for (let peak of peaks) {
@@ -69,7 +63,7 @@ export default class PersistentHomology {
             
                 for (let group of xGroups) {
                     // If the peak is within 10% of an existing group, add it to that group
-                    if (Math.abs(group.position - peak.nucleus[0]) < (xRange[1] - xRange[0]) * maxGroupDistance) {// if (Math.abs(group.position - peakCenter[0]) <= ((xRange[1] - xRange[0]) * maxGroupDistance) || Math.abs(group.position - peakCenter[0]) < 20) {
+                    if (Math.abs(group.position - peak.nucleus[0]) < (xRange[1] - xRange[0]) * maxGroupDistance) {
                         group.peaks.push(peak.id)
                         found = true
                     }
@@ -96,7 +90,7 @@ export default class PersistentHomology {
             
                 for (let group of yGroups) {
                     // If the peak is within 10% of an existing group, add it to that group
-                    if (Math.abs(group.position - peak.nucleus[1]) < (yRange[1] - yRange[0]) * maxGroupDistance) {// if (Math.abs(group.position - peakCenter[1]) <= ((yRange[1] - yRange[0]) * maxGroupDistance) || Math.abs(group.position - peakCenter[1]) < 20) {
+                    if (Math.abs(group.position - peak.nucleus[1]) < (yRange[1] - yRange[0]) * maxGroupDistance) {
                         group.peaks.push(peak.id)
                         found = true
                     }
@@ -160,7 +154,6 @@ export default class PersistentHomology {
             // Check if any peaks have grown large but haven't intersected
             for (let peak of peaks) {
                 if (!peak.truePeak && peak.height > this.options.minPeakHeight && area(peak.polygons.slice(-1)[0].map((p) => { return { x: p[0], y: p[1] } })) > this.options.minPeakSize) {
-                    // console.log(peak, 'has qualified to be added to truePeaks')
                     peak.truePeak = true
                     peak.truePeakWidthIndex = peak.polygons.length - 1
                     peak.widthIndex = 0
@@ -182,7 +175,6 @@ export default class PersistentHomology {
         // First find true peaks at their original size
         let peaks = this.findPeaksInternal(stepCallback)
         const groups = this.getAxisGroups(peaks)
-        // console.log(groups)
         for (let peak of peaks) {
             peak.xGroup = _.findIndex(groups.xGroups, g => g.peaks.includes(peak.id))
             peak.yGroup = _.findIndex(groups.yGroups, g => g.peaks.includes(peak.id))
@@ -231,7 +223,6 @@ export default class PersistentHomology {
 
         // Make sure the widthIndex specified by the template doesn't overflow the boundaries of the polygon array
         for (let peak of peaks) {
-            // console.log(peak, 'has qualified to be added to truePeaks')
             const template = _.find(gateTemplates, gt => gt.xGroup === peak.xGroup && gt.yGroup === peak.yGroup)
             if (template) {
                 peak.gateCreatorData = template.typeSpecificData
@@ -353,9 +344,6 @@ export default class PersistentHomology {
                 }
                 // Silently merge if the polygons are below a certain size
                 if (intersected) {
-                    // console.log(i, j)
-                    // console.log('polygon height of', newPeaks[i], ' before merging:', newPeaks[i].height)
-                    // console.log('polygon height of', newPeaks[j], ' before merging:', newPeaks[j].height)
                     // Don't try and get area of a polygon with only one or two points
                     const iSize = newPeaks[i].polygons.slice(-1)[0].length < 3 ? 0 : area(newPeaks[i].polygons.slice(-1)[0].map((p) => { return { x: p[0], y: p[1] } }))
                     const jSize = newPeaks[j].polygons.slice(-1)[0].length < 3 ? 0 : area(newPeaks[j].polygons.slice(-1)[0].map((p) => { return { x: p[0], y: p[1] } }))

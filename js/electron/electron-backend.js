@@ -14,7 +14,6 @@ import * as d3 from "d3"
 import os from 'os'
 import { getPlotImageKey, heatMapRGBForValue, getScales, getPolygonCenter } from '../lib/utilities'
 import constants from '../lib/constants'
-import PersistentHomology from '../lib/persistent-homology.js'
 import { fork } from 'child_process'
 import ls from 'ls'
 import rimraf from 'rimraf'
