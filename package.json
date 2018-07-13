@@ -5,7 +5,7 @@
   "description": "An electron based GUI for analysing flow cytometry data.",
   "main": "main.js",
   "scripts": {
-    "start": "webpack-dev-server --open --config webpack.dev.js",
+    "start": "webpack-dev-server --config webpack.dev.js",
     "dist": "webpack --config webpack.production.js",
     "pack": "electron-builder --dir",
     "build": "electron-builder"
