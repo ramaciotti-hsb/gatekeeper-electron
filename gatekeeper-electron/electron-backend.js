@@ -5,7 +5,7 @@
 // -------------------------------------------------------------
 
 import path from 'path'
-import { remote } from 'electron'
+import { remote, ipcRenderer } from 'electron'
 const { dialog } = remote
 import fs from 'fs'
 import uuidv4 from 'uuid/v4'
@@ -1637,5 +1637,11 @@ export const api = {
 
         populationDataCache[key] = population
         return populationDataCache[key]
+    },
+
+    dragImage: (filePath, event) => {
+        event.preventDefault()
+        event.nativeEvent.effectAllowed = 'copy'
+        ipcRenderer.send('ondragstart', filePath)
     }
 }
