@@ -839,7 +839,6 @@ export const api = {
         })
     },
 
-
     selectFCSFile: async function (FCSFileId, workspaceId) {
         const selectAction = selectFCSFile(FCSFileId, workspaceId)
         currentState = applicationReducer(currentState, selectAction)
