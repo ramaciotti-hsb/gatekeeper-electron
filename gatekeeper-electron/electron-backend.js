@@ -12,7 +12,7 @@ import uuidv4 from 'uuid/v4'
 import _ from 'lodash'
 import * as d3 from "d3"
 import os from 'os'
-import { getPlotImageKey, heatMapRGBForValue, getScales, getPolygonCenter } from '../gatekeeper-utilities/utilities'
+import { getPlotImageKey, heatMapRGBForValue, getScales, getPolygonCenter, getPolygonBoundaries } from '../gatekeeper-utilities/utilities'
 import constants from '../gatekeeper-utilities/constants'
 import { fork } from 'child_process'
 import ls from 'ls'
@@ -778,6 +778,8 @@ export const api = {
             id: gateId,
             type: gateParameters.type,
             renderedPolygon: gateParameters.renderedPolygon,
+            renderedXCutoffs: gateParameters.renderedXCutoffs,
+            renderedYCutoffs: gateParameters.renderedYCutoffs,
             gateData: gateParameters.gateData,
             gateCreatorData: gateParameters.gateCreatorData,
             selectedXParameterIndex: gateParameters.selectedXParameterIndex,
@@ -953,7 +955,6 @@ export const api = {
         if (homologyResult.status === constants.STATUS_SUCCESS) {
             const gates = api.createGatePolygons(homologyResult.data.gates)
             const setUnsavedGatesAction = setUnsavedGates(gates)
-            currentState = applicationReducer(currentState, setUnsavedGatesAction)
             reduxStore.dispatch(setUnsavedGatesAction)
 
             api.updateUnsavedGateDerivedData()
@@ -969,7 +970,6 @@ export const api = {
 
     resetUnsavedGates () {
         const setUnsavedGatesAction = setUnsavedGates(null)
-        currentState = applicationReducer(currentState, setUnsavedGatesAction)
         reduxStore.dispatch(setUnsavedGatesAction)
     },
 
@@ -1130,7 +1130,7 @@ export const api = {
         currentState = applicationReducer(currentState, showGatingModalAction)
         reduxStore.dispatch(showGatingModalAction)
 
-        if (currentState.unsavedGates && currentState.unsavedGates.length > 0) {
+        if (reduxStore.getState().unsavedGates && reduxStore.getState().unsavedGates.length > 0) {
             api.updateUnsavedGateDerivedData()
         }
     },
@@ -1162,6 +1162,25 @@ export const api = {
 
         for (let i = 0; i < overlapFixed.length; i++) {
             filteredGates[i].renderedPolygon = overlapFixed[i]
+            if (filteredGates[i].gateData.expandedXPolygons) {
+                const yBoundaries = getPolygonBoundaries(overlapFixed[i])[1]
+
+                filteredGates[i].renderedXCutoffs = [
+                    Math.min(filteredGates[i].gateData.xCutoffs[2], yBoundaries[1][1]),
+                    filteredGates[i].gateData.xCutoffs[1],
+                    Math.max(filteredGates[i].gateData.xCutoffs[0], yBoundaries[0][1]),
+                ]
+            }
+
+            if (filteredGates[i].gateData.expandedYPolygons) {
+                const xBoundaries = getPolygonBoundaries(overlapFixed[i])[0]
+
+                filteredGates[i].renderedYCutoffs = [
+                    Math.min(filteredGates[i].gateData.yCutoffs[2], xBoundaries[1][0]),
+                    filteredGates[i].gateData.yCutoffs[1],
+                    Math.max(filteredGates[i].gateData.yCutoffs[0], xBoundaries[0][0])
+                ]
+            }
         }
 
         return gates
@@ -1195,20 +1214,19 @@ export const api = {
     updateUnsavedGateDerivedData () {
         const saveGates = (gates) => {
             const setUnsavedGatesAction = setUnsavedGates(gates)
-            currentState = applicationReducer(currentState, setUnsavedGatesAction)
             reduxStore.dispatch(setUnsavedGatesAction)
         }
 
-        const toSave = api.createGatePolygons(currentState.unsavedGates)
+        const toSave = api.createGatePolygons(reduxStore.getState().unsavedGates)
         saveGates(toSave)
         
-        api.getGateIncludedEvents(currentState.unsavedGates).then((newUnsavedGates) => {
-            if (!currentState.unsavedGates) {
+        api.getGateIncludedEvents(reduxStore.getState().unsavedGates).then((newUnsavedGates) => {
+            if (!reduxStore.getState().unsavedGates) {
                 return
             }
             
             const toSave = newUnsavedGates.map((gate) => {
-                const updatedGate = _.find(currentState.unsavedGates, g => g.id === gate.id)
+                const updatedGate = _.find(reduxStore.getState().unsavedGates, g => g.id === gate.id)
                 updatedGate.includeEventIds = gate.includeEventIds
                 return updatedGate
             })
@@ -1216,7 +1234,7 @@ export const api = {
             // Update event counts on combo gates
             for (let gate of toSave) {
                 if (gate.type === constants.GATE_TYPE_COMBO) {
-                    const includedGates = _.filter(currentState.unsavedGates, g => gate.gateCreatorData.gateIds.includes(g.id))
+                    const includedGates = _.filter(reduxStore.getState().unsavedGates, g => gate.gateCreatorData.gateIds.includes(g.id))
                     gate.includeEventIds = includedGates.reduce((accumulator, current) => { return accumulator.concat(current.includeEventIds) }, [])
                 }
             }
@@ -1226,14 +1244,13 @@ export const api = {
     },
 
     updateUnsavedGate: async function (gateId, parameters) {
-        const gateIndex = _.findIndex(currentState.unsavedGates, g => g.id === gateId)
+        const gateIndex = _.findIndex(reduxStore.getState().unsavedGates, g => g.id === gateId)
         if (gateIndex > -1) {
-            const newGate = _.merge(_.cloneDeep(currentState.unsavedGates[gateIndex]), parameters)
+            const newGate = _.merge(_.cloneDeep(reduxStore.getState().unsavedGates[gateIndex]), parameters)
             newGate.gateCreatorData.widthIndex = Math.max(Math.min(newGate.gateCreatorData.widthIndex, newGate.gateData.polygons.length - 1 - newGate.gateCreatorData.truePeakWidthIndex), - newGate.gateCreatorData.truePeakWidthIndex)
-            const newUnsavedGates = currentState.unsavedGates.slice(0, gateIndex).concat(newGate).concat(currentState.unsavedGates.slice(gateIndex + 1))
+            const newUnsavedGates = reduxStore.getState().unsavedGates.slice(0, gateIndex).concat(newGate).concat(reduxStore.getState().unsavedGates.slice(gateIndex + 1))
         
             const setUnsavedGatesAction = setUnsavedGates(newUnsavedGates)
-            currentState = applicationReducer(currentState, setUnsavedGatesAction)
             reduxStore.dispatch(setUnsavedGatesAction)
 
             api.updateUnsavedGateDerivedData()
@@ -1244,7 +1261,7 @@ export const api = {
 
     setUnsavedNegativeGateVisible (visible) {
         if (visible) {
-            const firstGate = currentState.unsavedGates.slice(0, 1)[0]
+            const firstGate = reduxStore.getState().unsavedGates.slice(0, 1)[0]
             const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === firstGate.FCSFileId)
             const newGate = {
                 id: uuidv4(),
@@ -1260,18 +1277,16 @@ export const api = {
                 gateCreatorData: {},
                 includeEventIds: []
             }
-            const newUnsavedGates = currentState.unsavedGates.concat([newGate])
+            const newUnsavedGates = reduxStore.getState().unsavedGates.concat([newGate])
             const setUnsavedGatesAction = setUnsavedGates(newUnsavedGates)
-            currentState = applicationReducer(currentState, setUnsavedGatesAction)
             reduxStore.dispatch(setUnsavedGatesAction)
 
             api.updateUnsavedGateDerivedData()
         } else {
-            const gateIndex = _.findIndex(currentState.unsavedGates, g => g.type === constants.GATE_TYPE_NEGATIVE)
+            const gateIndex = _.findIndex(reduxStore.getState().unsavedGates, g => g.type === constants.GATE_TYPE_NEGATIVE)
             if (gateIndex > -1) {
-                const newUnsavedGates = currentState.unsavedGates.slice(0, gateIndex).concat(currentState.unsavedGates.slice(gateIndex + 1))
+                const newUnsavedGates = reduxStore.getState().unsavedGates.slice(0, gateIndex).concat(reduxStore.getState().unsavedGates.slice(gateIndex + 1))
                 const setUnsavedGatesAction = setUnsavedGates(newUnsavedGates)
-                currentState = applicationReducer(currentState, setUnsavedGatesAction)
                 reduxStore.dispatch(setUnsavedGatesAction)
             } else {
                 console.log('Error trying to toggle negative unsaved gate, no negative gate was found.')
@@ -1280,9 +1295,9 @@ export const api = {
     },
 
     createUnsavedComboGate (gateIds) {
-        const firstGate = currentState.unsavedGates.slice(0, 1)[0]
+        const firstGate = reduxStore.getState().unsavedGates.slice(0, 1)[0]
         const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === firstGate.FCSFileId)
-        const includedGates = _.filter(currentState.unsavedGates, g => gateIds.includes(g.id))
+        const includedGates = _.filter(reduxStore.getState().unsavedGates, g => gateIds.includes(g.id))
 
         const newGate = {
             id: uuidv4(),
@@ -1300,19 +1315,17 @@ export const api = {
             },
             includeEventIds: includedGates.reduce((accumulator, current) => { return accumulator.concat(current.includeEventIds) }, [])
         }
-        const newUnsavedGates = currentState.unsavedGates.concat([newGate])
+        const newUnsavedGates = reduxStore.getState().unsavedGates.concat([newGate])
         const setUnsavedGatesAction = setUnsavedGates(newUnsavedGates)
-        currentState = applicationReducer(currentState, setUnsavedGatesAction)
         reduxStore.dispatch(setUnsavedGatesAction)
     },
 
     removeUnsavedGate (gateId) {
-        const gateIndex = _.findIndex(currentState.unsavedGates, g => g.id === gateId)
+        const gateIndex = _.findIndex(reduxStore.getState().unsavedGates, g => g.id === gateId)
         if (gateIndex > -1) {
-            const newUnsavedGates = currentState.unsavedGates.slice(0, gateIndex).concat(currentState.unsavedGates.slice(gateIndex + 1))
+            const newUnsavedGates = reduxStore.getState().unsavedGates.slice(0, gateIndex).concat(reduxStore.getState().unsavedGates.slice(gateIndex + 1))
         
             const setUnsavedGatesAction = setUnsavedGates(newUnsavedGates)
-            currentState = applicationReducer(currentState, setUnsavedGatesAction)
             reduxStore.dispatch(setUnsavedGatesAction)
         } else {
             console.log('Error in updateUnsavedGate: no gate with id ', gateId, 'was found.')
@@ -1326,7 +1339,7 @@ export const api = {
         // Find if there is already a gate template group for this combination or not
         const gateTemplateGroup = _.find(currentState.gateTemplateGroups, g => g.parentGateTemplateId === sample.gateTemplateId && g.selectedXParameterIndex === options.selectedXParameterIndex && g.selectedYParameterIndex === options.selectedYParameterIndex)
         if (gateTemplateGroup) {
-            for (let gate of currentState.unsavedGates) {
+            for (let gate of reduxStore.getState().unsavedGates) {
                 const updateGateTemplateAction = updateGateTemplate(gate.gateTemplateId, {
                     typeSpecificData: gate.gateCreatorData
                 })
@@ -1358,7 +1371,7 @@ export const api = {
                 typeSpecificData: options
             }
 
-            const newGateTemplates = currentState.unsavedGates.map((gate, index) => {
+            const newGateTemplates = reduxStore.getState().unsavedGates.map((gate, index) => {
                 let gateTemplate
 
                 if (gate.type === constants.GATE_TYPE_POLYGON) {
@@ -1405,8 +1418,8 @@ export const api = {
             reduxStore.dispatch(createGateTemplateGroupAction)
         }
 
-        for (let i = 0; i < currentState.unsavedGates.length; i++) {
-            const gate = currentState.unsavedGates[i]
+        for (let i = 0; i < reduxStore.getState().unsavedGates.length; i++) {
+            const gate = reduxStore.getState().unsavedGates[i]
             api.createSubSampleAndAddToWorkspace(
                 workspace.id,
                 sampleId,

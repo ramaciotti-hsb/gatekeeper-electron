@@ -118,9 +118,9 @@ export const expandToIncludeZeroes = (xCutoffs, yCutoffs, gates, options) => {
                     if (point[0] === xBoundaries[1][0] && point[1] === xBoundaries[1][1]) {
                         // Insert the new 0 edge points
                         newPolygon = newPolygon.concat([
-                            [yCutoffs[p][2], options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
+                            [Math.min(yCutoffs[p][2], xBoundaries[1][0]), options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
                             [yCutoffs[p][1], options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
-                            [yCutoffs[p][0], options.plotHeight - CYTOF_HISTOGRAM_WIDTH]
+                            [Math.max(yCutoffs[p][0], xBoundaries[0][0]), options.plotHeight - CYTOF_HISTOGRAM_WIDTH]
                         ])
                         shouldAdd = false
                     } else if (point[0] === xBoundaries[0][0] && point[1] === xBoundaries[0][1]) {
@@ -175,9 +175,9 @@ export const expandToIncludeZeroes = (xCutoffs, yCutoffs, gates, options) => {
                     if (point[0] === yBoundaries[1][0] && point[1] === yBoundaries[1][1]) {
                         // Insert the new 0 edge points
                         newPolygon = newPolygon.concat([
-                            [0, xCutoffs[p][2]],
+                            [0, Math.min(xCutoffs[p][2], yBoundaries[1][1])],
                             [0, xCutoffs[p][1]],
-                            [0, xCutoffs[p][0]],
+                            [0, Math.max(xCutoffs[p][0], yBoundaries[0][1])],
                         ])
                         shouldAdd = false
                     } else if (point[0] === yBoundaries[0][0] && point[1] === yBoundaries[0][1]) {
@@ -214,13 +214,13 @@ export const expandToIncludeZeroes = (xCutoffs, yCutoffs, gates, options) => {
                         shouldAdd = false
                         // Insert the new corner point
                         newPolygon = newPolygon.concat([
-                            [gate.gateData.yCutoffs[2], options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
+                            [Math.min(gate.gateData.yCutoffs[2], xBoundaries[1][0]), options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
                             [gate.gateData.yCutoffs[1], options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
-                            [gate.gateData.yCutoffs[0], options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
+                            [Math.max(gate.gateData.yCutoffs[0], xBoundaries[0][0]), options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
                             [0, options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
-                            [0, gate.gateData.xCutoffs[2]],
+                            [0, Math.min(gate.gateData.xCutoffs[2], yBoundaries[1][1])],
                             [0, gate.gateData.xCutoffs[1]],
-                            [0, gate.gateData.xCutoffs[0]],
+                            [0, Math.max(gate.gateData.xCutoffs[0], yBoundaries[0][1])]
                         ])
                     } else if (point[0] === yBoundaries[0][0] && point[1] === yBoundaries[0][1]) {
                         shouldAdd = true
