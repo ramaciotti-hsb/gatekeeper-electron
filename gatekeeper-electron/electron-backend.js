@@ -171,7 +171,7 @@ workerFork.stdout.on('data', (result) => {
             }
         }
     }
-    // console.log(result.toString('utf8'))
+    console.log(result.toString('utf8'))
 })
 
 workerFork.stderr.on('data', (result) => {

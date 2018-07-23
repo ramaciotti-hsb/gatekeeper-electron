@@ -186,9 +186,9 @@ export default class PersistentHomology {
             'information': 'Each found population was able to be matched to a gate template.'
         }
         // Compare the orders to the templates
-        for (let i = 0; i < peaks.length; i++) {
+        for (let i = 0; i < polygonTemplates.length; i++) {
             // If there's no matching template for the peak we're looking at
-            if (!_.find(polygonTemplates, polygonTemplate => peaks[i].yGroup === polygonTemplate.yGroup && peaks[i].xGroup === polygonTemplate.xGroup)) {
+            if (!polygonTemplates[i].typeSpecificData.optional && !_.find(peaks, peak => polygonTemplates[i].yGroup === peak.yGroup && polygonTemplates[i].xGroup === peak.xGroup)) {
                 orderStatus = {
                     'message': 'Found populations didn\'t match the template',
                     'status': constants.STATUS_FAIL,
@@ -203,7 +203,7 @@ export default class PersistentHomology {
             'information': ''
         }
         // Try and match them to options.gateTemplates
-        if (peaks.length !== polygonTemplates.length) {
+        if (peaks.length !== polygonTemplates.reduce((acc, curr) => { return acc + (curr.typeSpecificData.optional ? 0 : 1) }, 0)) {
             lengthStatus = {
                 'message': 'A different number of populations were found',
                 'status': constants.STATUS_FAIL,
