@@ -23,7 +23,7 @@ import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import isDev from 'electron-is-dev'
 import { breakLongLinesIntoPoints, fixOverlappingPolygonsUsingZipper } from '../gatekeeper-utilities/polygon-utilities'
 import applicationReducer from '../gatekeeper-frontend/reducers/application-reducer'
-import { setBackgroundJobsEnabled, setPlotDimensions, setPlotDisplayDimensions, toggleShowDisabledParameters, setUnsavedGates, showGatingModal, hideGatingModal } from '../gatekeeper-frontend/actions/application-actions'
+import { setBackgroundJobsEnabled, setPlotDimensions, setPlotDisplayDimensions, toggleShowDisabledParameters, setUnsavedGates, showGatingModal, hideGatingModal, setGatingModalErrorMessage } from '../gatekeeper-frontend/actions/application-actions'
 import { updateSample, removeSample, setSamplePlotImage, setSampleParametersLoading } from '../gatekeeper-frontend/actions/sample-actions'
 import { updateGateTemplate, removeGateTemplate } from '../gatekeeper-frontend/actions/gate-template-actions'
 import { removeGateTemplateGroup } from '../gatekeeper-frontend/actions/gate-template-group-actions'
@@ -949,17 +949,22 @@ export const api = {
         reduxStore.dispatch(loadingAction)
         
         let homologyResult = await api.calculateHomology(sampleId, options)
-        const gates = api.createGatePolygons(homologyResult.data.gates)
+
+        if (homologyResult.status === constants.STATUS_SUCCESS) {
+            const gates = api.createGatePolygons(homologyResult.data.gates)
+            const setUnsavedGatesAction = setUnsavedGates(gates)
+            currentState = applicationReducer(currentState, setUnsavedGatesAction)
+            reduxStore.dispatch(setUnsavedGatesAction)
+
+            api.updateUnsavedGateDerivedData()
+        } else {
+            const createErrorAction = setGatingModalErrorMessage(homologyResult.error)
+            reduxStore.dispatch(createErrorAction)
+        }
 
         const loadingFinishedAction = setSampleParametersLoading(sampleId, options.selectedXParameterIndex + '_' + options.selectedYParameterIndex, { loading: false, loadingMessage: null })
         currentState = applicationReducer(currentState, loadingFinishedAction)
         reduxStore.dispatch(loadingFinishedAction)
-
-        const setUnsavedGatesAction = setUnsavedGates(gates)
-        currentState = applicationReducer(currentState, setUnsavedGatesAction)
-        reduxStore.dispatch(setUnsavedGatesAction)
-
-        api.updateUnsavedGateDerivedData()
     },
 
     resetUnsavedGates () {
@@ -1049,14 +1054,24 @@ export const api = {
 
         const homologyResult = await new Promise((resolve, reject) => {
             pushToQueue({
-                jobParameters: { url: 'http://127.0.0.1:3145', json: postBody },
+                jobParameters: { url: 'http://127.0.0.1:3145', json: _.merge(postBody, { jobId: uuidv4() }) },
                 jobKey: uuidv4(),
                 checkValidity,
                 callback: (data) => { resolve(data) }
             }, true)
         })
 
-        if (!checkValidity()) { return false }
+        if (!checkValidity()) {
+            return {
+                status: constants.STATUS_FAIL,
+                message: 'Error calculating homology, sample or gate template group has been deleted'
+            }
+        }
+
+        // If it was a real error (i.e. a caught programmatic error) return the result
+        if (homologyResult.status === constants.STATUS_FAIL && !homologyResult.data) {
+            return homologyResult
+        }
 
         // clearInterval(intervalToken)
         let gates = []
@@ -1485,7 +1500,10 @@ export const api = {
 
             let result = (await api.calculateHomology(sample.id, options))
 
-            if (result.status === constants.STATUS_SUCCESS) {
+            if (result.status === constants.STATUS_FAIL) {
+                const createErrorAction = setGatingModalErrorMessage(result.error)
+                reduxStore.dispatch(createErrorAction)
+            } else if (result.status === constants.STATUS_SUCCESS) {
                 // Create the negative gate if there is one
                 const negativeGate = _.find(currentState.gateTemplates, gt => gateTemplateGroup.childGateTemplateIds.includes(gt.id) && gt.type === constants.GATE_TYPE_NEGATIVE)
                 if (negativeGate) {

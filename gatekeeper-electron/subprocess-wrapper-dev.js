@@ -34,6 +34,7 @@ const getFCSMetadata = require('./lib/get-fcs-metadata.js').default
 const findIncludedEvents = require('./lib/gate-utilities').findIncludedEvents
 const find1DPeaks = require('./lib/1d-homology').default
 const expandToIncludeZeroes = require('./lib/gate-utilities').expandToIncludeZeroes
+const constants = require('../gatekeeper-utilities/constants').default
 const fs = require('fs')
 const _ = require('lodash')
 
@@ -69,24 +70,21 @@ if (cluster.isMaster) {
                     }
                     resolve(data)
                 }).catch((error) => {
-                    console.log(error)
-                    process.stderr.write(JSON.stringify({ jobId, data: JSON.stringify(error) }))
+                    reject(error)
                 })
             }
         })
     }
 
-    const handleError = (error) => {
-        console.log(error)
-        process.stderr.write(JSON.stringify({ jobId, data: JSON.stringify(error) }))
-        res.end(JSON.stringify({ jobId, data: JSON.stringify(error) }))
+    const handleError = (response, error) => {
+        response.end(JSON.stringify({ status: constants.STATUS_FAIL, error: error.message }))
     }
 
-    http.createServer((req, res) => {
-        res.writeHead(200);
+    http.createServer((request, response) => {
+        response.writeHead(200);
         let bodyRaw = ''
-        req.on('data', chunk => bodyRaw += chunk)
-        req.on('end', () => {
+        request.on('data', chunk => bodyRaw += chunk)
+        request.on('end', () => {
             const body = JSON.parse(bodyRaw)
             const jobId = body.jobId
             if (body.type === 'heartbeat') {
@@ -99,12 +97,12 @@ if (cluster.isMaster) {
                 if (body.type === 'get-fcs-metadata') {
                     getFCSMetadata(body.payload.filePath).then((data) => {
                         process.stdout.write(JSON.stringify({ jobId: body.jobId, data: 'Finished job on worker side'}))
-                        res.end(JSON.stringify(data))
+                        response.end(JSON.stringify(data))
                     })
 
 // get-population-data
                 } else if (body.type === 'get-population-data') {
-                    getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((data) => { res.end(JSON.stringify(data)) }).catch(handleError)
+                    getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((data) => { response.end(JSON.stringify(data)) }).catch(handleError.bind(null, response))
 
 // save-subsample-to-csv
                 } else if (body.type === 'save-subsample-to-csv') {
@@ -113,18 +111,18 @@ if (cluster.isMaster) {
                         const header = body.payload.FCSFile.FCSParameters.map(p => p.key).join(',') + '\n'
                         fs.writeFile(body.payload.filePath, header, function (error) {
                             fs.appendFile(body.payload.filePath, data.map(p => p[0].join(',')).join('\n'), function (error) {
-                                res.end(JSON.stringify({ status: 'success' }))
+                                response.end(JSON.stringify({ status: 'success' }))
                             });
                         });
-                    }).catch(handleError)
+                    }).catch(handleError.bind(null, response))
 
 // get-image-for-plot
                 } else if (body.type === 'get-image-for-plot') {
                     // console.log(body.payload.options)
                     getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((population) => {
                         getImageForPlot(body.payload.sample, body.payload.FCSFile, population, body.payload.options).then((data) => {
-                            res.end(JSON.stringify(data))
-                        }).catch(handleError)
+                            response.end(JSON.stringify(data))
+                        }).catch(handleError.bind(null, response))
                     })
 
 // find-peaks
@@ -134,10 +132,10 @@ if (cluster.isMaster) {
                         let percentageComplete = 0
                         const data = homology.findPeaks((message) => {
                             // console.log({ jobId: jobId, type: 'loading-update', data: message })
-                            // res.send({ jobId: jobId, type: 'loading-update', data: message })
+                            // response.send({ jobId: jobId, type: 'loading-update', data: message })
                         })
-                        res.end(JSON.stringify(data))
-                    }).catch(handleError)
+                        response.end(JSON.stringify(data))
+                    }).catch(handleError.bind(null, response))
 
 // find-peaks-with-templates
                 } else if (body.type === 'find-peaks-with-template') {
@@ -146,10 +144,10 @@ if (cluster.isMaster) {
                         let percentageComplete = 0
                         const data = homology.findPeaksWithTemplate((message) => {
                             // console.log({ jobId: jobId, type: 'loading-update', data: message })
-                            // res.send({ jobId: jobId, type: 'loading-update', data: message })
+                            // response.send({ jobId: jobId, type: 'loading-update', data: message })
                         }, body.payload.gateTemplates)
-                        res.end(JSON.stringify(data))
-                    }).catch(handleError)
+                        response.end(JSON.stringify(data))
+                    }).catch(handleError.bind(null, response))
                                     
 // get-expanded-gates
                 } else if (body.type === 'get-expanded-gates') {
@@ -163,15 +161,15 @@ if (cluster.isMaster) {
                         const yCutoffs = find1DPeaks(population.zeroDensityY.densityMap, population.maxDensity, yOptions)
 
                         const expandedGates = expandToIncludeZeroes(xCutoffs, yCutoffs, body.payload.gates, body.payload.options)
-                        res.end(JSON.stringify(expandedGates))
-                    }).catch(handleError)
+                        response.end(JSON.stringify(expandedGates))
+                    }).catch(handleError.bind(null, response))
 
 // get-included-events
                 } else if (body.type === 'get-included-events') {
                     getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((population) => {
                         const alteredGates = findIncludedEvents(body.payload.gates, population, body.payload.FCSFile, body.payload.options)
-                        res.end(JSON.stringify(alteredGates))
-                    }).catch(handleError)
+                        response.end(JSON.stringify(alteredGates))
+                    }).catch(handleError.bind(null, response))
                 }
             }  
         })
