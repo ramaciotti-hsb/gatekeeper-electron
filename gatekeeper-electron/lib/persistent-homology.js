@@ -26,7 +26,7 @@ export default class PersistentHomology {
             edgeDistance: options.plotWidth * 0.05,
             minPeakHeight: options.plotHeight * 0.04,
             minPeakSize: 5000,
-            sampleNuclei: []
+            seedPeaks: []
         }, options)
 
         this.population = population
@@ -110,20 +110,20 @@ export default class PersistentHomology {
     findPeaksInternal (stepCallback) {
         let currentHeight = 100
         // Add the sample nuclei as small peaks before looking for naturally occuring ones
-        let peaks = this.options.sampleNuclei.map((n) => {
+        let peaks = this.options.seedPeaks.map((peak) => {
             const edges = 20
-            const radius = 30
+            const radius = Math.round(Math.sqrt(this.options.minPeakSize / Math.PI) * 1.5)
             const circle = []
             for (let i = 0; i < edges; i++) {
                 circle.push([
-                    n[0] + radius * Math.cos(2 * Math.PI * i / edges),
-                    n[1] + radius * Math.sin(2 * Math.PI * i / edges)
+                    peak.position[0] + radius * Math.cos(2 * Math.PI * i / edges),
+                    peak.position[1] + radius * Math.sin(2 * Math.PI * i / edges)
                 ])
             }
             
             let includedPoints = []
-            for (let x = n[0] - radius; x < n[0] + radius; x++) {
-                for (let y = n[1] - radius; y < n[1] + radius; y++) {
+            for (let x = peak.position[0] - radius; x < peak.position[0] + radius; x++) {
+                for (let y = peak.position[1] - radius; y < peak.position[1] + radius; y++) {
                     if (this.population.densityMap.densityMap[y][x] >= 1 && pointInsidePolygon([x, y], circle)) {
                         includedPoints.push([x, y])
                     }
@@ -135,12 +135,14 @@ export default class PersistentHomology {
                 polygons: [
                     circle
                 ],
-                nucleus: n,
+                nucleus: peak.position,
                 height: 0,
                 type: constants.GATE_TYPE_POLYGON,
                 includedPoints: includedPoints
             }
         })
+
+        console.log(peaks.map(p => p.nucleus))
 
         while (currentHeight > 0) {
             peaks = this.performHomologyIteration(currentHeight, peaks)
@@ -350,7 +352,6 @@ export default class PersistentHomology {
 
                     if (jSize < this.options.minPeakSize && newPeaks[j].height > this.options.minPeakHeight) {
                         let newIncludedPoints = newPeaks[i].includedPoints.concat(newPeaks[j].includedPoints)
-                        console.log(newIncludedPoints.length)
                         // Rebuild polygons after combining
                         let newPolygon = hull(newIncludedPoints, 50)
                         

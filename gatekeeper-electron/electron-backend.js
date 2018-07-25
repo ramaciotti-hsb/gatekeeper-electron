@@ -1012,8 +1012,9 @@ export const api = {
         homologyOptions.options.plotWidth = currentState.plotWidth
         homologyOptions.options.plotHeight = currentState.plotHeight
 
-        if (options.sampleNuclei) {
-            homologyOptions.options.sampleNuclei = options.sampleNuclei
+        if (options.seedPeaks) {
+            console.log(options.seedPeaks)
+            homologyOptions.options.seedPeaks = options.seedPeaks
         }
 
         // If there are already gating templates defined for this parameter combination
@@ -1459,146 +1460,167 @@ export const api = {
         const gateTemplateGroup = _.find(currentState.gateTemplateGroups, g => g.id === gatingError.gateTemplateGroupId)
         const gateTemplates = _.filter(currentState.gateTemplates, gt => gateTemplateGroup.childGateTemplateIds.includes(gt.id))
 
-        let matchingTemplates = []
-        let nonMatchingTemplates = []
-        for (let gateTemplate of gateTemplates) {
-            let foundTemplate = false
-            for (let gate of gatingError.gates) {
-                if (gateTemplate.xGroup === gate.xGroup && gateTemplate.yGroup === gate.yGroup) {
-                    foundTemplate = true
-                    matchingTemplates.push(gateTemplate)
+        const loadingStartedAction = setSampleParametersLoading(sample.id, gateTemplateGroup.selectedXParameterIndex + '_' + gateTemplateGroup.selectedYParameterIndex, { loading: true, loadingMessage: 'Recalculating Gates...' })
+        currentState = applicationReducer(currentState, loadingStartedAction)
+        reduxStore.dispatch(loadingStartedAction)
+
+        let result
+        if (errorHandler.type === constants.GATING_ERROR_HANDLER_AUTO_ANCHORING) {
+            let matchingTemplates = []
+            let nonMatchingTemplates = []
+            for (let gateTemplate of gateTemplates) {
+                let foundTemplate = false
+                for (let gate of gatingError.gates) {
+                    if (gateTemplate.xGroup === gate.xGroup && gateTemplate.yGroup === gate.yGroup) {
+                        foundTemplate = true
+                        matchingTemplates.push(gateTemplate)
+                    }
+                }
+                if (!foundTemplate) {
+                    nonMatchingTemplates.push(gateTemplate)
                 }
             }
-            if (!foundTemplate) {
-                nonMatchingTemplates.push(gateTemplate)
+
+            if (matchingTemplates.length > 1) {
+                const seedPeaks = nonMatchingTemplates.map((template) => {
+                    const matchingGate = _.find(currentState.gates, g => g.id === template.exampleGateId)
+                    const xGroup = _.find(gatingError.gates, g => g.xGroup === template.xGroup)
+                    const xNucleusValue = xGroup.gateData.nucleus[0]
+                    const yGroup = _.find(gatingError.gates, g => g.yGroup === template.yGroup)
+                    const yNucleusValue = yGroup.gateData.nucleus[1]
+                    return { id: uuidv4(), position: [ xNucleusValue, yNucleusValue ] }
+                })
+
+                const sampleYChannelZeroPeaks = nonMatchingTemplates.map((template) => {
+                    const matchingGate = _.find(currentState.gates, g => g.id === template.exampleGateId)
+                    const xGroup = _.find(gatingError.gates, g => g.xGroup === template.xGroup)
+                    const xNucleusValue = xGroup.gateData.nucleus[0]
+
+                    return template.typeSpecificData.includeYChannelZeroes ? xNucleusValue : null
+                })
+
+                const sampleXChannelZeroPeaks = nonMatchingTemplates.map((template) => {
+                    const matchingGate = _.find(currentState.gates, g => g.id === template.exampleGateId)
+                    const yGroup = _.find(gatingError.gates, g => g.yGroup === template.yGroup)
+                    const yNucleusValue = yGroup.gateData.nucleus[1]
+
+                    return template.typeSpecificData.includeXChannelZeroes ? yNucleusValue : null
+                })
+
+                const options = {
+                    selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
+                    selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
+                    selectedXScale: constants.SCALE_LOG,
+                    selectedYScale: constants.SCALE_LOG,
+                    machineType: FCSFile.machineType,
+                    seedPeaks,
+                    sampleXChannelZeroPeaks,
+                    sampleYChannelZeroPeaks
+                }
+
+                result = await api.calculateHomology(sample.id, options)
             }
-        }
-
-        if (matchingTemplates.length > 1) {
-            const sampleNuclei = nonMatchingTemplates.map((template) => {
-                const matchingGate = _.find(currentState.gates, g => g.id === template.exampleGateId)
-                const xGroup = _.find(gatingError.gates, g => g.xGroup === template.xGroup)
-                const xNucleusValue = xGroup.gateData.nucleus[0]
-                const yGroup = _.find(gatingError.gates, g => g.yGroup === template.yGroup)
-                const yNucleusValue = yGroup.gateData.nucleus[1]
-                return [ xNucleusValue, yNucleusValue ]
-            })
-
-            const sampleYChannelZeroPeaks = nonMatchingTemplates.map((template) => {
-                const matchingGate = _.find(currentState.gates, g => g.id === template.exampleGateId)
-                const xGroup = _.find(gatingError.gates, g => g.xGroup === template.xGroup)
-                const xNucleusValue = xGroup.gateData.nucleus[0]
-
-                return template.typeSpecificData.includeYChannelZeroes ? xNucleusValue : null
-            })
-
-            const sampleXChannelZeroPeaks = nonMatchingTemplates.map((template) => {
-                const matchingGate = _.find(currentState.gates, g => g.id === template.exampleGateId)
-                const yGroup = _.find(gatingError.gates, g => g.yGroup === template.yGroup)
-                const yNucleusValue = yGroup.gateData.nucleus[1]
-
-                return template.typeSpecificData.includeXChannelZeroes ? yNucleusValue : null
-            })
-
+        } else if (errorHandler.type === constants.GATING_ERROR_HANDLER_MANUAL) {
             const options = {
                 selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
                 selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
                 selectedXScale: constants.SCALE_LOG,
                 selectedYScale: constants.SCALE_LOG,
                 machineType: FCSFile.machineType,
-                sampleNuclei,
-                sampleXChannelZeroPeaks,
-                sampleYChannelZeroPeaks
+                seedPeaks: errorHandler.seedPeaks
             }
+            result = await api.calculateHomology(sample.id, options)
+        }
 
-            let result = (await api.calculateHomology(sample.id, options))
+        const loadingFinishedAction = setSampleParametersLoading(sample.id, gateTemplateGroup.selectedXParameterIndex + '_' + gateTemplateGroup.selectedYParameterIndex, { loading: false, loadingMessage: null })
+        currentState = applicationReducer(currentState, loadingFinishedAction)
+        reduxStore.dispatch(loadingFinishedAction)
 
-            if (result.status === constants.STATUS_FAIL) {
-                const createErrorAction = setGatingModalErrorMessage(result.error)
-                reduxStore.dispatch(createErrorAction)
-            } else if (result.status === constants.STATUS_SUCCESS) {
-                // Create the negative gate if there is one
-                const negativeGate = _.find(currentState.gateTemplates, gt => gateTemplateGroup.childGateTemplateIds.includes(gt.id) && gt.type === constants.GATE_TYPE_NEGATIVE)
-                if (negativeGate) {
-                    const newGate = {
-                        id: uuidv4(),
-                        type: constants.GATE_TYPE_NEGATIVE,
-                        title: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].label + ' Negative Gate',
-                        sampleId: sample.id,
-                        FCSFileId: FCSFile.id,
-                        gateTemplateId: negativeGate.id,
-                        selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
-                        selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
-                        selectedXScale: gateTemplateGroup.selectedXScale,
-                        selectedYScale: gateTemplateGroup.selectedYScale,
-                        gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
-                        gateCreatorData: {},
-                        includeEventIds: []
-                    }
-
-                    gates.push(newGate)
+        if (result.status === constants.STATUS_FAIL) {
+            const createErrorAction = setGatingModalErrorMessage(result.error)
+            reduxStore.dispatch(createErrorAction)
+        } else if (result.status === constants.STATUS_SUCCESS) {
+            // Create the negative gate if there is one
+            const negativeGate = _.find(currentState.gateTemplates, gt => gateTemplateGroup.childGateTemplateIds.includes(gt.id) && gt.type === constants.GATE_TYPE_NEGATIVE)
+            if (negativeGate) {
+                const newGate = {
+                    id: uuidv4(),
+                    type: constants.GATE_TYPE_NEGATIVE,
+                    title: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].label + ' Negative Gate',
+                    sampleId: sample.id,
+                    FCSFileId: FCSFile.id,
+                    gateTemplateId: negativeGate.id,
+                    selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
+                    selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
+                    selectedXScale: gateTemplateGroup.selectedXScale,
+                    selectedYScale: gateTemplateGroup.selectedYScale,
+                    gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                    gateCreatorData: {},
+                    includeEventIds: []
                 }
 
-                let gates = api.createGatePolygons(result.data.gates)
-                gates = await api.getGateIncludedEvents(gates)
+                gates.push(newGate)
+            }
 
-                // Create combo gates AFTER we know which events are in each smaller gate so that they can be concatted for combo gate contents
-                const comboGates = _.filter(currentState.gateTemplates, gt => gateTemplateGroup.childGateTemplateIds.includes(gt.id) && gt.type === constants.GATE_TYPE_COMBO)
-                for (let comboGate of comboGates) {
-                    const includedGates = _.filter(gates, g => comboGate.typeSpecificData.gateTemplateIds.includes(g.gateTemplateId))
+            let gates = api.createGatePolygons(result.data.gates)
+            gates = await api.getGateIncludedEvents(gates)
 
-                    const newGate = {
-                        id: uuidv4(),
-                        type: constants.GATE_TYPE_COMBO,
-                        title: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].label + ' Combo Gate',
-                        sampleId: sample.id,
-                        FCSFileId: FCSFile.id,
-                        gateTemplateId: comboGate.id,
-                        selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
-                        selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
-                        selectedXScale: gateTemplateGroup.selectedXScale,
-                        selectedYScale: gateTemplateGroup.selectedYScale,
-                        gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
-                        gateCreatorData: {
-                            gateIds: includedGates.map(g => g.id)
+            // Create combo gates AFTER we know which events are in each smaller gate so that they can be concatted for combo gate contents
+            const comboGates = _.filter(currentState.gateTemplates, gt => gateTemplateGroup.childGateTemplateIds.includes(gt.id) && gt.type === constants.GATE_TYPE_COMBO)
+            for (let comboGate of comboGates) {
+                const includedGates = _.filter(gates, g => comboGate.typeSpecificData.gateTemplateIds.includes(g.gateTemplateId))
+
+                const newGate = {
+                    id: uuidv4(),
+                    type: constants.GATE_TYPE_COMBO,
+                    title: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].label + ' Combo Gate',
+                    sampleId: sample.id,
+                    FCSFileId: FCSFile.id,
+                    gateTemplateId: comboGate.id,
+                    selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
+                    selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
+                    selectedXScale: gateTemplateGroup.selectedXScale,
+                    selectedYScale: gateTemplateGroup.selectedYScale,
+                    gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                    gateCreatorData: {
+                        gateIds: includedGates.map(g => g.id)
+                    },
+                    includeEventIds: includedGates.reduce((accumulator, current) => { return accumulator.concat(current.includeEventIds) }, [])
+                }
+
+                gates.push(newGate)
+            }
+
+            if (gates.length > 0) {
+                for (let i = 0; i < gates.length; i++) {
+                    const gate = gates[i]
+                    api.createSubSampleAndAddToWorkspace(
+                        workspace.id,
+                        sample.id,
+                        {
+                            filePath: sample.filePath,
+                            title: gate.title,
+                            FCSParameters: FCSFile.FCSParameters,
+                            plotImages: {},
+                            subSampleIds: [],
+                            gateTemplateId: gate.gateTemplateId,
+                            selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
+                            selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
+                            selectedXScale: gateTemplateGroup.selectedXScale,
+                            selectedYScale: gateTemplateGroup.selectedYScale
                         },
-                        includeEventIds: includedGates.reduce((accumulator, current) => { return accumulator.concat(current.includeEventIds) }, [])
-                    }
-
-                    gates.push(newGate)
+                        gate,
+                    )
                 }
-
-                if (gates.length > 0) {
-                    for (let i = 0; i < gates.length; i++) {
-                        const gate = gates[i]
-                        api.createSubSampleAndAddToWorkspace(
-                            workspace.id,
-                            sample.id,
-                            {
-                                filePath: sample.filePath,
-                                title: gate.title,
-                                FCSParameters: FCSFile.FCSParameters,
-                                plotImages: {},
-                                subSampleIds: [],
-                                gateTemplateId: gate.gateTemplateId,
-                                selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
-                                selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
-                                selectedXScale: gateTemplateGroup.selectedXScale,
-                                selectedYScale: gateTemplateGroup.selectedYScale
-                            },
-                            gate,
-                        )
-                    }
-                }
-
-                const loadingFinishedAction = setSampleParametersLoading(sample.id, gateTemplateGroup.selectedXParameterIndex + '_' + gateTemplateGroup.selectedYParameterIndex, { loading: false, loadingMessage: null })
-                currentState = applicationReducer(currentState, loadingFinishedAction)
-                reduxStore.dispatch(loadingFinishedAction)
-
-                const removeGatingErrorAction = removeGatingError(gatingErrorId)
-                currentState = applicationReducer(currentState, removeGatingErrorAction)
-                reduxStore.dispatch(removeGatingErrorAction)
             }
+
+            const loadingFinishedAction = setSampleParametersLoading(sample.id, gateTemplateGroup.selectedXParameterIndex + '_' + gateTemplateGroup.selectedYParameterIndex, { loading: false, loadingMessage: null })
+            currentState = applicationReducer(currentState, loadingFinishedAction)
+            reduxStore.dispatch(loadingFinishedAction)
+
+            const removeGatingErrorAction = removeGatingError(gatingErrorId)
+            currentState = applicationReducer(currentState, removeGatingErrorAction)
+            reduxStore.dispatch(removeGatingErrorAction)
         }
     },
 

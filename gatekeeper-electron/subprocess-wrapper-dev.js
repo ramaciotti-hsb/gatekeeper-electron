@@ -77,6 +77,7 @@ if (cluster.isMaster) {
     }
 
     const handleError = (response, error) => {
+        console.log(error)
         response.end(JSON.stringify({ status: constants.STATUS_FAIL, error: error.message }))
     }
 

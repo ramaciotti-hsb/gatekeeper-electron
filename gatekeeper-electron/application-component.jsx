@@ -18,9 +18,9 @@ export default class Application extends Component {
                 label: 'File',
                 submenu: [
                     {label: 'New Workspace', accelerator: 'Cmd+Shift+N', click: this.newWorkspace.bind(this) },
-                    {label: 'Save Workspace', accelerator: 'Cmd+S' },//, click: this.showSaveWorkspaceAsDialogBox.bind(this) },
+                    // {label: 'Save Workspace', accelerator: 'Cmd+S' },//, click: this.showSaveWorkspaceAsDialogBox.bind(this) },
                     {label: 'Open FCS File(s)', accelerator: 'Cmd+Shift+O', click: this.showOpenFCSFileDialog.bind(this) },
-                    {label: 'Open Workspace(s)',  accelerator: 'Cmd+O' }//, click: this.showOpenWorkspacesDialog.bind(this) }
+                    // {label: 'Open Workspace(s)',  accelerator: 'Cmd+O' }//, click: this.showOpenWorkspacesDialog.bind(this) }
                 ]
             },
             {
@@ -37,17 +37,17 @@ export default class Application extends Component {
                     {role: 'selectall'}
                 ]
             },
-            {
-                label: 'Auto Gating',
-                submenu: [
-                    {
-                        label: 'Recursive Gating',
-                        submenu: [
-                            { label: 'Persistant Homology' }
-                        ]
-                    }
-                ]
-            },
+            // {
+            //     label: 'Auto Gating',
+            //     submenu: [
+            //         {
+            //             label: 'Recursive Gating',
+            //             submenu: [
+            //                 { label: 'Persistant Homology' }
+            //             ]
+            //         }
+            //     ]
+            // },
             {
                 label: 'View',
                 submenu: [
