@@ -8,6 +8,7 @@ import path from 'path'
 import { remote, ipcRenderer } from 'electron'
 const { dialog } = remote
 import fs from 'fs'
+import hull from 'hull.js'
 import uuidv4 from 'uuid/v4'
 import _ from 'lodash'
 import * as d3 from "d3"
@@ -26,9 +27,10 @@ import applicationReducer from '../gatekeeper-frontend/reducers/application-redu
 import { setBackgroundJobsEnabled, setPlotDimensions, setPlotDisplayDimensions, toggleShowDisabledParameters, setUnsavedGates, showGatingModal, hideGatingModal, setGatingModalErrorMessage } from '../gatekeeper-frontend/actions/application-actions'
 import { updateSample, removeSample, setSamplePlotImage, setSampleParametersLoading } from '../gatekeeper-frontend/actions/sample-actions'
 import { updateGateTemplate, removeGateTemplate } from '../gatekeeper-frontend/actions/gate-template-actions'
-import { removeGateTemplateGroup } from '../gatekeeper-frontend/actions/gate-template-group-actions'
+import { updateGateTemplateGroup, removeGateTemplateGroup, addGateTemplateToGroup } from '../gatekeeper-frontend/actions/gate-template-group-actions'
 import { updateFCSFile, removeFCSFile } from '../gatekeeper-frontend/actions/fcs-file-actions'
 import { createGatingError, updateGatingError, removeGatingError } from '../gatekeeper-frontend/actions/gating-error-actions'
+import area from 'area-polygon'
 import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace,
     createFCSFileAndAddToWorkspace, selectFCSFile,
     createSampleAndAddToWorkspace, createSubSampleAndAddToWorkspace, selectSample, invertPlotAxis,
@@ -165,6 +167,12 @@ workerFork.stdout.on('data', (result) => {
 
         if (currentState.selectedWorkspaceId) {
             const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
+            if (workspace.selectedFCSFileId && workspace.selectedGateTemplateId) {
+                const sample = _.find(currentState.samples, s => s.gateTemplateId === workspace.selectedGateTemplateId && s.FCSFileId === workspace.selectedFCSFileId)
+                if (sample) {
+                    getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
+                }
+            }
             for (let sample of currentState.samples) {
                 getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
                 api.applyGateTemplatesToSample(sample.id)
@@ -532,8 +540,14 @@ export const api = {
         for (let templateGroup of templateGroups) {
             if (templateGroup.creator === constants.GATE_CREATOR_PERSISTENT_HOMOLOGY) {
                 // If there hasn't been any gates generated for this sample, try generating them, otherwise leave them as they are
-                if (!_.find(currentState.gates, g => g.parentSampleId === sampleId && templateGroup.childGateTemplateIds.includes(g.gateTemplateId))
-                    && !_.find(currentState.gatingErrors, e => e.sampleId === sampleId && e.gateTemplateGroupId === templateGroup.id)) {
+                if (!_.find(currentState.gates, g => g.parentSampleId === sampleId && templateGroup.childGateTemplateIds.includes(g.gateTemplateId))) {
+
+                    const gatingError = _.find(currentState.gatingErrors, e => e.sampleId === sampleId && e.gateTemplateGroupId === templateGroup.id)
+                    if (gatingError) {
+                        const removeGatingErrorAction = removeGatingError(gatingError.id)
+                        currentState = applicationReducer(currentState, removeGatingErrorAction)
+                        reduxStore.dispatch(removeGatingErrorAction)
+                    }
                     // Dispatch a redux action to mark the gate template as loading
                     let loadingMessage = 'Creating gates using Persistent Homology...'
 
@@ -934,7 +948,7 @@ export const api = {
 
         // If parameters are only being disabled, don't bother to recalculate images
         if (!_.values(parameters).reduce((current, accumulator) => { return current || accumulator }, false)) {
-            for (let sample of currentState.samples) {
+            for (let sample of currentState.samples.slice(0).reverse()) {
                 getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
             }
         }
@@ -998,13 +1012,6 @@ export const api = {
                 && group.machineType === FCSFile.machineType
         })
 
-        // If the user clicked the "create gates" button and there is already a gate template group, delete it
-        if (options.removeExistingGates && gateTemplateGroup) {
-            await api.removeGateTemplateGroup(gateTemplateGroup.id)
-            gateTemplate = null
-            gateTemplateGroup = null
-        }
-
         if (!sample) { console.log('Error in calculateHomology(): no sample with id ', sampleId, 'was found'); return }
 
         let homologyOptions = { sample, FCSFile, options }
@@ -1013,7 +1020,6 @@ export const api = {
         homologyOptions.options.plotHeight = currentState.plotHeight
 
         if (options.seedPeaks) {
-            console.log(options.seedPeaks)
             homologyOptions.options.seedPeaks = options.seedPeaks
         }
 
@@ -1143,48 +1149,253 @@ export const api = {
     },
 
     createGatePolygons (gates) {
+        const CYTOF_HISTOGRAM_WIDTH = Math.round(Math.min(currentState.plotWidth, currentState.plotHeight) * 0.07)
+        const maxYValue = currentState.plotHeight - CYTOF_HISTOGRAM_WIDTH
+
         const filteredGates = _.filter(gates, g => g.type === constants.GATE_TYPE_POLYGON)
-        for (let gate of filteredGates) {
-            let polygons
-            if (gate.gateData.doubleExpandedPolygons && gate.gateCreatorData.includeXChannelZeroes !== false && gate.gateCreatorData.includeYChannelZeroes !== false) {
-                polygons = gate.gateData.doubleExpandedPolygons
-            } else if (gate.gateData.expandedXPolygons && gate.gateCreatorData.includeXChannelZeroes !== false) {
-                polygons = gate.gateData.expandedXPolygons
-            } else if (gate.gateData.expandedYPolygons && gate.gateCreatorData.includeYChannelZeroes !== false) {
-                polygons = gate.gateData.expandedYPolygons
-            } else {
-                polygons = gate.gateData.polygons
-            }
-
-            gate.renderedPolygon = breakLongLinesIntoPoints(polygons[gate.gateCreatorData.truePeakWidthIndex + gate.gateCreatorData.widthIndex])
-        }
-
+        filteredGates.map((gate) => { gate.renderedPolygon = breakLongLinesIntoPoints(gate.gateData.polygons[gate.gateCreatorData.truePeakWidthIndex + gate.gateCreatorData.widthIndex]) })
         const overlapFixed = fixOverlappingPolygonsUsingZipper(filteredGates.map(g => g.renderedPolygon))
-
-        for (let i = 0; i < overlapFixed.length; i++) {
+        for (let i = 0; i < filteredGates.length; i++) {
             filteredGates[i].renderedPolygon = overlapFixed[i]
-            if (filteredGates[i].gateData.expandedXPolygons) {
-                const yBoundaries = getPolygonBoundaries(overlapFixed[i])[1]
-
-                filteredGates[i].renderedXCutoffs = [
-                    Math.min(filteredGates[i].gateData.xCutoffs[2], yBoundaries[1][1]),
-                    filteredGates[i].gateData.xCutoffs[1],
-                    Math.max(filteredGates[i].gateData.xCutoffs[0], yBoundaries[0][1]),
-                ]
-            }
-
-            if (filteredGates[i].gateData.expandedYPolygons) {
-                const xBoundaries = getPolygonBoundaries(overlapFixed[i])[0]
-
-                filteredGates[i].renderedYCutoffs = [
-                    Math.min(filteredGates[i].gateData.yCutoffs[2], xBoundaries[1][0]),
-                    filteredGates[i].gateData.yCutoffs[1],
-                    Math.max(filteredGates[i].gateData.yCutoffs[0], xBoundaries[0][0])
-                ]
-            }
+            filteredGates[i].renderedXCutoffs = []
+            filteredGates[i].renderedYCutoffs = []
         }
 
-        return gates
+        const yExpanded = _.filter(filteredGates, g => g.type === constants.GATE_TYPE_POLYGON && g.gateCreatorData.includeYChannelZeroes).sort((a, b) => { return a.gateData.nucleus[0] - b.gateData.nucleus[0] })
+        for (let i = 0; i < yExpanded.length; i++) {
+            const gate = yExpanded[i]
+            const xBoundaries = getPolygonBoundaries(gate.gateData.polygons[gate.gateCreatorData.truePeakWidthIndex + gate.gateCreatorData.widthIndex])[0]
+
+            for (let j = i + 1; j < yExpanded.length; j++) {
+                const gate2 = yExpanded[j]
+                const xBoundaries2 = getPolygonBoundaries(gate2.gateData.polygons[gate2.gateCreatorData.truePeakWidthIndex + gate2.gateCreatorData.widthIndex])[0]
+
+                if (xBoundaries[1][0] > xBoundaries2[0][0]) {
+                    gate.renderedYCutoffs[1] = Math.round((xBoundaries[1][0] + xBoundaries2[0][0]) / 2) - 1
+                    gate2.renderedYCutoffs[0] = Math.round((xBoundaries[1][0] + xBoundaries2[0][0]) / 2) + 1
+                }
+            }
+
+            if (!gate.renderedYCutoffs[0]) {
+                gate.renderedYCutoffs[0] = xBoundaries[0][0]
+            }
+
+            if (!gate.renderedYCutoffs[1]) {
+                gate.renderedYCutoffs[1] = xBoundaries[1][0]
+            }
+
+            // Find the most appropriate point to connect x axis cutoffs to so that the peak doesn't overlap nearby peaks
+            // 0 and 1 correspond to the minimum and maximum cutoffs on the axis
+            let closestDistance0 = Infinity
+            let closestIndex0
+
+            let closestDistance1 = Infinity
+            let closestIndex1
+            for (let j = 0; j < gate.renderedPolygon.length; j++) {
+                const point = gate.renderedPolygon[j]
+                if (Math.abs(point[0] - gate.renderedYCutoffs[0]) < closestDistance0) {
+                    let intersect = false
+                    for (let g of filteredGates) {
+                        if (g.id !== gate.id) {
+                            intersect = intersect || polygonsIntersect(g.renderedPolygon, [[gate.renderedYCutoffs[0], maxYValue], point, [gate.renderedYCutoffs[0], maxYValue]])
+                        }
+                    }
+
+                    if (!intersect) {
+                        closestDistance0 = Math.abs(point[0] - gate.renderedYCutoffs[0])
+                        closestIndex0 = j
+                    }
+                }
+
+                if (Math.abs(point[0] - gate.renderedYCutoffs[1]) < closestDistance1) {
+                    let intersect = false
+                    for (let g of filteredGates) {
+                        if (g.id !== gate.id) {
+                            intersect = intersect || polygonsIntersect(g.renderedPolygon, [[gate.renderedYCutoffs[1], maxYValue], point, [gate.renderedYCutoffs[1], maxYValue]])
+                        }
+                    }
+
+                    if (!intersect) {
+                        closestDistance1 = Math.abs(point[0] - gate.renderedYCutoffs[1])
+                        closestIndex1 = j
+                    }
+                }
+            }
+
+            // If we couldn't find any closest index that doesn't cause an intersection, just use the closest point on the polygon
+            if (!closestIndex0) {
+                for (let j = 0; j < gate.renderedPolygon.length; j++) {
+                    const point = gate.renderedPolygon[j]
+                    
+                    if (distanceBetweenPoints(point, [gate.renderedYCutoffs[0], maxYValue]) < closestDistance0) {
+                        closestDistance0 = Math.round(distanceBetweenPoints(point, [gate.renderedYCutoffs[0], maxYValue]))
+                        closestIndex0 = j
+                    }
+                }
+            }
+            
+            if (!closestIndex1) {
+                for (let j = 0; j < gate.renderedPolygon.length; j++) {
+                    const point = gate.renderedPolygon[j]
+
+                    if (distanceBetweenPoints(point, [gate.renderedYCutoffs[1], maxYValue]) < closestDistance1) {
+                        closestDistance1 = Math.round(distanceBetweenPoints(point, [gate.renderedYCutoffs[1], maxYValue]))
+                        closestIndex1 = j
+                    }
+                }
+            }
+
+            let newPolygon = []
+            let shouldAdd = true
+            for (let j = 0; j < gate.renderedPolygon.length; j++) {
+                const point = gate.renderedPolygon[j]
+                if (shouldAdd) {
+                    newPolygon.push(point)
+                }
+                if (j === closestIndex1) {
+                    // Insert the new 0 edge points
+                    if (gate.gateCreatorData.includeXChannelZeroes) {
+                        newPolygon = newPolygon.concat([
+                            [gate.renderedYCutoffs[1], maxYValue],
+                            [0, maxYValue]
+                        ])
+                        gate.renderedYCutoffs[0] = 0
+                    } else {
+                        newPolygon = newPolygon.concat([
+                            [gate.renderedYCutoffs[1], maxYValue],
+                            [gate.renderedYCutoffs[0], maxYValue]
+                        ])
+                    }
+                    shouldAdd = false
+                } else if (j === closestIndex0) {
+                    shouldAdd = true
+                }
+            }
+
+            newPolygon = breakLongLinesIntoPoints(newPolygon)
+            // Recalculate the polygon boundary
+            gate.renderedPolygon = hull(newPolygon, 50)
+        }
+
+        const xExpanded = _.filter(filteredGates, g => g.type === constants.GATE_TYPE_POLYGON && g.gateCreatorData.includeXChannelZeroes).sort((a, b) => { return a.gateData.nucleus[1] - b.gateData.nucleus[1] })
+        for (let i = 0; i < xExpanded.length; i++) {
+            const gate = xExpanded[i]
+            const yBoundaries = getPolygonBoundaries(gate.gateData.polygons[gate.gateCreatorData.truePeakWidthIndex + gate.gateCreatorData.widthIndex])[1]
+
+            for (let j = i + 1; j < xExpanded.length; j++) {
+                const gate2 = xExpanded[j]
+                const yBoundaries2 = getPolygonBoundaries(gate2.gateData.polygons[gate2.gateCreatorData.truePeakWidthIndex + gate2.gateCreatorData.widthIndex])[1]
+
+                if (yBoundaries[1][1] > yBoundaries2[0][1]) {
+                    gate.renderedXCutoffs[1] = Math.round((yBoundaries[1][1] + yBoundaries2[0][1]) / 2) - 1
+                    gate2.renderedXCutoffs[0] = Math.round((yBoundaries[1][1] + yBoundaries2[0][1]) / 2) + 1
+                }
+            }
+
+            if (!gate.renderedXCutoffs[0]) {
+                gate.renderedXCutoffs[0] = yBoundaries[0][1]
+            }
+
+            if (!gate.renderedXCutoffs[1]) {
+                gate.renderedXCutoffs[1] = yBoundaries[1][1]
+            }
+
+            // Find the most appropriate point to connect x axis cutoffs to so that the peak doesn't overlap nearby peaks
+            // 0 and 1 correspond to the minimum and maximum cutoffs on the axis
+            let closestDistance0 = Infinity
+            let closestIndex0
+
+            let closestDistance1 = Infinity
+            let closestIndex1
+            for (let j = 0; j < gate.renderedPolygon.length; j++) {
+                const point = gate.renderedPolygon[j]
+                if (Math.abs(point[1] - gate.renderedXCutoffs[0]) < closestDistance0) {
+                    let intersect = false
+                    for (let g of filteredGates) {
+                        if (g.id !== gate.id) {
+                            intersect = intersect || polygonsIntersect(g.renderedPolygon, [[0, gate.renderedXCutoffs[0]], point, [0, gate.renderedXCutoffs[0]]])
+                        }
+                    }
+
+                    if (!intersect) {
+                        closestDistance0 = Math.abs(point[1] - gate.renderedXCutoffs[0])
+                        closestIndex0 = j
+                    }
+                }
+
+                if (Math.abs(point[1] - gate.renderedXCutoffs[1]) < closestDistance1) {
+                    let intersect = false
+                    for (let g of filteredGates) {
+                        if (g.id !== gate.id) {
+                            intersect = intersect || polygonsIntersect(g.renderedPolygon, [[0, gate.renderedXCutoffs[1]], point, [0, gate.renderedXCutoffs[1]]])
+                        }
+                    }
+
+                    if (!intersect) {
+                        closestDistance1 = Math.abs(point[1] - gate.renderedXCutoffs[1])
+                        closestIndex1 = j
+                    }
+                }
+            }
+
+            // If we couldn't find any closest index that doesn't cause an intersection, just use the closest point on the polygon
+            if (!closestIndex0) {
+                for (let j = 0; j < gate.renderedPolygon.length; j++) {
+                    const point = gate.renderedPolygon[j]
+                    
+                    if (distanceBetweenPoints(point, [0, gate.renderedXCutoffs[0]]) < closestDistance0) {
+                        closestDistance0 = Math.round(distanceBetweenPoints(point, [0, gate.renderedXCutoffs[0]]))
+                        closestIndex0 = j
+                    }
+                }
+            }
+
+            if (!closestIndex1) {
+                for (let j = 0; j < gate.renderedPolygon.length; j++) {
+                    const point = gate.renderedPolygon[j]
+
+                    if (distanceBetweenPoints(point, [0, gate.renderedXCutoffs[1]]) < closestDistance1) {
+                        closestDistance1 = Math.round(distanceBetweenPoints(point, [0, gate.renderedXCutoffs[1]]))
+                        closestIndex1 = j
+                    }
+                }
+            }
+
+            let newPolygon = []
+            let shouldAdd = true
+            for (let j = 0; j < gate.renderedPolygon.length; j++) {
+                const point = gate.renderedPolygon[j]
+                if (shouldAdd) {
+                    newPolygon.push(point)
+                }
+                if ((!gate.gateCreatorData.includeYChannelZeroes && j === closestIndex1) || (gate.gateCreatorData.includeYChannelZeroes && point[0] === 0 && point[1] === maxYValue)) {
+                    // Insert the new 0 edge points
+                    if (gate.gateCreatorData.includeYChannelZeroes) {
+                        newPolygon = newPolygon.concat([
+                            [0, maxYValue],
+                            [0, gate.renderedXCutoffs[0]]
+                        ])
+                        gate.renderedXCutoffs[1] = maxYValue
+                    } else {
+                        newPolygon = newPolygon.concat([
+                            [0, gate.renderedXCutoffs[1]],
+                            [0, gate.renderedXCutoffs[0]]
+                        ])
+                    }
+
+                    shouldAdd = false
+                } else if (j === closestIndex0) {
+                    shouldAdd = true
+                }
+            }
+
+            newPolygon = breakLongLinesIntoPoints(newPolygon)
+            // Recalculate the polygon boundary
+
+            gate.renderedPolygon = hull(newPolygon, 50)
+        }
+
+        return filteredGates
     },
 
     getGateIncludedEvents: async function (gates) {
@@ -1338,27 +1549,67 @@ export const api = {
         const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
         const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sampleId))
         // Find if there is already a gate template group for this combination or not
-        const gateTemplateGroup = _.find(currentState.gateTemplateGroups, g => g.parentGateTemplateId === sample.gateTemplateId && g.selectedXParameterIndex === options.selectedXParameterIndex && g.selectedYParameterIndex === options.selectedYParameterIndex)
+        let gateTemplateGroup = _.find(currentState.gateTemplateGroups, g => g.parentGateTemplateId === sample.gateTemplateId && g.selectedXParameterIndex === options.selectedXParameterIndex && g.selectedYParameterIndex === options.selectedYParameterIndex)
+        let gateTemplateGroupExists = !!gateTemplateGroup
+
         if (gateTemplateGroup) {
             for (let gate of reduxStore.getState().unsavedGates) {
-                const updateGateTemplateAction = updateGateTemplate(gate.gateTemplateId, {
-                    typeSpecificData: gate.gateCreatorData
-                })
-                currentState = applicationReducer(currentState, updateGateTemplateAction)
-                reduxStore.dispatch(updateGateTemplateAction)
+                if (!gate.gateTemplateId) {
+                    let gateTemplate
+                    if (gate.type === constants.GATE_TYPE_POLYGON) {
+                        gateTemplate = {
+                            id: gate.id,
+                            type: constants.GATE_TYPE_POLYGON,
+                            title: gate.title,
+                            creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                            xGroup: gate.xGroup,
+                            yGroup: gate.yGroup,
+                            typeSpecificData: gate.gateCreatorData
+                        }
+                    } else if (gate.type === constants.GATE_TYPE_NEGATIVE) {
+                        gateTemplate = {
+                            id: gate.id,
+                            type: constants.GATE_TYPE_NEGATIVE,
+                            title: gate.title,
+                            creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                            typeSpecificData: {}
+                        }
+                    } else if (gate.type === constants.GATE_TYPE_COMBO) {
+                        gateTemplate = {
+                            id: gate.id,
+                            type: constants.GATE_TYPE_COMBO,
+                            title: gate.title,
+                            creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                            typeSpecificData: {
+                                gateTemplateIds: gate.gateCreatorData.gateIds
+                            }
+                        }
+                    }
 
-                for (let subSample of _.filter(currentState.samples, s => s.gateTemplateId === gate.gateTemplateId)) {
-                    const removeSampleAction = removeSample(subSample.id)
-                    currentState = applicationReducer(currentState, removeSampleAction)
-                    reduxStore.dispatch(removeSampleAction)
+                    gate.gateTemplateId = gateTemplate.id
+
+                    const createGateTemplateAction = createGateTemplateAndAddToWorkspace(workspace.id, gateTemplate)
+                    currentState = applicationReducer(currentState, createGateTemplateAction)
+                    reduxStore.dispatch(createGateTemplateAction)
+
+                    const addGateTemplateToGroupAction = addGateTemplateToGroup(gateTemplate.id, gateTemplateGroup.id)
+                    currentState = applicationReducer(currentState, addGateTemplateToGroupAction)
+                    reduxStore.dispatch(addGateTemplateToGroupAction)
                 }
 
-                // api.applyGateTemplatesToSample(sample.id)
+                // Delete all child samples created as a result of this gate template group
+                const matchingSample = _.find(currentState.samples, s => s.gateTemplateId === gate.gateTemplateId && sample.subSampleIds.includes(s.id))
+                if (matchingSample) {
+                    const removeAction = removeSample(matchingSample.id)
+                    currentState = applicationReducer(currentState, removeAction)
+                    reduxStore.dispatch(removeAction)
+                }
             }
         } else {
+            const gateTemplateGroupId = uuidv4()
             // Create a Gate Template Group for this parameter combination
             const newGateTemplateGroup = {
-                id: uuidv4(),
+                id: gateTemplateGroupId,
                 title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[options.selectedYParameterIndex].label,
                 creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
                 selectedXParameterIndex: options.selectedXParameterIndex,
@@ -1417,11 +1668,26 @@ export const api = {
             const createGateTemplateGroupAction = createGateTemplateGroupAndAddToWorkspace(workspace.id, newGateTemplateGroup)
             currentState = applicationReducer(currentState, createGateTemplateGroupAction)
             reduxStore.dispatch(createGateTemplateGroupAction)
+
+            gateTemplateGroup = _.find(currentState.gateTemplateGroups, g => g.id === gateTemplateGroupId)
         }
+
+        const minPeakSize = reduxStore.getState().unsavedGates.reduce((accumulator, current) => {
+            return Math.min(accumulator, area(current.gateData.polygons[current.gateCreatorData.truePeakWidthIndex]))
+        }, Infinity)
+
+        const updateGateTemplateGroupAction = updateGateTemplateGroup(gateTemplateGroup.id, {
+            typeSpecificData: _.merge(gateTemplateGroup.typeSpecificData, {
+                minPeakSize: Math.min(minPeakSize, options.minPeakSize || gateTemplateGroup.typeSpecificData.minPeakSize),
+                minPeakHeight: options.minPeakHeight
+            })
+        })
+        currentState = applicationReducer(currentState, updateGateTemplateGroupAction)
+        reduxStore.dispatch(updateGateTemplateGroupAction)
 
         for (let i = 0; i < reduxStore.getState().unsavedGates.length; i++) {
             const gate = reduxStore.getState().unsavedGates[i]
-            api.createSubSampleAndAddToWorkspace(
+            await api.createSubSampleAndAddToWorkspace(
                 workspace.id,
                 sampleId,
                 {
@@ -1440,8 +1706,14 @@ export const api = {
             )
         }
 
+        let gatingError = _.find(currentState.gatingErrors, e => gateTemplateGroup && e.gateTemplateGroupId === gateTemplateGroup.id && e.sampleId === sample.id)
+        if (gatingError) {
+            const removeGatingErrorAction = removeGatingError(gatingError.id)
+            currentState = applicationReducer(currentState, removeGatingErrorAction)
+            reduxStore.dispatch(removeGatingErrorAction)
+        }
         
-        let samplesToRecalculate = _.filter(currentState.samples, s => s.gateTemplateId === sample.gateTemplateId && s.id !== sample.id)
+        let samplesToRecalculate = _.filter(currentState.samples, s => s.gateTemplateId === sample.gateTemplateId)
         // Recalculate the gates on other FCS files
         for (let sampleToRecalculate of samplesToRecalculate) {
             api.applyGateTemplatesToSample(sampleToRecalculate.id)
@@ -1530,6 +1802,21 @@ export const api = {
                 seedPeaks: errorHandler.seedPeaks
             }
             result = await api.calculateHomology(sample.id, options)
+        } else if (errorHandler.type === constants.GATING_ERROR_HANDLER_IGNORE) {
+            for (let gateTemplate of gateTemplates) {
+                for (let gate of gatingError.gates) {
+                    if (gateTemplate.xGroup === gate.xGroup && gateTemplate.yGroup === gate.yGroup) {
+                        gate.gateTemplateId = gateTemplate.id
+                    }
+                }
+            }
+
+            result = {
+                status: constants.STATUS_SUCCESS,
+                data: {
+                    gates: gatingError.gates
+                }
+            }
         }
 
         const loadingFinishedAction = setSampleParametersLoading(sample.id, gateTemplateGroup.selectedXParameterIndex + '_' + gateTemplateGroup.selectedYParameterIndex, { loading: false, loadingMessage: null })
@@ -1537,6 +1824,7 @@ export const api = {
         reduxStore.dispatch(loadingFinishedAction)
 
         if (result.status === constants.STATUS_FAIL) {
+            console.log(result)
             const createErrorAction = setGatingModalErrorMessage(result.error)
             reduxStore.dispatch(createErrorAction)
         } else if (result.status === constants.STATUS_SUCCESS) {
@@ -1592,35 +1880,37 @@ export const api = {
             }
 
             if (gates.length > 0) {
-                for (let i = 0; i < gates.length; i++) {
-                    const gate = gates[i]
-                    api.createSubSampleAndAddToWorkspace(
-                        workspace.id,
-                        sample.id,
-                        {
-                            filePath: sample.filePath,
-                            title: gate.title,
-                            FCSParameters: FCSFile.FCSParameters,
-                            plotImages: {},
-                            subSampleIds: [],
-                            gateTemplateId: gate.gateTemplateId,
-                            selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
-                            selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
-                            selectedXScale: gateTemplateGroup.selectedXScale,
-                            selectedYScale: gateTemplateGroup.selectedYScale
-                        },
-                        gate,
-                    )
-                }
+                // for (let i = 0; i < gates.length; i++) {
+                //     const gate = gates[i]
+                //     api.createSubSampleAndAddToWorkspace(
+                //         workspace.id,
+                //         sample.id,
+                //         {
+                //             filePath: sample.filePath,
+                //             title: gate.title,
+                //             FCSParameters: FCSFile.FCSParameters,
+                //             plotImages: {},
+                //             subSampleIds: [],
+                //             gateTemplateId: gate.gateTemplateId,
+                //             selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
+                //             selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
+                //             selectedXScale: gateTemplateGroup.selectedXScale,
+                //             selectedYScale: gateTemplateGroup.selectedYScale
+                //         },
+                //         gate,
+                //     )
+                // }
+
+                const fixedGates = api.createGatePolygons(gates)
+                const setUnsavedGatesAction = setUnsavedGates(fixedGates)
+                reduxStore.dispatch(setUnsavedGatesAction)
+
+                api.updateUnsavedGateDerivedData()
             }
 
             const loadingFinishedAction = setSampleParametersLoading(sample.id, gateTemplateGroup.selectedXParameterIndex + '_' + gateTemplateGroup.selectedYParameterIndex, { loading: false, loadingMessage: null })
             currentState = applicationReducer(currentState, loadingFinishedAction)
             reduxStore.dispatch(loadingFinishedAction)
-
-            const removeGatingErrorAction = removeGatingError(gatingErrorId)
-            currentState = applicationReducer(currentState, removeGatingErrorAction)
-            reduxStore.dispatch(removeGatingErrorAction)
         }
     },
 

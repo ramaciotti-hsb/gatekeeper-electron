@@ -415,7 +415,7 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
 
     process.stdout.write(JSON.stringify({ data: 'Calculating density' }))
 
-    const densityWidth = Math.floor((options.plotWidth + options.plotHeight) * 0.009)
+    const densityWidth = Math.floor((options.plotWidth + options.plotHeight) * 0.012)
 
     const densityMap = calculateDensity(aboveZeroPopulation, scales, densityWidth)
 

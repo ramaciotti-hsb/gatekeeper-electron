@@ -135,14 +135,13 @@ export default class PersistentHomology {
                 polygons: [
                     circle
                 ],
+                protected: true,
                 nucleus: peak.position,
                 height: 0,
                 type: constants.GATE_TYPE_POLYGON,
                 includedPoints: includedPoints
             }
         })
-
-        console.log(peaks.map(p => p.nucleus))
 
         while (currentHeight > 0) {
             peaks = this.performHomologyIteration(currentHeight, peaks)
@@ -164,7 +163,7 @@ export default class PersistentHomology {
                 peak.gateCreatorData = {
                     truePeakWidthIndex: peak.truePeakWidthIndex,
                     // widthIndex: Math.min(25, peak.polygons.length - peak.truePeakWidthIndex - 1)
-                    widthIndex: peak.polygons.length - peak.truePeakWidthIndex - 1
+                    widthIndex: peak.polygons.length - peak.truePeakWidthIndex - 5
                 }
             }
 
@@ -205,7 +204,7 @@ export default class PersistentHomology {
             'information': ''
         }
         // Try and match them to options.gateTemplates
-        if (peaks.length !== polygonTemplates.reduce((acc, curr) => { return acc + (curr.typeSpecificData.optional ? 0 : 1) }, 0)) {
+        if (peaks.length > polygonTemplates.reduce((acc, curr) => { return acc + (curr.typeSpecificData.optional ? 0 : 1) }, 0)) {
             lengthStatus = {
                 'message': 'A different number of populations were found',
                 'status': constants.STATUS_FAIL,
@@ -230,7 +229,7 @@ export default class PersistentHomology {
                 peak.gateCreatorData = template.typeSpecificData
                 peak.gateCreatorData.truePeakWidthIndex = peak.truePeakWidthIndex                    
                 // peak.gateCreatorData.widthIndex = Math.max(Math.min(peak.polygons.length - 1 - peak.gateCreatorData.truePeakWidthIndex, peak.gateCreatorData.widthIndex), -peak.gateCreatorData.truePeakWidthIndex)
-                peak.gateCreatorData.widthIndex = peak.polygons.length - peak.truePeakWidthIndex - 1
+                peak.gateCreatorData.widthIndex = peak.polygons.length - peak.truePeakWidthIndex - 5
                 peak.gateTemplateId = template.id
             }
         }
@@ -350,7 +349,7 @@ export default class PersistentHomology {
                     const iSize = newPeaks[i].polygons.slice(-1)[0].length < 3 ? 0 : area(newPeaks[i].polygons.slice(-1)[0].map((p) => { return { x: p[0], y: p[1] } }))
                     const jSize = newPeaks[j].polygons.slice(-1)[0].length < 3 ? 0 : area(newPeaks[j].polygons.slice(-1)[0].map((p) => { return { x: p[0], y: p[1] } }))
 
-                    if (jSize < this.options.minPeakSize && newPeaks[j].height > this.options.minPeakHeight) {
+                    if (jSize < this.options.minPeakSize && newPeaks[j].height > this.options.minPeakHeight && !newPeaks[j].protected) {
                         let newIncludedPoints = newPeaks[i].includedPoints.concat(newPeaks[j].includedPoints)
                         // Rebuild polygons after combining
                         let newPolygon = hull(newIncludedPoints, 50)
@@ -363,6 +362,7 @@ export default class PersistentHomology {
                             height: newPeaks[i].height,
                             id: newPeaks[i].id,
                             truePeak: newPeaks[i].truePeak,
+                            protected: newPeaks[i].protected,
                             truePeakWidthIndex: newPeaks[i].truePeakWidthIndex,
                             xGroup: newPeaks[i].xGroup,
                             yGroup: newPeaks[i].yGroup

@@ -103,36 +103,6 @@ export const expandToIncludeZeroes = (xCutoffs, yCutoffs, gates, options) => {
         } else {
             closestGate.gateCreatorData.includeYChannelZeroes = true
             closestGate.gateData.expandedYPolygons = []
-            closestGate.gateData.yCutoffs = yCutoffs[p]
-            // Don't expand to include events if expansion has been explicitly disabled by the user
-            for (let i = 0; i < closestGate.gateData.polygons.length; i++) {
-                const polygon = closestGate.gateData.polygons[i]
-                const xBoundaries = getPolygonBoundaries(polygon)[0]
-                let newPolygon = []
-                let shouldAdd = true
-                for (let i = 0; i < polygon.length; i++) {
-                    const point = polygon[i]
-                    if (shouldAdd) {
-                        newPolygon.push(point)
-                    }
-                    if (point[0] === xBoundaries[1][0] && point[1] === xBoundaries[1][1]) {
-                        // Insert the new 0 edge points
-                        newPolygon = newPolygon.concat([
-                            [Math.min(yCutoffs[p][2], xBoundaries[1][0]), options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
-                            [yCutoffs[p][1], options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
-                            [Math.max(yCutoffs[p][0], xBoundaries[0][0]), options.plotHeight - CYTOF_HISTOGRAM_WIDTH]
-                        ])
-                        shouldAdd = false
-                    } else if (point[0] === xBoundaries[0][0] && point[1] === xBoundaries[0][1]) {
-                        shouldAdd = true
-                    }
-                }
-
-                newPolygon = breakLongLinesIntoPoints(newPolygon)
-                // Recalculate the polygon boundary
-
-                closestGate.gateData.expandedYPolygons[i] = hull(newPolygon, 50)
-            }
         }
     }
 
@@ -159,149 +129,11 @@ export const expandToIncludeZeroes = (xCutoffs, yCutoffs, gates, options) => {
         } else {
             closestGate.gateCreatorData.includeXChannelZeroes = true
             closestGate.gateData.xCutoffs = xCutoffs[p]
-            closestGate.gateData.expandedXPolygons = []
-            // Don't expand to include events if expansion has been explicitly disabled by the user
-            for (let i = 0; i < closestGate.gateData.polygons.length; i++) {
-                const polygon = closestGate.gateData.polygons[i]
-                // Remove all points between the corresponding boundaries
-                const yBoundaries = getPolygonBoundaries(polygon)[1]
-                let newPolygon = []
-                let shouldAdd = true
-                for (let i = 0; i < polygon.length; i++) {
-                    const point = polygon[i]
-                    if (shouldAdd) {
-                        newPolygon.push(point)
-                    }
-                    if (point[0] === yBoundaries[1][0] && point[1] === yBoundaries[1][1]) {
-                        // Insert the new 0 edge points
-                        newPolygon = newPolygon.concat([
-                            [0, Math.min(xCutoffs[p][2], yBoundaries[1][1])],
-                            [0, xCutoffs[p][1]],
-                            [0, Math.max(xCutoffs[p][0], yBoundaries[0][1])],
-                        ])
-                        shouldAdd = false
-                    } else if (point[0] === yBoundaries[0][0] && point[1] === yBoundaries[0][1]) {
-                        shouldAdd = true
-                    }
-                }
-
-                newPolygon = breakLongLinesIntoPoints(newPolygon)
-                // Recalculate the polygon boundary
-                closestGate.gateData.expandedXPolygons[i] = hull(newPolygon, 50)
-            }
         }
     }
 
     // Update values on all gates that didn't get expanded
     for (let gate of gates) {
-        if (!gate.gateData.xCutoffs) {
-            gate.gateData.expandedXPolygons = []
-            // Don't expand to include events if expansion has been explicitly disabled by the user
-            for (let i = 0; i < gate.gateData.polygons.length; i++) {
-                const polygon = gate.gateData.polygons[i]
-                // Remove all points between the corresponding boundaries
-                const yBoundaries = getPolygonBoundaries(polygon)[1]
-                let newPolygon = []
-                let shouldAdd = true
-                for (let i = 0; i < polygon.length; i++) {
-                    const point = polygon[i]
-                    if (shouldAdd) {
-                        newPolygon.push(point)
-                    }
-                    if (point[0] === yBoundaries[1][0] && point[1] === yBoundaries[1][1]) {
-                        // Insert the new 0 edge points
-                        newPolygon = newPolygon.concat([
-                            [0, yBoundaries[1][1]],
-                            [0, (yBoundaries[1][1] + yBoundaries[0][1]) / 2],
-                            [0, yBoundaries[0][1]],
-                        ])
-                        shouldAdd = false
-                    } else if (point[0] === yBoundaries[0][0] && point[1] === yBoundaries[0][1]) {
-                        shouldAdd = true
-                    }
-                }
-
-                newPolygon = breakLongLinesIntoPoints(newPolygon)
-                // Recalculate the polygon boundary
-                gate.gateData.expandedXPolygons[i] = hull(newPolygon, 50)
-                gate.gateData.xCutoffs = [yBoundaries[0][1], (yBoundaries[0][1] + yBoundaries[1][1]) / 2, yBoundaries[1][1]]
-            }
-        }
-        if (!gate.gateData.yCutoffs) {
-            gate.gateData.expandedYPolygons = []
-            // Don't expand to include events if expansion has been explicitly disabled by the user
-            for (let i = 0; i < gate.gateData.polygons.length; i++) {
-                const polygon = gate.gateData.polygons[i]
-                const xBoundaries = getPolygonBoundaries(polygon)[0]
-                let newPolygon = []
-                let shouldAdd = true
-                for (let i = 0; i < polygon.length; i++) {
-                    const point = polygon[i]
-                    if (shouldAdd) {
-                        newPolygon.push(point)
-                    }
-                    if (point[0] === xBoundaries[1][0] && point[1] === xBoundaries[1][1]) {
-                        // Insert the new 0 edge points
-                        newPolygon = newPolygon.concat([
-                            [xBoundaries[1][0], options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
-                            [(xBoundaries[1][0] + xBoundaries[0][0]) / 2, options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
-                            [xBoundaries[0][0], options.plotHeight - CYTOF_HISTOGRAM_WIDTH]
-                        ])
-                        shouldAdd = false
-                    } else if (point[0] === xBoundaries[0][0] && point[1] === xBoundaries[0][1]) {
-                        shouldAdd = true
-                    }
-                }
-
-                newPolygon = breakLongLinesIntoPoints(newPolygon)
-                // Recalculate the polygon boundary
-
-                gate.gateData.expandedYPolygons[i] = hull(newPolygon, 50)
-                gate.gateData.yCutoffs = [xBoundaries[0][0], (xBoundaries[0][0] + xBoundaries[1][0]) / 2, xBoundaries[1][0]]
-            }
-        }
-        // If this peak has been expanded towards both axis, create a new array for double expansion
-        if (gate.gateData.xCutoffs && gate.gateData.yCutoffs) {
-            gate.gateData.doubleExpandedPolygons = []
-
-            for (let i = 0; i < gate.gateData.polygons.length; i++) {
-                const polygon = gate.gateData.polygons[i]
-                // Remove all points between the corresponding boundaries
-                const yBoundaries = getPolygonBoundaries(polygon)[1]
-                const xBoundaries = getPolygonBoundaries(polygon)[0]
-                let newPolygon = []
-                let shouldAdd = true
-                for (let i = 0; i < polygon.length; i++) {
-                    const point = polygon[i]
-                    if (shouldAdd) {
-                        newPolygon.push(point)
-                    }
-                    if (point[0] === xBoundaries[1][0] && point[1] === xBoundaries[1][1]) {
-                        shouldAdd = false
-                        // Insert the new corner point
-                        newPolygon = newPolygon.concat([
-                            [Math.min(gate.gateData.yCutoffs[2], xBoundaries[1][0]), options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
-                            [gate.gateData.yCutoffs[1], options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
-                            [Math.max(gate.gateData.yCutoffs[0], xBoundaries[0][0]), options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
-                            [0, options.plotHeight - CYTOF_HISTOGRAM_WIDTH],
-                            [0, Math.min(gate.gateData.xCutoffs[2], yBoundaries[1][1])],
-                            [0, gate.gateData.xCutoffs[1]],
-                            [0, Math.max(gate.gateData.xCutoffs[0], yBoundaries[0][1])]
-                        ])
-                    } else if (point[0] === yBoundaries[0][0] && point[1] === yBoundaries[0][1]) {
-                        shouldAdd = true
-                    }
-                }
-
-                newPolygon = breakLongLinesIntoPoints(newPolygon)
-
-                // Recalculate the polygon boundary
-                gate.gateData.doubleExpandedPolygons[i] = hull(newPolygon, 50)
-            }
-
-            gate.gateData.xCutoffs[2] = options.plotHeight - CYTOF_HISTOGRAM_WIDTH
-            gate.gateData.yCutoffs[0] = 0
-        }
 
         if (!gate.gateCreatorData.includeXChannelZeroes) {
             gate.gateCreatorData.includeXChannelZeroes = false
