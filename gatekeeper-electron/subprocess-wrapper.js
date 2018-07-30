@@ -39,7 +39,7 @@ if (cluster.isMaster) {
             if (populationCache[key]) {
                 resolve(populationCache[key])
             } else {
-                getSubPopulation(sample, FCSFile, options).then((data) => {
+                getPopulationForSample(sample, FCSFile, options).then((data) => {
                     populationCache[key] = data
                     if (_.keys(populationCache).length > 10) {
                         delete populationCache[_.keys(populationCache).slice(-1)[0]]
@@ -53,6 +53,7 @@ if (cluster.isMaster) {
     }
 
     const handleError = (response, error) => {
+        console.log(error)
         response.end(JSON.stringify({ status: constants.STATUS_FAIL, error: error.message }))
     }
 
