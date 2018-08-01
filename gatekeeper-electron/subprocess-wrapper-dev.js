@@ -40,7 +40,7 @@ const _ = require('lodash')
 
 const cluster = require('cluster');
 const http = require('http');
-const numCPUs = Math.max(require('os').cpus().length - 1, 1);
+const numCPUs = Math.max(require('os').cpus().length - 2, 1);
 
 if (cluster.isMaster) {
   // Fork workers.

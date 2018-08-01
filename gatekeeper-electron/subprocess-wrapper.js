@@ -1,5 +1,5 @@
 // -------------------------------------------------------------
-// IPC wrapper for running cpu intensive subprocess tasks
+// HTTP wrapper for running cpu intensive subprocess tasks
 // -------------------------------------------------------------
 
 const assetDirectory = process.argv[2]
@@ -16,7 +16,7 @@ import constants from '../gatekeeper-utilities/constants'
 
 const cluster = require('cluster');
 const http = require('http');
-const numCPUs = Math.max(require('os').cpus().length - 1, 1);
+const numCPUs = Math.max(require('os').cpus().length - 2, 1);
 
 if (cluster.isMaster) {
   // Fork workers.

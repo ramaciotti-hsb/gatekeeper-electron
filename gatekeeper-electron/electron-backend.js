@@ -43,9 +43,6 @@ let currentState = {}
 
 let reduxStore
 
-// Debug imports below
-// import getImageForPlotBackend from '../lib/get-image-for-plot'
-
 // Fork a new node process for doing CPU intensive jobs
 let workerFork
 
@@ -150,7 +147,7 @@ const processJobs = async function () {
     }
 }
 
-for (let i = 0; i < Math.max(os.cpus().length - 1, 1); i++) {
+for (let i = 0; i < Math.max(os.cpus().length - 2, 1); i++) {
     processJobs()
 }
 
