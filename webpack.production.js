@@ -20,7 +20,8 @@ module.exports = merge(common, {
         new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/),
         new webpack.DefinePlugin({
             'process.env': {
-                'NODE_ENV': JSON.stringify('production')
+                'NODE_ENV': JSON.stringify('production'),
+                'CONTEXT': JSON.stringify('electron')
             }
         }),
         // new MinifyPlugin({}, { comments: false }),
