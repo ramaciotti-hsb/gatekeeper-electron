@@ -16,7 +16,7 @@ module.exports = merge(common, {
                 'CONTEXT': JSON.stringify('electron')
             }
         })
-    ]
+    ],
     module: {
         rules: [
             {

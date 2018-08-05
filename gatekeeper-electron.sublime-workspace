@@ -1,0 +1,1819 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"permission",
+				"permissionsResult"
+			],
+			[
+				"FCSFI",
+				"FCSFileId"
+			],
+			[
+				"FCSFile",
+				"FCSFileId"
+			],
+			[
+				"selectedF",
+				"selectedFCSFile"
+			],
+			[
+				"FCSF",
+				"FCSFile"
+			],
+			[
+				"bytes",
+				"bytesExpected"
+			],
+			[
+				"filterIn",
+				"filterInputRef"
+			],
+			[
+				"machineType",
+				"machineTypeRef"
+			],
+			[
+				"selected_",
+				"selected_fcs_file_id"
+			],
+			[
+				"newWork",
+				"newWorkspaceLoading"
+			],
+			[
+				"worksp",
+				"workspaces"
+			],
+			[
+				"gatekeeper",
+				"gatekeeper-frontend"
+			],
+			[
+				"getPopu",
+				"getPopulationForSample"
+			],
+			[
+				"csv",
+				"csvStream"
+			],
+			[
+				"paramet",
+				"parameterLabel"
+			],
+			[
+				"gateTemp",
+				"gateTemplateGroup"
+			],
+			[
+				"updateUnsaved",
+				"updateUnsavedGateDerivedData"
+			],
+			[
+				"gateTempalte",
+				"gateTemplateGroup"
+			],
+			[
+				"population",
+				"populationCache"
+			],
+			[
+				"gatingEr",
+				"gatingErrorId"
+			],
+			[
+				"selectedFCS",
+				"selectedFCSFile"
+			],
+			[
+				"FCSFil",
+				"FCSFileId"
+			],
+			[
+				"gateTemplate",
+				"gateTemplateGroup"
+			],
+			[
+				"gatingErro",
+				"gatingErrors"
+			],
+			[
+				"selectedGate",
+				"selectedGateTemplate"
+			],
+			[
+				"gatingError",
+				"gatingErrorId"
+			],
+			[
+				"closestP",
+				"closestPointDistance"
+			],
+			[
+				"current",
+				"currentState"
+			],
+			[
+				"gateTEmplate",
+				"gateTemplateGroup"
+			],
+			[
+				"gatingE",
+				"gatingError"
+			],
+			[
+				"gateTEmpl",
+				"gateTemplateGroup"
+			],
+			[
+				"selected",
+				"selectedXParameterIndex"
+			],
+			[
+				"inverte",
+				"invertedXCutoffs"
+			],
+			[
+				"FCSFi",
+				"FCSFiles"
+			],
+			[
+				"CHARACTER",
+				"CHARACTER_CODE_RIGHT_ARROW"
+			],
+			[
+				"gateTemplateGroup",
+				"gateTemplateGroups"
+			],
+			[
+				"gateTemplatePo",
+				"gateTemplatePosition"
+			],
+			[
+				"gateTep",
+				"gateTemplateGroup"
+			],
+			[
+				"parentGate",
+				"parentGateTemplate"
+			],
+			[
+				"parentGateTemp",
+				"parentGateTemplateId"
+			],
+			[
+				"gating",
+				"gatingError"
+			],
+			[
+				"selectedGateTe",
+				"selectedGateTemplateGroup"
+			],
+			[
+				"gateTEmp",
+				"gateTemplateGroupId"
+			],
+			[
+				"selecteDFCS",
+				"selectedFCSFileId"
+			],
+			[
+				"childGateTe",
+				"childGateTemplateGroup"
+			],
+			[
+				"gateTempalteGrou",
+				"gateTemplateGroupId"
+			],
+			[
+				"selectedSm",
+				"selectedSampleId"
+			],
+			[
+				"createGating",
+				"createGatingErrorAction"
+			],
+			[
+				"return",
+				"returnData"
+			],
+			[
+				"negative",
+				"negativeGate"
+			],
+			[
+				"curr",
+				"currentState"
+			],
+			[
+				"toggle",
+				"toggleCreateNegativeGate"
+			],
+			[
+				"GATE_TYPE",
+				"GATE_TYPE_COMBO"
+			],
+			[
+				"highlight",
+				"highlightedGateIds"
+			],
+			[
+				"highlightedG",
+				"highlightedGateIds"
+			],
+			[
+				"hig",
+				"highlightedGateId"
+			],
+			[
+				"toggleSe",
+				"toggleSelectComboGateWithId"
+			],
+			[
+				"selecting",
+				"selectingComboGate"
+			],
+			[
+				"addition",
+				"additionalOptions"
+			],
+			[
+				"halfway",
+				"halfwayPoint"
+			],
+			[
+				"disabl",
+				"disabledKeys"
+			],
+			[
+				"incrm",
+				"incrementorCache"
+			],
+			[
+				"incrementorCac",
+				"incrementorCache"
+			],
+			[
+				"incremento",
+				"incrementorCache"
+			],
+			[
+				"increme",
+				"incrementorCache"
+			],
+			[
+				"density",
+				"densityWidth"
+			],
+			[
+				"curren",
+				"currentValue"
+			],
+			[
+				"index",
+				"index"
+			],
+			[
+				"getINclud",
+				"getGateIncludedEvents"
+			],
+			[
+				"includeZero",
+				"includeXChannelZeroes"
+			],
+			[
+				"aboveZer",
+				"aboveZeroCopy"
+			],
+			[
+				"aboveZero",
+				"aboveZeroPopulation"
+			],
+			[
+				"invert",
+				"invertedPolygon"
+			],
+			[
+				"GATE_TYP",
+				"GATE_TYPE_POLYGON"
+			],
+			[
+				"increm",
+				"incrementor"
+			],
+			[
+				"gateCreator",
+				"gateCreatorData"
+			],
+			[
+				"getPopul",
+				"getPopulationForSampleInternal"
+			],
+			[
+				"widt",
+				"widthIndex"
+			],
+			[
+				"cacheIm",
+				"cacheImage"
+			],
+			[
+				"cacheImage",
+				"cacheImageKey"
+			],
+			[
+				"getPol",
+				"getPolygonBoundaries"
+			],
+			[
+				"gateCrea",
+				"gateCreatorData"
+			],
+			[
+				"setUnsa",
+				"setUnsavedGatesAction"
+			],
+			[
+				"zeroDen",
+				"zeroDensityY"
+			],
+			[
+				"closes",
+				"closestPeakIndex"
+			],
+			[
+				"homology",
+				"homologyPeaks"
+			],
+			[
+				"trueP",
+				"truePeak"
+			],
+			[
+				"truePeak",
+				"truePeakWidthIndex"
+			],
+			[
+				"homolo",
+				"homologyPeaks"
+			],
+			[
+				"minPea",
+				"minPeakHeight"
+			],
+			[
+				"maxD",
+				"maxDensity"
+			],
+			[
+				"calculate",
+				"calculateDensity1D"
+			],
+			[
+				"findPeak",
+				"findPeaksInternal"
+			],
+			[
+				"GATE_TYPE_",
+				"GATE_TYPE_NEGATIVE"
+			],
+			[
+				"gateTemplateG",
+				"gateTemplateGroup"
+			],
+			[
+				"priority",
+				"priorityKeys"
+			],
+			[
+				"disabled",
+				"disabledParameters"
+			],
+			[
+				"plotWi",
+				"plotWidthString"
+			],
+			[
+				"plotWidth",
+				"plotWidth"
+			],
+			[
+				"default",
+				"defaultState"
+			],
+			[
+				"cytoF",
+				"cytofOptions"
+			],
+			[
+				"editingwork",
+				"editingWorkspaceTitleText"
+			],
+			[
+				"workspace",
+				"workspaceId"
+			],
+			[
+				"editing",
+				"editingWorkspaceTitleId"
+			],
+			[
+				"editi",
+				"editingWorkspaceTitleId"
+			],
+			[
+				"updateWo",
+				"updateWorkspaceTitleText"
+			],
+			[
+				"editingW",
+				"editingWorkspaceTitleId"
+			],
+			[
+				"workspa",
+				"workspaceIndex"
+			],
+			[
+				"selectedX",
+				"selectedXParameterIndex"
+			],
+			[
+				"machine",
+				"machineType"
+			],
+			[
+				"backgroun",
+				"backgroundJobsEnabled"
+			],
+			[
+				"getPOl",
+				"getPolygonXBoundaries"
+			],
+			[
+				"minPeak",
+				"minPeakHeight"
+			],
+			[
+				"halfwa",
+				"halfwayPoint"
+			],
+			[
+				"closetP",
+				"closestPointDistance"
+			],
+			[
+				"onDrop",
+				"onDropFile"
+			],
+			[
+				"samples",
+				"samplesToRecalculate"
+			],
+			[
+				"childGate",
+				"childGateTemplates"
+			],
+			[
+				"selectedSa",
+				"selectedSample"
+			],
+			[
+				"gateTEmplateG",
+				"gateTemplateGroup"
+			],
+			[
+				"minPe",
+				"minPeakHeight"
+			],
+			[
+				"gateTempl",
+				"gateTemplateGroup"
+			],
+			[
+				"sample",
+				"sampleId"
+			],
+			[
+				"createFCS",
+				"createFCSFileAndAddToWorkspace"
+			],
+			[
+				"FCSFIL",
+				"FCSFileReducer"
+			],
+			[
+				"updateGate",
+				"updateGateTemplateGroup"
+			],
+			[
+				"selecteDX",
+				"selectedXParameterIndex"
+			],
+			[
+				"highli",
+				"highlight-colour"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "gatekeeper-electron/electron-backend.js",
+			"settings":
+			{
+				"buffer_size": 94636,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "gatekeeper-frontend/reducers/gate-template-reducer.js",
+			"settings":
+			{
+				"buffer_size": 2623,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "gatekeeper-frontend/reducers/sample-reducer.js",
+			"settings":
+			{
+				"buffer_size": 5958,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 52.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"web",
+				"View: Toggle Side Bar"
+			],
+			[
+				"babel",
+				"Set Syntax: JavaScript (Babel)"
+			],
+			[
+				"babe",
+				"Set Syntax: JavaScript (Babel)"
+			],
+			[
+				"babek",
+				"Xdebug: Add/Remove Breakpoint"
+			],
+			[
+				"upper",
+				"Convert Case: Upper Case"
+			],
+			[
+				"lowe",
+				"Convert Case: Lower Case"
+			],
+			[
+				"c#",
+				"Set Syntax: C#"
+			],
+			[
+				"remove",
+				"Package Control: Remove Package"
+			],
+			[
+				"remove p",
+				"Package Control: Remove Package"
+			],
+			[
+				"javascript ne",
+				"Set Syntax: JavaScript Next"
+			],
+			[
+				"java",
+				"Set Syntax: JavaScript (Babel)"
+			],
+			[
+				"upp",
+				"Convert Case: Upper Case"
+			],
+			[
+				"lower",
+				"Convert Case: Lower Case"
+			],
+			[
+				"bab",
+				"Set Syntax: JavaScript (Babel)"
+			],
+			[
+				"blame",
+				"Git: Blame"
+			],
+			[
+				"r",
+				"Set Syntax: R"
+			],
+			[
+				"xml",
+				"Set Syntax: XML"
+			],
+			[
+				"bla",
+				"Git: Blame"
+			],
+			[
+				"ss bab",
+				"Set Syntax: JavaScript (Babel)"
+			],
+			[
+				"jsx",
+				"Set Syntax: JSX"
+			],
+			[
+				"javasc",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"twig",
+				"Set Syntax: HTML (Twig)"
+			],
+			[
+				"inst",
+				"Package Control: Install Package"
+			],
+			[
+				"php",
+				"Set Syntax: PHP"
+			],
+			[
+				"pretty ",
+				"Pretty JSON: Format (Pretty Print) JSON"
+			],
+			[
+				"json",
+				"Pretty JSON: Format (Pretty Print) JSON"
+			],
+			[
+				"rein",
+				"Indentation: Reindent Lines"
+			],
+			[
+				"reind",
+				"Indentation: Reindent Lines"
+			],
+			[
+				"yam",
+				"Set Syntax: YAML"
+			],
+			[
+				"up",
+				"Convert Case: Upper Case"
+			],
+			[
+				"javascrip",
+				"Set Syntax: JavaScript (Babel)"
+			],
+			[
+				"javascr",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"css",
+				"Set Syntax: CSS"
+			],
+			[
+				"reinde",
+				"Indentation: Reindent Lines"
+			],
+			[
+				"html",
+				"Set Syntax: HTML"
+			],
+			[
+				"ss bash",
+				"Set Syntax: Shell Script (Bash)"
+			],
+			[
+				"ss sql",
+				"Set Syntax: SQL"
+			],
+			[
+				"sql",
+				"SQL Beautifier: Format Current SQL File"
+			],
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"blam",
+				"Git: Blame"
+			],
+			[
+				"list pack",
+				"Package Control: List Packages"
+			],
+			[
+				"pret",
+				"Pretty JSON: Format (Pretty Print) JSON"
+			],
+			[
+				"toml",
+				"Set Syntax: TOML"
+			],
+			[
+				"yaml",
+				"Set Syntax: YAML"
+			],
+			[
+				"package",
+				"Package Control: List Packages"
+			],
+			[
+				"git bla",
+				"Git: Blame"
+			],
+			[
+				"bash",
+				"Set Syntax: Shell Script (Bash)"
+			],
+			[
+				"bas",
+				"Set Syntax: Shell Script (Bash)"
+			],
+			[
+				"b lame",
+				"Git: Blame"
+			],
+			[
+				"ruby",
+				"Set Syntax: Ruby"
+			],
+			[
+				"b l",
+				"Git: Blame"
+			],
+			[
+				"g",
+				"Git: Blame"
+			],
+			[
+				"blamde",
+				"SublimeLinter: Enable Debug Mode"
+			],
+			[
+				"git bl",
+				"Git: Blame"
+			],
+			[
+				"bl",
+				"Git: Blame"
+			],
+			[
+				"js",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"po",
+				"Set Syntax: SQL (PostgreSQL)"
+			],
+			[
+				"pretty",
+				"Pretty JSON: Format (Pretty Print) JSON"
+			],
+			[
+				"instal",
+				"Package Control: Install Package"
+			],
+			[
+				"mark",
+				"Markdown Preview: Preview in Browser"
+			],
+			[
+				"markdown",
+				"Markdown Preview: Preview in Browser"
+			],
+			[
+				"markdo",
+				"Markdown Preview: Preview in Browser"
+			],
+			[
+				"sass",
+				"Set Syntax: Sass"
+			],
+			[
+				"scss",
+				"Set Syntax: SCSS"
+			],
+			[
+				"scs",
+				"Set Syntax: CoffeeScript"
+			],
+			[
+				"pre",
+				"Pretty JSON: Format (Pretty Print) JSON"
+			],
+			[
+				"ht",
+				"Set Syntax: HTML"
+			],
+			[
+				"jso",
+				"Pretty JSON: Format (Pretty Print) JSON"
+			],
+			[
+				"docker",
+				"Set Syntax: Dockerfile"
+			],
+			[
+				"post",
+				"Set Syntax: SQL (PostgreSQL)"
+			],
+			[
+				"remove pa",
+				"Package Control: Remove Package"
+			],
+			[
+				"in",
+				"Package Control: Install Package"
+			],
+			[
+				"git blame",
+				"Git: Blame"
+			],
+			[
+				"dockerf",
+				"Set Syntax: Dockerfile"
+			],
+			[
+				"dock",
+				"Set Syntax: Dockerfile"
+			],
+			[
+				"les",
+				"Set Syntax: LESS"
+			],
+			[
+				"sas",
+				"Set Syntax: Sass"
+			],
+			[
+				"pretty form",
+				"Pretty JSON: Format (Pretty Print) JSON"
+			],
+			[
+				"less",
+				"Set Syntax: LESS"
+			],
+			[
+				"sq",
+				"Set Syntax: SQL"
+			],
+			[
+				"j",
+				"Set Syntax: JSX"
+			],
+			[
+				"javascri",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"javas",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"handle",
+				"Set Syntax: Handlebars"
+			],
+			[
+				"intsall",
+				"Package Control: Install Package"
+			],
+			[
+				"ng",
+				"Set Syntax: nginx"
+			],
+			[
+				"packa",
+				"Package Control: Add Channel"
+			]
+		],
+		"width": 442.0
+	},
+	"console":
+	{
+		"height": 126.0,
+		"history":
+		[
+			"import urllib.request,os,hashlib; h = 'eb2297e1a458f27d836c04bb0cbaf282' + 'd0e7a3098092775ccb37ca9d6b2e4b7d'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://packagecontrol.io/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/Users/nicbarker/Documents/gatekeeper-electron"
+	],
+	"file_history":
+	[
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/reducers/workspace-reducer.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/webpack.production.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/reducers/fcs-file-reducer.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/electron-backend.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/lib/gate-utilities.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/webpack.dev.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/lib/get-fcs-metadata.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/components/workspace-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-jobs/endpoints/fcs-files.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/file-server/index.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-utilities/utilities.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker-compose.yml",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/index.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/file-server/Dockerfile",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-jobs/index.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/endpoints/fcs-files.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-utilities/scales/log-scale.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-utilities/scales/arcsinh-scale.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-utilities/polygon-utilities.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-utilities/scales/logicle-scale.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-utilities/scales/logicle.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-utilities/constants.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/jobs/Dockerfile",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/jobs/startup.sh",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/package.json",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/components/sample-components/multiple-sample-view-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/endpoints/session.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/api/Dockerfile",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/file-server/package.json",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/jobs/pm2.config.json",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/postgres-data/Dockerfile",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/file-server/startup.sh",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/file-server/pm2.config.json",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/endpoints/workspaces.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/api/web-api.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/deploy/create_user_settings_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/deploy/create_fcs_files_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/deploy/create_progress_tokens_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/components/menu-bar-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/endpoints/progress-tokens.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/lib/dropdown-inline.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/components/fcs-file-selector-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/scss/fcs-file-selector-component.scss",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/deploy/create_workspaces_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/deploy/create_fcs_file_events.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/sqitch.plan",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/deploy/create_user_workspaces_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/deploy/create_fcs_file_parameters_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/deploy/create_fcs_file_2d_densities.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/reducers/workspace-reducer.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/actions/application-actions.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/reducers/application-reducer.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/reducers/fcs-file-reducer.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/containers/workspace-container.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/containers/application-container.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/containers/fcs-file-selector-container.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/revert/create_progress_tokens_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/create_progress_tokens_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/endpoints/authentication.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/components/application-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/create_fcs_file_2d_densities.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/revert/create_fcs_file_2d_densities.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/create_fcs_file_events.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/revert/create_fcs_file_events.sql",
+		"/Users/nicbarker/Documents/fbi-wordpress-dev2/fbi-wordpress/wp-includes/kses.php",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/components/fcs-parameter-selector-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/containers/multiple-sample-view-container.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/deploy/create_workspace_fcs_files.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/endpoints/user-settings.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/create_workspace_fcs_files.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/revert/create_workspace_fcs_files.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/scss/dropdown.scss",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/scss/mixins.scss",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/scss/menu-bar-component.scss",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/revert/create_fcs_file_parameters_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/create_fcs_file_parameters_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/deploy/create_fcs_file_events_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/revert/create_fcs_files_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/create_fcs_files_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/components/sample-components/bivariate-plot-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/api/seed.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/actions/workspace-actions.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/deploy/initial_schema.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/revert/create_user_workspaces_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/revert/initial_schema.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/initial_schema.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/application.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/lib/database.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/webpack.common.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/revert/create_user_settings_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/create_user_settings_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/create_user_workspaces_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/revert/create_workspaces_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/create_workspaces_table.sql",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/scss/homology-modal.scss",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/components/homology-modal-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/api/pm2.config.json",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/dev-scripts/developmentDB.sh",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/lib/global-keyboard-listener.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/components/login-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/scss/login-component.scss",
+		"/Users/nicbarker/Documents/salestrack-dev/salestrack-frontend/js/libs/auth-helper.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/api/curl -d '{\"email\": \"test@test.com\",\"password\": \"12",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/node_modules/shelljs/global.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/actions/user-actions.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/lib/config.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/dev-scripts/productionDB.sh",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/api/startup.sh",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/webpack/Dockerfile",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/frontend/Dockerfile",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/postgres/Dockerfile",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/README.md",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/sqitch.conf",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/.babelrc",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/package.json",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-utilities/package.json",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/node_modules/d3-hierarchy/src/pack/siblings.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/index.production.html",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/webpack/webpack.common.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/webpack/webpack.dev.js",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/webpack/index.dev.html",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/index.dev.html",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/README.md",
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/gulp/Dockerfile",
+		"/Users/nicbarker/Documents/gatekeeper/gatekeeper-frontend/.gitignore",
+		"/Users/nicbarker/Documents/gatekeeper/gatekeeper-frontend/lib/dropdown-inline.jsx",
+		"/Users/nicbarker/Documents/gatekeeper/gatekeeper-frontend/lib/dropdown.jsx",
+		"/Users/nicbarker/Documents/gatekeeper/gatekeeper-frontend/reducers/workspace-reducer.js"
+	],
+	"find":
+	{
+		"height": 33.0
+	},
+	"find_in_files":
+	{
+		"height": 91.0,
+		"where_history":
+		[
+			"-dist/*, -node_modules/**/*, -gatekeeper-frontend/node_modules/**/*",
+			""
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"workspace.gateTemplateIds",
+			"populationCount",
+			"statistics.min",
+			"getFCSm"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 2,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "gatekeeper-electron/electron-backend.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 94636,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								16642,
+								16642
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScriptNext - ES6 Syntax/JavaScriptNext.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 6135.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "gatekeeper-frontend/reducers/gate-template-reducer.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2623,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								422,
+								423
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScriptNext - ES6 Syntax/JavaScriptNext.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "gatekeeper-frontend/reducers/sample-reducer.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5958,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1247,
+								726
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScriptNext - ES6 Syntax/JavaScriptNext.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 24.0
+	},
+	"input":
+	{
+		"height": 33.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.SublimeLinter":
+	{
+		"height": 0.0
+	},
+	"output.SublimeLinter Messages":
+	{
+		"height": 98.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"output.unsaved_changes":
+	{
+		"height": 98.0
+	},
+	"output.xdebug":
+	{
+		"height": 98.0
+	},
+	"pinned_build_system": "",
+	"project": "gatekeeper-electron.sublime-project",
+	"replace":
+	{
+		"height": 44.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"sample-re",
+				"gatekeeper-frontend/reducers/sample-reducer.js"
+			],
+			[
+				"workspace",
+				"gatekeeper-frontend/reducers/workspace-reducer.js"
+			],
+			[
+				"gate-template-re",
+				"gatekeeper-frontend/reducers/gate-template-reducer.js"
+			],
+			[
+				"electron-back",
+				"gatekeeper-electron/electron-backend.js"
+			],
+			[
+				"fcs-file-re",
+				"gatekeeper-frontend/reducers/fcs-file-reducer.js"
+			],
+			[
+				"gate-ut",
+				"gatekeeper-electron/lib/gate-utilities.js"
+			],
+			[
+				"get-fcs-",
+				"gatekeeper-electron/lib/get-fcs-metadata.js"
+			],
+			[
+				"docker-compose",
+				"docker-compose.yml"
+			],
+			[
+				"workspace-component",
+				"gatekeeper-frontend/components/workspace-component.jsx"
+			],
+			[
+				"web",
+				"gatekeeper-frontend/api/web-api.js"
+			],
+			[
+				"job index",
+				"gatekeeper-jobs/index.js"
+			],
+			[
+				"web-api",
+				"gatekeeper-frontend/api/web-api.js"
+			],
+			[
+				"web-ap",
+				"gatekeeper-frontend/api/web-api.js"
+			],
+			[
+				"file server index",
+				"file-server/index.js"
+			],
+			[
+				"jobs fcs-f",
+				"gatekeeper-jobs/endpoints/fcs-files.js"
+			],
+			[
+				"gatekeeper-util cons",
+				"gatekeeper-utilities/constants.js"
+			],
+			[
+				"docker-com",
+				"docker-compose.yml"
+			],
+			[
+				"file post da",
+				"docker/postgres-data/Dockerfile"
+			],
+			[
+				"file dock",
+				"docker/file-server/Dockerfile"
+			],
+			[
+				"fcs-files",
+				"gatekeeper-jobs/endpoints/fcs-files.js"
+			],
+			[
+				"package",
+				"gatekeeper-api/package.json"
+			],
+			[
+				"multiple-samp",
+				"gatekeeper-frontend/components/sample-components/multiple-sample-view-component.jsx"
+			],
+			[
+				"sessions",
+				"gatekeeper-api/endpoints/session.js"
+			],
+			[
+				"workspaces",
+				"gatekeeper-api/endpoints/workspaces.js"
+			],
+			[
+				"fcs-",
+				"gatekeeper-api/endpoints/fcs-files.js"
+			],
+			[
+				"dep fcs file",
+				"gatekeeper-api/sqitch/deploy/create_fcs_files_table.sql"
+			],
+			[
+				"create user depl",
+				"gatekeeper-api/sqitch/deploy/create_user_settings_table.sql"
+			],
+			[
+				"workspace-r",
+				"gatekeeper-frontend/reducers/workspace-reducer.js"
+			],
+			[
+				"progrtess",
+				"gatekeeper-api/endpoints/progress-tokens.js"
+			],
+			[
+				"fcs-file-sel",
+				"gatekeeper-frontend/scss/fcs-file-selector-component.scss"
+			],
+			[
+				"fcs-file-sec",
+				"gatekeeper-frontend/components/fcs-file-selector-component.jsx"
+			],
+			[
+				"dropdowninlin",
+				"gatekeeper-frontend/lib/dropdown-inline.jsx"
+			],
+			[
+				"sessio",
+				"gatekeeper-api/endpoints/session.js"
+			],
+			[
+				"menu-bar",
+				"gatekeeper-frontend/components/menu-bar-component.jsx"
+			],
+			[
+				"appplicat redu",
+				"gatekeeper-frontend/reducers/application-reducer.js"
+			],
+			[
+				"workspace-con",
+				"gatekeeper-frontend/containers/workspace-container.jsx"
+			],
+			[
+				"fcs-file-se",
+				"gatekeeper-frontend/components/fcs-file-selector-component.jsx"
+			],
+			[
+				"application-re",
+				"gatekeeper-frontend/reducers/application-reducer.js"
+			],
+			[
+				"application-ac",
+				"gatekeeper-frontend/actions/application-actions.js"
+			],
+			[
+				"index.j",
+				"gatekeeper-api/index.js"
+			],
+			[
+				"workspace-cont",
+				"gatekeeper-frontend/containers/workspace-container.jsx"
+			],
+			[
+				"workspace-comp",
+				"gatekeeper-frontend/components/workspace-component.jsx"
+			],
+			[
+				"applica",
+				"gatekeeper-frontend/components/application-component.jsx"
+			],
+			[
+				"session.js",
+				"gatekeeper-api/endpoints/session.js"
+			],
+			[
+				"dep create fcs",
+				"gatekeeper-api/sqitch/deploy/create_fcs_files_table.sql"
+			],
+			[
+				"auth",
+				"gatekeeper-api/endpoints/authentication.js"
+			],
+			[
+				"fcs-f",
+				"gatekeeper-api/endpoints/fcs-files.js"
+			],
+			[
+				"workspac",
+				"gatekeeper-api/endpoints/workspaces.js"
+			],
+			[
+				"fcs-file-sele",
+				"gatekeeper-frontend/components/fcs-file-selector-component.jsx"
+			],
+			[
+				"user-set",
+				"gatekeeper-api/endpoints/user-settings.js"
+			],
+			[
+				"workspace.j",
+				"gatekeeper-api/endpoints/workspaces.js"
+			],
+			[
+				"session",
+				"gatekeeper-api/endpoints/session.js"
+			],
+			[
+				"application.jsx",
+				"gatekeeper-frontend/components/application-component.jsx"
+			],
+			[
+				"fcs-file",
+				"gatekeeper-api/endpoints/fcs-files.js"
+			],
+			[
+				".plan",
+				"gatekeeper-api/sqitch/sqitch.plan"
+			],
+			[
+				"application-js",
+				"gatekeeper-frontend/components/application-component.jsx"
+			],
+			[
+				"web-",
+				"gatekeeper-frontend/api/web-api.js"
+			],
+			[
+				"index",
+				"gatekeeper-api/index.js"
+			],
+			[
+				"menu",
+				"gatekeeper-frontend/scss/menu-bar-component.scss"
+			],
+			[
+				"applicaiton-re",
+				"gatekeeper-frontend/reducers/application-reducer.js"
+			],
+			[
+				"dropdow",
+				"gatekeeper-frontend/scss/dropdown.scss"
+			],
+			[
+				"mixins",
+				"gatekeeper-frontend/scss/mixins.scss"
+			],
+			[
+				"application-com",
+				"gatekeeper-frontend/components/application-component.jsx"
+			],
+			[
+				"workspace-acion",
+				"gatekeeper-frontend/actions/workspace-actions.js"
+			],
+			[
+				"workspace-re",
+				"gatekeeper-frontend/reducers/workspace-reducer.js"
+			],
+			[
+				"create_work",
+				"gatekeeper-api/sqitch/deploy/create_workspaces_table.sql"
+			],
+			[
+				"application-red",
+				"gatekeeper-frontend/reducers/application-reducer.js"
+			],
+			[
+				"index.js",
+				"gatekeeper-api/index.js"
+			],
+			[
+				"workspace-compon",
+				"gatekeeper-frontend/components/workspace-component.jsx"
+			],
+			[
+				"constan",
+				"gatekeeper-utilities/constants.js"
+			],
+			[
+				"app js",
+				"gatekeeper-frontend/application.js"
+			],
+			[
+				"workspace-compone",
+				"gatekeeper-frontend/components/workspace-component.jsx"
+			],
+			[
+				"workspace-ac",
+				"gatekeeper-frontend/actions/workspace-actions.js"
+			],
+			[
+				"database",
+				"gatekeeper-api/lib/database.js"
+			],
+			[
+				"dropdown.sc",
+				"gatekeeper-frontend/scss/dropdown.scss"
+			],
+			[
+				"app re",
+				"gatekeeper-frontend/reducers/application-reducer.js"
+			],
+			[
+				"application-compo",
+				"gatekeeper-frontend/components/application-component.jsx"
+			],
+			[
+				"application.js",
+				"gatekeeper-frontend/application.js"
+			],
+			[
+				"auth end",
+				"gatekeeper-api/endpoints/authentication.js"
+			],
+			[
+				"app actions",
+				"gatekeeper-frontend/actions/application-actions.js"
+			],
+			[
+				"glo ke",
+				"gatekeeper-frontend/lib/global-keyboard-listener.js"
+			],
+			[
+				"app con",
+				"gatekeeper-frontend/containers/application-container.jsx"
+			],
+			[
+				"application-cont",
+				"gatekeeper-frontend/containers/application-container.jsx"
+			],
+			[
+				"app red",
+				"gatekeeper-frontend/reducers/application-reducer.js"
+			],
+			[
+				"global",
+				"gatekeeper-api/node_modules/shelljs/global.js"
+			],
+			[
+				"constants",
+				"gatekeeper-utilities/constants.js"
+			],
+			[
+				"dropdown-",
+				"gatekeeper-frontend/lib/dropdown-inline.jsx"
+			],
+			[
+				"config",
+				"gatekeeper-api/lib/config.js"
+			],
+			[
+				"bivariate-plot",
+				"gatekeeper-frontend/components/sample-components/bivariate-plot-component.jsx"
+			],
+			[
+				"bivariate-",
+				"gatekeeper-frontend/components/sample-components/bivariate-plot-component.jsx"
+			],
+			[
+				"bivariate-plot-",
+				"js/components/sample-components/bivariate-plot-component.jsx"
+			],
+			[
+				"gate-uti",
+				"js/electron/lib/gate-utilities.js"
+			],
+			[
+				"get-popu",
+				"js/lib/get-population-data.js"
+			],
+			[
+				"subprocess-wra",
+				"js/electron/subprocess-wrapper.js"
+			],
+			[
+				"app comp",
+				"js/components/application-component.jsx"
+			],
+			[
+				"get-pop",
+				"js/lib/get-population-data.js"
+			],
+			[
+				"get-po",
+				"js/lib/get-population-data.js"
+			],
+			[
+				"get-population",
+				"js/lib/get-population-data.js"
+			],
+			[
+				"application-compon",
+				"js/components/application-component.jsx"
+			],
+			[
+				"multiple-sample",
+				"js/components/sample-components/multiple-sample-view-component.jsx"
+			],
+			[
+				"gating-error-mo",
+				"js/containers/gating-error-modal-container.jsx"
+			],
+			[
+				"gating-error-modal",
+				"js/components/gating-error-modal-component.jsx"
+			],
+			[
+				"fcs-para",
+				"scss/fcs-parameter-selector.scss"
+			],
+			[
+				"parameter",
+				"js/components/fcs-parameter-selector-component.jsx"
+			],
+			[
+				"gate-re",
+				"js/reducers/gate-reducer.js"
+			],
+			[
+				"gate-reduc",
+				"js/reducers/gate-reducer.js"
+			],
+			[
+				"application-redu",
+				"js/reducers/application-reducer.js"
+			],
+			[
+				"gate-template-reu",
+				"js/reducers/gate-template-reducer.js"
+			],
+			[
+				"gate-template-redu",
+				"js/reducers/gate-template-reducer.js"
+			],
+			[
+				"gate-template",
+				"js/actions/gate-template-group-actions.js"
+			],
+			[
+				"gate-redu",
+				"js/reducers/gate-reducer.js"
+			],
+			[
+				"multiple contain",
+				"js/containers/multiple-sample-view-container.jsx"
+			],
+			[
+				"homology coan",
+				"js/containers/homology-modal-container.jsx"
+			],
+			[
+				"homology contain",
+				"js/containers/homology-modal-container.jsx"
+			],
+			[
+				"electr",
+				"js/electron/electron-backend.js"
+			],
+			[
+				"gate-reu",
+				"js/reducers/gate-reducer.js"
+			],
+			[
+				"bivariate-plot-contain",
+				"js/containers/bivariate-plot-container.jsx"
+			],
+			[
+				"bivariate",
+				"js/components/sample-components/bivariate-plot-component.jsx"
+			],
+			[
+				"modal-compon",
+				"js/components/homology-modal-component.jsx"
+			],
+			[
+				"electron-backen",
+				"js/electron/electron-backend.js"
+			],
+			[
+				"-dev",
+				"js/electron/subprocess-wrapper-dev.js"
+			],
+			[
+				"persiste",
+				"js/lib/persistent-homology.js"
+			],
+			[
+				"erro contain",
+				"js/containers/gating-error-modal-container.jsx"
+			],
+			[
+				"gating-erro modal",
+				"js/components/gating-error-modal-component.jsx"
+			],
+			[
+				"gating-error-moda",
+				"js/containers/gating-error-modal-container.jsx"
+			],
+			[
+				"homology-modal",
+				"js/components/homology-modal-component.jsx"
+			],
+			[
+				"bivariate-plot-conta",
+				"js/containers/bivariate-plot-container.jsx"
+			],
+			[
+				"workspace-conta",
+				"js/containers/workspace-container.jsx"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"last_filter": "web",
+		"selected_items":
+		[
+			[
+				"web",
+				"~/Documents/gatekeeper-web-dev/gatekeeper-web-dev.sublime-project"
+			],
+			[
+				"",
+				"~/Documents/gatekeeper-electron/gatekeeper-electron.sublime-project"
+			],
+			[
+				"elec",
+				"~/Documents/gatekeeper-electron/gatekeeper-electron.sublime-project"
+			]
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 374.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 797.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 362.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

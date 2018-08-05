@@ -25,7 +25,7 @@ import isDev from 'electron-is-dev'
 import { breakLongLinesIntoPoints, fixOverlappingPolygonsUsingZipper } from '../gatekeeper-utilities/polygon-utilities'
 import applicationReducer from '../gatekeeper-frontend/reducers/application-reducer'
 import { setBackgroundJobsEnabled, setPlotDimensions, setPlotDisplayDimensions, toggleShowDisabledParameters, setUnsavedGates, showGatingModal, hideGatingModal, setGatingModalErrorMessage } from '../gatekeeper-frontend/actions/application-actions'
-import { updateSample, removeSample, setSamplePlotImage, setSampleParametersLoading } from '../gatekeeper-frontend/actions/sample-actions'
+import { createSample, updateSample, removeSample, setSamplePlotImage, setSampleParametersLoading } from '../gatekeeper-frontend/actions/sample-actions'
 import { updateGateTemplate, removeGateTemplate } from '../gatekeeper-frontend/actions/gate-template-actions'
 import { updateGateTemplateGroup, removeGateTemplateGroup, addGateTemplateToGroup } from '../gatekeeper-frontend/actions/gate-template-group-actions'
 import { updateFCSFile, removeFCSFile } from '../gatekeeper-frontend/actions/fcs-file-actions'
@@ -263,7 +263,7 @@ const getImageForPlot = async (sample, FCSFile, options, priority) => {
             jobKey: 'image_' + sample.id + '_' + _.values(options).reduce((curr, acc) => { return acc + '_' + curr }, '') + (!!priority).toString(),
             checkValidity: () => {
                 let FCSFileUpdated = _.find(currentState.FCSFiles, fcs => FCSFileId === fcs.id)
-                const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sampleId))
+                const workspace = _.find(currentState.workspaces, w => w.id === sample.workspaceId)
                 if (!workspace || options.machineType !== FCSFileUpdated.machineType) {
                     return false
                 }
@@ -289,7 +289,7 @@ const getImageForPlot = async (sample, FCSFile, options, priority) => {
 }
 
 const getAllPlotImages = async (sample, scales) => {
-    const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sample.id))
+    const workspace = _.find(currentState.workspaces, w => w.id === sample.workspaceId)
     const FCSFile = _.find(currentState.FCSFiles, fcs => sample.FCSFileId === fcs.id)
     let combinations = []
 
@@ -415,7 +415,6 @@ export const api = {
             selectedXScale: parameters.selectedXScale || constants.SCALE_LOG,
             selectedYScale: parameters.selectedYScale || constants.SCALE_LOG,
             FCSFileIds: [],
-            sampleIds: [],
             gateTemplateIds: [],
             gateTemplateGroupIds: [],
             disabledParameters: {},
@@ -531,7 +530,6 @@ export const api = {
     applyGateTemplatesToSample: async function (sampleId) {
         const sample = _.find(currentState.samples, s => s.id === sampleId)
         const FCSFile = _.find(currentState.FCSFiles, fcs => sample.FCSFileId === fcs.id)
-        const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sampleId))
         // Find all template groups that apply to this sample
         const templateGroups = _.filter(currentState.gateTemplateGroups, g => g.parentGateTemplateId === sample.gateTemplateId)
         for (let templateGroup of templateGroups) {
@@ -619,15 +617,18 @@ export const api = {
                         if (gates.length > 0) {
                             for (let i = 0; i < gates.length; i++) {
                                 const gate = gates[i]
+                                gate.workspaceId = sample.workspaceId
                                 api.createSubSampleAndAddToWorkspace(
-                                    workspace.id,
+                                    sample.workspaceId,
                                     sampleId,
                                     {
+                                        parentSampleId: sampleId,
+                                        workspaceId: sample.workspaceId,
+                                        FCSFileId: sample.FCSFileId,
                                         filePath: sample.filePath,
                                         title: gate.title,
                                         FCSParameters: FCSFile.FCSParameters,
                                         plotImages: {},
-                                        subSampleIds: [],
                                         gateTemplateId: gate.gateTemplateId,
                                         selectedXParameterIndex: templateGroup.selectedXParameterIndex,
                                         selectedYParameterIndex: templateGroup.selectedYParameterIndex,
@@ -669,9 +670,8 @@ export const api = {
         }
 
         // If homology was succesful, the sample will now have child samples
-        const updatedSample = _.find(currentState.samples, s => s.id === sampleId)
-        for (let subSampleId of updatedSample.subSampleIds) {
-            await api.applyGateTemplatesToSample(subSampleId)
+        for (let subSample of _.filter(currentState.samples, s => s.parentSampleId === sampleId)) {
+            await api.applyGateTemplatesToSample(subSample.id)
         }
     },
 
@@ -725,9 +725,10 @@ export const api = {
         reduxStore.dispatch(updateAction)
 
         const sampleId = uuidv4()
-        const createSampleAction = createSampleAndAddToWorkspace(workspaceId, {
+        const createSampleAction = createSample({
             id: sampleId,
             title: 'Root Sample',
+            workspaceId: workspaceId,
             FCSFileId,
             description: 'Top level root sample for this FCS File',
             gateTemplateId: workspace.gateTemplateIds[0],
@@ -775,32 +776,20 @@ export const api = {
 
         let sample = {
             id: sampleId,
-            title: sampleParameters.title,
+            parentSampleId: sampleParameters.parentSampleId,
             FCSFileId: parentSample.FCSFileId,
+            workspaceId: sampleParameters.workspaceId,
+            title: sampleParameters.title,
             description: sampleParameters.description,
             gateTemplateId: sampleParameters.gateTemplateId,
             parametersLoading: [],
             // Below are defaults
-            subSampleIds: [],
             plotImages: {}
         }
 
-        const gate = {
-            id: gateId,
-            type: gateParameters.type,
-            renderedPolygon: gateParameters.renderedPolygon,
-            renderedXCutoffs: gateParameters.renderedXCutoffs,
-            renderedYCutoffs: gateParameters.renderedYCutoffs,
-            gateData: gateParameters.gateData,
-            gateCreatorData: gateParameters.gateCreatorData,
-            selectedXParameterIndex: gateParameters.selectedXParameterIndex,
-            selectedYParameterIndex: gateParameters.selectedYParameterIndex,
-            selectedXScale: gateParameters.selectedXScale,
-            selectedYScale: gateParameters.selectedYScale,
-            gateTemplateId: gateParameters.gateTemplateId,
-            xGroup: gateParameters.xGroup,
-            yGroup: gateParameters.yGroup,
-        }
+        gateParameters.id = gateId
+        gateParameters.childSampleId = sampleId
+        gateParameters.parentSampleId = sampleParameters.parentSampleId
 
         // If there was no title specified, auto generate one
         let title = 'Subsample'
@@ -810,8 +799,8 @@ export const api = {
         const backendSample = _.cloneDeep(sample)
         backendSample.includeEventIds = gateParameters.includeEventIds
 
-        currentState = applicationReducer(currentState, createSubSampleAndAddToWorkspace(workspaceId, parentSampleId, backendSample, gate))
-        reduxStore.dispatch(createSubSampleAndAddToWorkspace(workspaceId, parentSampleId, sample, gate))
+        currentState = applicationReducer(currentState, createSubSampleAndAddToWorkspace(workspaceId, parentSampleId, backendSample, gateParameters))
+        reduxStore.dispatch(createSubSampleAndAddToWorkspace(workspaceId, parentSampleId, sample, gateParameters))
 
         // If the gate template doesn't have an example gate yet, use this one
         const gateTemplate = _.find(currentState.gateTemplates, gt => gt.id === gateParameters.gateTemplateId)
@@ -997,7 +986,6 @@ export const api = {
     calculateHomology: async function (sampleId, options) {
         const sample = _.find(currentState.samples, s => s.id === sampleId)
         const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
-        const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sampleId))
 
         let gateTemplate = _.find(currentState.gateTemplates, gt => gt.id === sample.gateTemplateId)
         let gateTemplateGroup = _.find(currentState.gateTemplateGroups, (group) => {
@@ -1544,7 +1532,6 @@ export const api = {
     applyUnsavedGatesToSample: async (sampleId, options) => {
         const sample = _.find(currentState.samples, s => s.id === sampleId)
         const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
-        const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sampleId))
         // Find if there is already a gate template group for this combination or not
         let gateTemplateGroup = _.find(currentState.gateTemplateGroups, g => g.parentGateTemplateId === sample.gateTemplateId && g.selectedXParameterIndex === options.selectedXParameterIndex && g.selectedYParameterIndex === options.selectedYParameterIndex)
         let gateTemplateGroupExists = !!gateTemplateGroup
@@ -1585,7 +1572,7 @@ export const api = {
 
                     gate.gateTemplateId = gateTemplate.id
 
-                    const createGateTemplateAction = createGateTemplateAndAddToWorkspace(workspace.id, gateTemplate)
+                    const createGateTemplateAction = createGateTemplateAndAddToWorkspace(sample.workspaceId, gateTemplate)
                     currentState = applicationReducer(currentState, createGateTemplateAction)
                     reduxStore.dispatch(createGateTemplateAction)
 
@@ -1595,7 +1582,7 @@ export const api = {
                 }
 
                 // Delete all child samples created as a result of this gate template group
-                const matchingSample = _.find(currentState.samples, s => s.gateTemplateId === gate.gateTemplateId && sample.subSampleIds.includes(s.id))
+                const matchingSample = _.find(currentState.samples, s => s.gateTemplateId === gate.gateTemplateId && s.parentSampleId === sample.id)
                 if (matchingSample) {
                     const removeAction = removeSample(matchingSample.id)
                     currentState = applicationReducer(currentState, removeAction)
@@ -1656,13 +1643,13 @@ export const api = {
                 newGateTemplateGroup.childGateTemplateIds.push(gateTemplate.id)
                 gate.gateTemplateId = gateTemplate.id
         
-                const createGateTemplateAction = createGateTemplateAndAddToWorkspace(workspace.id, gateTemplate)
+                const createGateTemplateAction = createGateTemplateAndAddToWorkspace(sample.workspaceId, gateTemplate)
                 currentState = applicationReducer(currentState, createGateTemplateAction)
                 reduxStore.dispatch(createGateTemplateAction)
                 return gateTemplate
             })
 
-            const createGateTemplateGroupAction = createGateTemplateGroupAndAddToWorkspace(workspace.id, newGateTemplateGroup)
+            const createGateTemplateGroupAction = createGateTemplateGroupAndAddToWorkspace(sample.workspaceId, newGateTemplateGroup)
             currentState = applicationReducer(currentState, createGateTemplateGroupAction)
             reduxStore.dispatch(createGateTemplateGroupAction)
 
@@ -1684,15 +1671,18 @@ export const api = {
 
         for (let i = 0; i < reduxStore.getState().unsavedGates.length; i++) {
             const gate = reduxStore.getState().unsavedGates[i]
+            gate.workspaceId = sample.workspaceId
             await api.createSubSampleAndAddToWorkspace(
-                workspace.id,
+                sample.workspaceId,
                 sampleId,
                 {
+                    parentSampleId: sampleId,
+                    workspaceId: sample.workspaceId,
+                    FCSFileId: sample.FCSFileId,
                     title: gate.title,
                     filePath: sample.filePath,
                     FCSParameters: FCSFile.FCSParameters,
                     plotImages: {},
-                    subSampleIds: [],
                     gateTemplateId: gate.gateTemplateId,
                     selectedXParameterIndex: options.selectedXParameterIndex,
                     selectedYParameterIndex: options.selectedYParameterIndex,
@@ -1724,7 +1714,6 @@ export const api = {
     applyErrorHandlerToGatingError: async (gatingErrorId, errorHandler) => {
         const gatingError = _.find(currentState.gatingErrors, e => e.id === gatingErrorId)
         const sample = _.find(currentState.samples, s => s.id === gatingError.sampleId)
-        const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(gatingError.sampleId))
         const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
         const gateTemplateGroup = _.find(currentState.gateTemplateGroups, g => g.id === gatingError.gateTemplateGroupId)
         const gateTemplates = _.filter(currentState.gateTemplates, gt => gateTemplateGroup.childGateTemplateIds.includes(gt.id))
@@ -1887,7 +1876,6 @@ export const api = {
                 //             title: gate.title,
                 //             FCSParameters: FCSFile.FCSParameters,
                 //             plotImages: {},
-                //             subSampleIds: [],
                 //             gateTemplateId: gate.gateTemplateId,
                 //             selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
                 //             selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
@@ -1914,7 +1902,6 @@ export const api = {
     recursiveHomology: async (sampleId) => {
         const sample = _.find(currentState.samples, s => s.id === sampleId)
         const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
-        const workspace = _.find(currentState.workspaces, w => w.sampleIds.includes(sampleId))
 
         let comparisons = []
 
