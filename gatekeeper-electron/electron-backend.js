@@ -26,14 +26,14 @@ import { breakLongLinesIntoPoints, fixOverlappingPolygonsUsingZipper } from '../
 import applicationReducer from '../gatekeeper-frontend/reducers/application-reducer'
 import { setBackgroundJobsEnabled, setPlotDimensions, setPlotDisplayDimensions, toggleShowDisabledParameters, setUnsavedGates, showGatingModal, hideGatingModal, setGatingModalErrorMessage } from '../gatekeeper-frontend/actions/application-actions'
 import { createSample, updateSample, removeSample, setSamplePlotImage, setSampleParametersLoading } from '../gatekeeper-frontend/actions/sample-actions'
+import { createGate } from '../gatekeeper-frontend/actions/gate-actions'
 import { updateGateTemplate, removeGateTemplate } from '../gatekeeper-frontend/actions/gate-template-actions'
 import { updateGateTemplateGroup, removeGateTemplateGroup, addGateTemplateToGroup } from '../gatekeeper-frontend/actions/gate-template-group-actions'
 import { updateFCSFile, removeFCSFile } from '../gatekeeper-frontend/actions/fcs-file-actions'
 import { createGatingError, updateGatingError, removeGatingError } from '../gatekeeper-frontend/actions/gating-error-actions'
 import area from 'area-polygon'
 import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace,
-    createFCSFileAndAddToWorkspace, selectFCSFile,
-    createSampleAndAddToWorkspace, createSubSampleAndAddToWorkspace, selectSample, invertPlotAxis,
+    createFCSFileAndAddToWorkspace, selectFCSFile, invertPlotAxis,
     createGateTemplateAndAddToWorkspace, selectGateTemplate,
     createGateTemplateGroupAndAddToWorkspace, setFCSParametersDisabled } from '../gatekeeper-frontend/actions/workspace-actions'
 
@@ -799,8 +799,11 @@ export const api = {
         const backendSample = _.cloneDeep(sample)
         backendSample.includeEventIds = gateParameters.includeEventIds
 
-        currentState = applicationReducer(currentState, createSubSampleAndAddToWorkspace(workspaceId, parentSampleId, backendSample, gateParameters))
-        reduxStore.dispatch(createSubSampleAndAddToWorkspace(workspaceId, parentSampleId, sample, gateParameters))
+        currentState = applicationReducer(currentState, createSample(backendSample))
+        reduxStore.dispatch(createSample(sample))
+
+        currentState = applicationReducer(currentState, createGate(gateParameters))
+        reduxStore.dispatch(createGate(gateParameters))
 
         // If the gate template doesn't have an example gate yet, use this one
         const gateTemplate = _.find(currentState.gateTemplates, gt => gt.id === gateParameters.gateTemplateId)
@@ -843,22 +846,6 @@ export const api = {
 
     selectFCSFile: async function (FCSFileId, workspaceId) {
         const selectAction = selectFCSFile(FCSFileId, workspaceId)
-        currentState = applicationReducer(currentState, selectAction)
-        reduxStore.dispatch(selectAction)
-
-        saveSessionToDisk()
-    },
-
-    selectSample: async function (sampleId, workspaceId) {
-        const sample = _.find(currentState.samples, s => s.id === sampleId)
-        // Find the associated workspace
-        const workspace = _.find(currentState.workspaces, w => w.id === workspaceId)
-        // Get the currently selected gate template
-        const selectedGateTemplate = _.find(currentState.gateTemplates, gt => gt.id === workspace.selectedGateTemplateId)
-        // Select the related sub sample
-        const relatedSample = _.find(currentState.samples, s => s.gateTemplateId === selectedGateTemplate.id && s.filePath === sample.filePath)
-
-        const selectAction = selectSample(relatedSample.id, workspaceId)
         currentState = applicationReducer(currentState, selectAction)
         reduxStore.dispatch(selectAction)
 
