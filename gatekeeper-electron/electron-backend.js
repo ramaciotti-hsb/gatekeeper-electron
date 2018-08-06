@@ -29,11 +29,10 @@ import { createSample, updateSample, removeSample, setSamplePlotImage, setSample
 import { createGate } from '../gatekeeper-frontend/actions/gate-actions'
 import { updateGateTemplate, removeGateTemplate } from '../gatekeeper-frontend/actions/gate-template-actions'
 import { updateGateTemplateGroup, removeGateTemplateGroup, addGateTemplateToGroup } from '../gatekeeper-frontend/actions/gate-template-group-actions'
-import { updateFCSFile, removeFCSFile } from '../gatekeeper-frontend/actions/fcs-file-actions'
+import { createFCSFile, updateFCSFile, removeFCSFile } from '../gatekeeper-frontend/actions/fcs-file-actions'
 import { createGatingError, updateGatingError, removeGatingError } from '../gatekeeper-frontend/actions/gating-error-actions'
 import area from 'area-polygon'
-import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace,
-    createFCSFileAndAddToWorkspace, selectFCSFile, invertPlotAxis,
+import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace, selectFCSFile, invertPlotAxis,
     createGateTemplateAndAddToWorkspace, selectGateTemplate,
     createGateTemplateGroupAndAddToWorkspace, setFCSParametersDisabled } from '../gatekeeper-frontend/actions/workspace-actions'
 
@@ -414,7 +413,6 @@ export const api = {
             description: parameters.description,
             selectedXScale: parameters.selectedXScale || constants.SCALE_LOG,
             selectedYScale: parameters.selectedYScale || constants.SCALE_LOG,
-            FCSFileIds: [],
             gateTemplateIds: [],
             gateTemplateGroupIds: [],
             disabledParameters: {},
@@ -709,14 +707,19 @@ export const api = {
 
         let FCSFile = {
             id: FCSFileId,
+            workspaceId: workspaceId,
             filePath: FCSFileParameters.filePath,
             title: FCSFileParameters.title,
             description: FCSFileParameters.description,
         }
 
-        const createFCSFileAction = createFCSFileAndAddToWorkspace(workspaceId, FCSFile)
+        const createFCSFileAction = createFCSFile(FCSFile)
         currentState = applicationReducer(currentState, createFCSFileAction)
         reduxStore.dispatch(createFCSFileAction)
+
+        const selectAction = selectFCSFile(FCSFileId, workspaceId)
+        currentState = applicationReducer(currentState, selectAction)
+        reduxStore.dispatch(selectAction)
 
         const FCSMetaData = await getFCSMetadata(FCSFile.filePath)
 
@@ -738,7 +741,6 @@ export const api = {
         reduxStore.dispatch(createSampleAction)
 
         const workspaceParameters = {
-            selectedGateTemplateId: workspace.gateTemplateIds[0],
             selectedXScale: FCSMetaData.machineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP,
             selectedYScale: FCSMetaData.machineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP
         }
