@@ -38,13 +38,16 @@ export const findIncludedEvents = (gates, population, FCSFile, options) => {
         let invertedXCutoffs
         let invertedYCutoffs
 
-        if (gate.gateData.xCutoffs) {
-            invertedXCutoffs = [ Math.round(scales.yScale.invert(gate.gateData.xCutoffs[2]) * 100) / 100, Math.round(scales.yScale.invert(gate.gateData.xCutoffs[0]) * 100) / 100 ]
+        if (gate.gateCreatorData.includeXChannelZeroes) {
+            invertedXCutoffs = [ Math.round(scales.yScale.invert(gate.renderedXCutoffs[1]) * 100) / 100, Math.round(scales.yScale.invert(gate.renderedXCutoffs[0]) * 100) / 100 ]
         }
 
-        if (gate.gateData.yCutoffs) {
-            invertedYCutoffs = [ Math.round(scales.xScale.invert(gate.gateData.yCutoffs[0]) * 100) / 100, Math.round(scales.xScale.invert(gate.gateData.yCutoffs[2]) * 100) / 100 ]
+        if (gate.gateCreatorData.includeYChannelZeroes) {
+            invertedYCutoffs = [ Math.round(scales.xScale.invert(gate.renderedYCutoffs[0]) * 100) / 100, Math.round(scales.xScale.invert(gate.renderedYCutoffs[1]) * 100) / 100 ]
         }
+
+        console.log(gate.renderedXCutoffs, gate.renderedYCutoffs)
+        console.log(invertedXCutoffs, invertedYCutoffs)
 
         for (let i = 0; i < populationCopy.length; i++) {
             const point = populationCopy[i]
