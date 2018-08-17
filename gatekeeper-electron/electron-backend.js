@@ -1274,7 +1274,7 @@ export const api = {
 
         let newUnsavedGates = await new Promise((resolve, reject) => {
             pushToQueue({
-                jobParameters: { url: 'http://127.0.0.1:3145', json: { type: 'get-included-events', payload: { sample, gates, FCSFile, options } } },
+                jobParameters: { url: 'http://127.0.0.1:3145', json: { type: 'get-included-events', payload: { workspaceId: sample.workspaceId, FCSFileId: sample.FCSFileId, sampleId: sample.id, gates, options } } },
                 jobKey: uuidv4(),
                 checkValidity: () => { return true },
                 callback: (data) => { resolve(data) }

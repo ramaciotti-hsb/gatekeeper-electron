@@ -173,8 +173,8 @@ if (cluster.isMaster) {
 
 // get-included-events
                 } else if (body.type === 'get-included-events') {
-                    getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((population) => {
-                        const alteredGates = findIncludedEvents(body.payload.gates, population, body.payload.FCSFile, body.payload.options)
+                    getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options).then((population) => {
+                        const alteredGates = findIncludedEvents(population, body.payload.gates, body.payload.options)
                         response.end(JSON.stringify(alteredGates))
                     }).catch(handleError.bind(null, response))
                 }

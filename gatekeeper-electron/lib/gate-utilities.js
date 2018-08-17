@@ -12,18 +12,18 @@ import { getPolygonCenter, getScales, getPolygonBoundaries } from '../../gatekee
 import { breakLongLinesIntoPoints } from '../../gatekeeper-utilities/polygon-utilities'
 
 // Find postive events included inside a particular gate (i.e. both x and y above zero)
-export const findIncludedEvents = (gates, population, FCSFile, options) => {
+export const findIncludedEvents = (population, gates, options) => {
     const CYTOF_HISTOGRAM_WIDTH = Math.round(Math.min(options.plotWidth, options.plotHeight) * 0.07)
 
     // Offset the entire graph and add histograms if we're looking at cytof data
-    let xOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? CYTOF_HISTOGRAM_WIDTH : 0
-    let yOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? CYTOF_HISTOGRAM_WIDTH : 0
+    let xOffset = options.machineType === constants.MACHINE_CYTOF ? CYTOF_HISTOGRAM_WIDTH : 0
+    let yOffset = options.machineType === constants.MACHINE_CYTOF ? CYTOF_HISTOGRAM_WIDTH : 0
     
     const scales = getScales({
         selectedXScale: options.selectedXScale,
         selectedYScale: options.selectedYScale,
-        xRange: [ FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.positiveMin, FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.max ],
-        yRange: [ FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.positiveMin, FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.max ],
+        xRange: [ options.minXValue, options.maxXValue ],
+        yRange: [ options.minYValue, options.maxYValue ],
         width: options.plotWidth - xOffset,
         height: options.plotHeight - yOffset
     })
