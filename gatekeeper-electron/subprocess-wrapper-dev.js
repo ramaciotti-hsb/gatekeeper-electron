@@ -33,13 +33,17 @@ const PersistentHomology = require('./lib/persistent-homology.js').default
 const getFCSMetadata = require('./lib/get-fcs-metadata.js').default
 const findIncludedEvents = require('./lib/gate-utilities').findIncludedEvents
 const find1DPeaks = require('./lib/1d-homology').default
+const importFCSFile = require('./lib/import-fcs-file').default
 const expandToIncludeZeroes = require('./lib/gate-utilities').expandToIncludeZeroes
 const constants = require('../gatekeeper-utilities/constants').default
+const getPlotImageKey = require('../gatekeeper-utilities/utilities').getPlotImageKey
 const fs = require('fs')
 const _ = require('lodash')
+const path = require('path')
 
 const cluster = require('cluster');
 const http = require('http');
+const url = require('url');
 const numCPUs = Math.max(require('os').cpus().length - 2, 1);
 
 if (cluster.isMaster) {
@@ -54,27 +58,6 @@ if (cluster.isMaster) {
   });
 } else {
     console.log(`Child ${process.pid} is running`);
-    const populationCache = {}
-
-    const getPopulation = (sample, FCSFile, options) => {
-        const key = `${sample.id}-${options.selectedXParameterIndex}_${options.selectedXScale}-${options.selectedYParameterIndex}_${options.selectedYScale}`
-        
-        return new Promise((resolve, reject) => {
-            if (populationCache[key]) {
-                resolve(populationCache[key])
-            } else {
-                getPopulationForSample(sample, FCSFile, options).then((data) => {
-                    populationCache[key] = data
-                    if (_.keys(populationCache).length > 10) {
-                        delete populationCache[_.keys(populationCache).slice(-1)[0]]
-                    }
-                    resolve(data)
-                }).catch((error) => {
-                    reject(error)
-                })
-            }
-        })
-    }
 
     const handleError = (response, error) => {
         console.log(error)
@@ -82,28 +65,60 @@ if (cluster.isMaster) {
     }
 
     http.createServer((request, response) => {
-        response.writeHead(200);
         let bodyRaw = ''
         request.on('data', chunk => bodyRaw += chunk)
         request.on('end', () => {
-            const body = JSON.parse(bodyRaw)
-            const jobId = body.jobId
-            if (body.type === 'heartbeat') {
-                heartbeatTime = process.hrtime()[0]
+            const parsedUrl = url.parse(request.url,true)
+
+            if (parsedUrl.pathname === '/plot_images') {
+                const query = parsedUrl.query
+                for (let key of ['plotWidth', 'plotHeight', 'minXValue', 'maxXValue', 'minYValue', 'maxYValue', 'selectedXParameterIndex', 'selectedYParameterIndex']) {
+                    query[key] = parseFloat(query[key])
+                }
+                const fileName = getPlotImageKey(query) + '.png'
+                fs.readFile(path.join(assetDirectory, 'workspaces', query.workspaceId, query.FCSFileId, query.sampleId, fileName), (err, data) => {
+                    if (err) {
+                        getPopulationForSample(query.workspaceId, query.FCSFileId, query.sampleId, query).then((population) => {
+                            getImageForPlot(query.workspaceId, query.FCSFileId, query.sampleId, population, query).then((newFileName) => {
+                                fs.readFile(newFileName, (err, newData) => {
+                                    response.writeHead(200, { 'Content-Type' : 'image/png' })         
+                                    response.end(newData)
+                                })
+                            }).catch(handleError.bind(null, response))
+                        }).catch(handleError.bind(null, response))
+                    } else {
+                        response.writeHead(200, { 'Content-Type' : 'image/png' })                       
+                        response.end(data)
+                    }
+                })
             } else {
+                response.writeHead(200, { 'Content-Type' : 'application/json' })
+                let body = { payload: {} }
+                try {
+                    body = JSON.parse(bodyRaw)
+                } catch (error) {
+                    response.end(JSON.stringify('warning: no json was supplied with input'))
+                }
+
+                const jobId = body.jobId
                 if (body.payload.options) {
                     body.payload.options = _.merge(body.payload.options, { assetDirectory })
                 }
+// import-fcs-file
+                if (body.type === 'import-fcs-file') {
+                    importFCSFile(body.payload.workspaceId, body.payload.FCSFileId, body.payload.filePath).then(() => {
+                        response.end(JSON.stringify({ success: true }))
+                    })
+
 // get-fcs-metadata
-                if (body.type === 'get-fcs-metadata') {
-                    getFCSMetadata(body.payload.filePath).then((data) => {
-                        process.stdout.write(JSON.stringify({ jobId: body.jobId, data: 'Finished job on worker side'}))
+                } else if (body.type === 'get-fcs-metadata') {
+                    getFCSMetadata(body.payload.workspaceId, body.payload.FCSFileId, body.payload.fileName).then((data) => {
                         response.end(JSON.stringify(data))
                     })
 
 // get-population-data
                 } else if (body.type === 'get-population-data') {
-                    getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((data) => { response.end(JSON.stringify(data)) }).catch(handleError.bind(null, response))
+                    getPopulation(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options).then((data) => { response.end(JSON.stringify(data)) }).catch(handleError.bind(null, response))
 
 // save-subsample-to-csv
                 } else if (body.type === 'save-subsample-to-csv') {
@@ -117,18 +132,9 @@ if (cluster.isMaster) {
                         });
                     }).catch(handleError.bind(null, response))
 
-// get-image-for-plot
-                } else if (body.type === 'get-image-for-plot') {
-                    // console.log(body.payload.options)
-                    getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((population) => {
-                        getImageForPlot(body.payload.sample, body.payload.FCSFile, population, body.payload.options).then((data) => {
-                            response.end(JSON.stringify(data))
-                        }).catch(handleError.bind(null, response))
-                    })
-
 // find-peaks
                 } else if (body.type === 'find-peaks') {
-                    getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((population) => {
+                    getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options).then((population) => {
                         const homology = new PersistentHomology(population, body.payload.options)
                         let percentageComplete = 0
                         const data = homology.findPeaks((message) => {
@@ -152,7 +158,7 @@ if (cluster.isMaster) {
                                     
 // get-expanded-gates
                 } else if (body.type === 'get-expanded-gates') {
-                    getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((population) => {
+                    getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options).then((population) => {
                         const xOptions = _.clone(body.payload.options)
                         xOptions.knownPeaks = xOptions.sampleXChannelZeroPeaks
                         const xCutoffs = find1DPeaks(population.zeroDensityX.densityMap, population.maxDensity, xOptions)

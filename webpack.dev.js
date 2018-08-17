@@ -12,9 +12,8 @@ const htmlPlugin = new HtmlPlugin({
 module.exports = merge(common, {
     plugins: [
         new webpack.DefinePlugin({
-            'process.env': {
-                'CONTEXT': JSON.stringify('electron')
-            }
+            'process.env.CONTEXT': JSON.stringify('electron'),
+            'process.env.JOBS_API_URL': JSON.stringify('http://localhost:3145')
         })
     ],
     module: {

@@ -2,7 +2,7 @@
 // Generates a PNG for a plot with options and saves it to the disk.
 // -------------------------------------------------------------------------
 
-import fs from 'fs'
+import fs from 'fs-extra'
 import mkdirp from 'mkdirp'
 import FCS from 'fcs'
 import _ from 'lodash'
@@ -79,20 +79,31 @@ async function getFullSubSamplePopulation (sample, FCSFile) {
     return subPopulation
 }
 
-async function getPopulationForSampleInternal (sample, FCSFile, options) {
-    process.stdout.write(JSON.stringify({ data: 'Reading FCS File: ' + FCSFile.filePath }))
+async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId, options) {
+    const assetDirectory = process.argv[2]
+    const directory = path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, sampleId)
+    const sampleKey = getPlotImageKey(options)
+    const filePath = path.join(directory, `${sampleKey}.json`)
+    console.log(filePath)
+
+    try {
+        return JSON.parse(await readFile(filePath))
+    } catch (error) {
+        console.log("Couldn't find cached population file", error)
+    }
+
+    await mkdirpPromise(directory)
+
     let FCSFileData
     try  {
-        FCSFileData = await getFCSFileFromPath(FCSFile.filePath)        
+        FCSFileData = await getFCSFileFromPath(path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, FCSFileId + '.fcs'))
     } catch (error) {
         process.stderr.write(JSON.stringify(error))
         return
     }
 
-    let xOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(options.plotWidth, options.plotHeight) * 0.07) : 0
-    let yOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(options.plotWidth, options.plotHeight) * 0.07) : 0
-
-    if (!sample) { console.log('Error in getPopulationForSample(): no sample with id ', sampleId, 'was found'); return }
+    let xOffset = options.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(options.plotWidth, options.plotHeight) * 0.07) : 0
+    let yOffset = options.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(options.plotWidth, options.plotHeight) * 0.07) : 0
 
     const subPopulation = []
     const aboveZeroPopulation = []
@@ -100,34 +111,41 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
     const xChannelZeroes = []
     const yChannelZeroes = []
 
-    process.stdout.write(JSON.stringify({ data: 'Removing zeroes' }))
-    if (sample.includeEventIds && sample.includeEventIds.length > 0) {
-        for (let i = 0; i < sample.includeEventIds.length; i++) {
-            const point = FCSFileData.dataAsNumbers[sample.includeEventIds[i]]
+    let includeEventIds = []
+    try {
+        const eventResults = await readFile(path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, sampleId, 'include-event-ids.json'))
+        includeEventIds = JSON.parse(eventResults)
+    } catch (error) {
+        console.log(error)
+    }
 
-            if (FCSFile.machineType === constants.MACHINE_CYTOF) {
+    if (includeEventIds && includeEventIds.length > 0) {
+        for (let i = 0; i < includeEventIds.length; i++) {
+            const point = FCSFileData.dataAsNumbers[includeEventIds[i]]
+
+            if (options.machineType === constants.MACHINE_CYTOF) {
                 // Every point that has a zero in the selected X channel
                 if (point[options.selectedXParameterIndex] === 0 && point[options.selectedYParameterIndex] === 0) {
-                    doubleChannelZeroes.push([ point[options.selectedXParameterIndex], sample.includeEventIds[i] ])
+                    doubleChannelZeroes.push([ point[options.selectedXParameterIndex], includeEventIds[i] ])
                 }
                 // Every point that has a zero in the selected X channel
                 else if (point[options.selectedXParameterIndex] === 0) {
-                    xChannelZeroes.push([ point[options.selectedYParameterIndex], sample.includeEventIds[i] ])
+                    xChannelZeroes.push([ point[options.selectedYParameterIndex], includeEventIds[i] ])
                 // Every point that has a zero in the selected Y channel
                 } else if (point[options.selectedYParameterIndex] === 0) {
-                    yChannelZeroes.push([ point[options.selectedXParameterIndex], sample.includeEventIds[i] ])
+                    yChannelZeroes.push([ point[options.selectedXParameterIndex], includeEventIds[i] ])
                 } else {
-                    aboveZeroPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], sample.includeEventIds[i] ])
+                    aboveZeroPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], includeEventIds[i] ])
                 }
             } else {
-                aboveZeroPopulation.push([ FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex], FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], sample.includeEventIds[i] ])
+                aboveZeroPopulation.push([ FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex], FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], includeEventIds[i] ])
             }
 
-            subPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], sample.includeEventIds[i] ])
+            subPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], includeEventIds[i] ])
         }
     } else {
         for (let i = 0; i < FCSFileData.dataAsNumbers.length; i++) {
-            if (FCSFile.machineType === constants.MACHINE_CYTOF) {
+            if (options.machineType === constants.MACHINE_CYTOF) {
                 // Every point that has a zero in the selected X channel
                 if (FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex] === 0 && FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex] === 0) {
                     doubleChannelZeroes.push([ FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], i ])
@@ -152,8 +170,8 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
     const scales = getScales({
         selectedXScale: options.selectedXScale,
         selectedYScale: options.selectedYScale,
-        xRange: [ FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.positiveMin, FCSFile.FCSParameters[options.selectedXParameterIndex].statistics.max ],
-        yRange: [ FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.positiveMin, FCSFile.FCSParameters[options.selectedYParameterIndex].statistics.max ],
+        xRange: [ options.minXValue, options.maxXValue ],
+        yRange: [ options.minYValue, options.maxYValue ],
         width: options.plotWidth - xOffset,
         height: options.plotHeight - yOffset
     })
@@ -424,7 +442,7 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
     let maxDensityY
     let maxDensityX
 
-    if (FCSFile.machineType === constants.MACHINE_CYTOF) {
+    if (options.machineType === constants.MACHINE_CYTOF) {
         zeroDensityX = calculateDensity1D(xChannelZeroes, scales.yScale, densityWidth)
         zeroDensityY = calculateDensity1D(yChannelZeroes, scales.xScale, densityWidth)
     }
@@ -452,26 +470,13 @@ async function getPopulationForSampleInternal (sample, FCSFile, options) {
         maxDensity: realMaxDensity
     }
 
-    const directory = path.join(options.assetDirectory, 'sample-images', sample.id)
-    const sampleKey = getPlotImageKey(_.merge(options, FCSFile))
-    const fileName = path.join(directory, `${sampleKey}.json`)
-    await mkdirpPromise(directory)
-    fs.writeFile(fileName, JSON.stringify(toReturn), () => { console.log('population data saved to disk') })
+    fs.writeFile(filePath, JSON.stringify(toReturn), () => { console.log('population data saved to disk') })
 
-    return toReturn
+    return toRetun
 }
 
-async function getPopulationForSample (sample, FCSFile, options) {
-    const directory = path.join(options.assetDirectory, 'sample-images', sample.id)
-    const sampleKey = getPlotImageKey(_.merge(options, FCSFile))
-    const fileName = path.join(directory, `${sampleKey}.json`)
-
-    try {
-        const cacheFile = await readFile(fileName)
-        return JSON.parse(cacheFile)
-    } catch (error) {
-        return await getPopulationForSampleInternal(sample, FCSFile, options)
-    }
+async function getPopulationForSample (workspaceId, FCSFileId, sampleId, options) {
+    return await getPopulationForSampleInternal(workspaceId, FCSFileId, sampleId, options)
 }
 
 export { getFullSubSamplePopulation, getPopulationForSample }

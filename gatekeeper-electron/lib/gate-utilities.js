@@ -46,9 +46,6 @@ export const findIncludedEvents = (gates, population, FCSFile, options) => {
             invertedYCutoffs = [ Math.round(scales.xScale.invert(gate.renderedYCutoffs[0]) * 100) / 100, Math.round(scales.xScale.invert(gate.renderedYCutoffs[1]) * 100) / 100 ]
         }
 
-        console.log(gate.renderedXCutoffs, gate.renderedYCutoffs)
-        console.log(invertedXCutoffs, invertedYCutoffs)
-
         for (let i = 0; i < populationCopy.length; i++) {
             const point = populationCopy[i]
             if (!point) { continue }
@@ -75,6 +72,12 @@ export const findIncludedEvents = (gates, population, FCSFile, options) => {
     // Create a negative gate including all the uncaptured events if the user specified
     if (negativeGate) {
         negativeGate.includeEventIds = _.filter(populationCopy, p => !_.isNull(p)).map(p => p[2])
+    }
+
+    let doubleZeroGate = _.find(gates, g => g.type === constants.GATE_TYPE_DOUBLE_ZERO)
+    // Create a double zero gate including all the events with 0 in both channels
+    if (doubleZeroGate) {
+        doubleZeroGate.includeEventIds = population.doubleChannelZeroes.map(p => p[1])
     }
 
     return gates

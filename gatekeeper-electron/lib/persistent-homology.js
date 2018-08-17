@@ -10,7 +10,7 @@ import hull from 'hull.js'
 import _ from 'lodash'
 import uuidv4 from 'uuid/v4'
 import constants from '../../gatekeeper-utilities/constants'
-import { getPolygonCenter } from '../../gatekeeper-utilities/utilities'
+import { getPolygonCenter, getAxisGroups } from '../../gatekeeper-utilities/utilities'
 import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 
 let CYTOF_HISTOGRAM_WIDTH
@@ -32,79 +32,6 @@ export default class PersistentHomology {
         this.population = population
 
         CYTOF_HISTOGRAM_WIDTH = Math.round(Math.min(this.options.plotWidth, this.options.plotHeight) * 0.07)
-    }
-
-    // Returns this.truePeaks arranged into groups along the x and y axis
-    getAxisGroups (peaks) {
-        // Percentage of maximum distance between furthest peak to group together
-        const maxGroupDistance = 0.3
-        // Divide peaks into groups along the x and y axis
-        // Get [minX, maxX] range of peaks along x axis
-        let xRange = peaks.reduce((acc, curr) => { return [ Math.min(acc[0], curr.nucleus[0]), Math.max(acc[1], curr.nucleus[0]) ] }, [Infinity, -Infinity])
-        // Get [minY, maxY] range of peaks along y axis
-        let yRange = peaks.reduce((acc, curr) => { return [ Math.min(acc[0], curr.nucleus[1]), Math.max(acc[1], curr.nucleus[1]) ] }, [Infinity, -Infinity])
-        // Create buckets and place peaks into groups along each axis
-        let xGroups = []
-        let yGroups = []
-        for (let peak of peaks) {
-        
-            const newXGroup = () => {
-                xGroups.push({
-                    position: peak.nucleus[0],
-                    peaks: [ peak.id ]
-                })
-            }
-
-            // Create a group from the first peak
-            if (xGroups.length === 0) {
-                newXGroup()
-            } else {
-                let found = false
-            
-                for (let group of xGroups) {
-                    // If the peak is within 10% of an existing group, add it to that group
-                    if (Math.abs(group.position - peak.nucleus[0]) < (xRange[1] - xRange[0]) * maxGroupDistance) {
-                        group.peaks.push(peak.id)
-                        found = true
-                    }
-                }
-            
-                // Otherwise create a new group
-                if (!found) {
-                    newXGroup()
-                }
-            }
-
-            const newYGroup = () => {
-                yGroups.push({
-                    position: peak.nucleus[1],
-                    peaks: [ peak.id ]
-                })
-            }
-
-            // Create a group from the first peak
-            if (yGroups.length === 0) {
-                newYGroup()
-            } else {
-                let found = false
-            
-                for (let group of yGroups) {
-                    // If the peak is within 10% of an existing group, add it to that group
-                    if (Math.abs(group.position - peak.nucleus[1]) < (yRange[1] - yRange[0]) * maxGroupDistance) {
-                        group.peaks.push(peak.id)
-                        found = true
-                    }
-                }
-            
-                // Otherwise create a new group
-                if (!found) {
-                    newYGroup()
-                }
-            }
-        }
-        xGroups.sort((a, b) => { return a.position - b.position })
-        yGroups.sort((a, b) => { return a.position - b.position })
-        return { xGroups, yGroups } 
     }
 
     findPeaksInternal (stepCallback) {
@@ -162,8 +89,8 @@ export default class PersistentHomology {
 
                 peak.gateCreatorData = {
                     truePeakWidthIndex: peak.truePeakWidthIndex,
-                    // widthIndex: Math.min(25, peak.polygons.length - peak.truePeakWidthIndex - 1)
-                    widthIndex: peak.polygons.length - peak.truePeakWidthIndex - 5
+                    widthIndex: Math.min(25, peak.polygons.length - peak.truePeakWidthIndex - 1)
+                    // widthIndex: peak.polygons.length - peak.truePeakWidthIndex - 5
                 }
             }
 
@@ -175,7 +102,7 @@ export default class PersistentHomology {
     findPeaksWithTemplate (stepCallback, gateTemplates) {
         // First find true peaks at their original size
         let peaks = this.findPeaksInternal(stepCallback)
-        const groups = this.getAxisGroups(peaks)
+        const groups = getAxisGroups(peaks)
         for (let peak of peaks) {
             peak.xGroup = _.findIndex(groups.xGroups, g => g.peaks.includes(peak.id))
             peak.yGroup = _.findIndex(groups.yGroups, g => g.peaks.includes(peak.id))
@@ -228,8 +155,8 @@ export default class PersistentHomology {
             if (template) {
                 peak.gateCreatorData = template.typeSpecificData
                 peak.gateCreatorData.truePeakWidthIndex = peak.truePeakWidthIndex                    
-                // peak.gateCreatorData.widthIndex = Math.max(Math.min(peak.polygons.length - 1 - peak.gateCreatorData.truePeakWidthIndex, peak.gateCreatorData.widthIndex), -peak.gateCreatorData.truePeakWidthIndex)
-                peak.gateCreatorData.widthIndex = peak.polygons.length - peak.truePeakWidthIndex - 5
+                peak.gateCreatorData.widthIndex = Math.max(Math.min(peak.polygons.length - 1 - peak.gateCreatorData.truePeakWidthIndex, peak.gateCreatorData.widthIndex), -peak.gateCreatorData.truePeakWidthIndex)
+                // peak.gateCreatorData.widthIndex = peak.polygons.length - peak.truePeakWidthIndex - 5
                 peak.gateTemplateId = template.id
             }
         }
@@ -244,7 +171,7 @@ export default class PersistentHomology {
 
     findPeaks (stepCallback, dontIncludeZeroes) {
         const peaks = this.findPeaksInternal(stepCallback)
-        const groups = this.getAxisGroups(peaks)
+        const groups = getAxisGroups(peaks)
         // console.log(groups)
         for (let peak of peaks) {
             peak.xGroup = _.findIndex(groups.xGroups, g => g.peaks.includes(peak.id))

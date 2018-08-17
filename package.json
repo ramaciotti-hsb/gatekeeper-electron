@@ -16,6 +16,9 @@
     "mac": {
       "category": "utilities"
     },
+    "win": {
+      "target": "nsis"
+    },
     "files": [
       "*",
       "webpack-build/*"
@@ -28,6 +31,7 @@
     "distance-to-polygon": "^2.0.2",
     "electron-is-dev": "^0.3.0",
     "fcs": "^0.0.7",
+    "fs-extra": "^7.0.0",
     "hsl-to-rgb-for-reals": "^1.1.0",
     "hull.js": "^0.2.10",
     "lodash": "^4.17.4",
@@ -37,6 +41,7 @@
     "pngjs": "^3.3.1",
     "point-in-polygon": "^1.0.1",
     "polygon-overlap": "^1.0.5",
+    "querystring": "^0.2.0",
     "react": "^16.4.1",
     "react-dom": "^16.4.1",
     "react-onclickoutside": "^6.7.1",

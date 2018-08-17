@@ -13,7 +13,7 @@ import uuidv4 from 'uuid/v4'
 import _ from 'lodash'
 import * as d3 from "d3"
 import os from 'os'
-import { getPlotImageKey, heatMapRGBForValue, getScales, getPolygonCenter, getPolygonBoundaries } from '../gatekeeper-utilities/utilities'
+import { getPlotImageKey, heatMapRGBForValue, getScales, getPolygonCenter, getPolygonBoundaries, getAxisGroups } from '../gatekeeper-utilities/utilities'
 import constants from '../gatekeeper-utilities/constants'
 import { fork } from 'child_process'
 import ls from 'ls'
@@ -25,7 +25,7 @@ import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import isDev from 'electron-is-dev'
 import { breakLongLinesIntoPoints, fixOverlappingPolygonsUsingZipper } from '../gatekeeper-utilities/polygon-utilities'
 import applicationReducer from '../gatekeeper-frontend/reducers/application-reducer'
-import { setBackgroundJobsEnabled, setPlotDimensions, setPlotDisplayDimensions, toggleShowDisabledParameters, setUnsavedGates, showGatingModal, hideGatingModal, setGatingModalErrorMessage } from '../gatekeeper-frontend/actions/application-actions'
+import { setPlotDimensions, setPlotDisplayDimensions, toggleShowDisabledParameters, setUnsavedGates, showGatingModal, hideGatingModal, setGatingModalErrorMessage } from '../gatekeeper-frontend/actions/application-actions'
 import { createSample, updateSample, removeSample, setSamplePlotImage, setSampleParametersLoading } from '../gatekeeper-frontend/actions/sample-actions'
 import { createGate } from '../gatekeeper-frontend/actions/gate-actions'
 import { createGateTemplate, updateGateTemplate, removeGateTemplate } from '../gatekeeper-frontend/actions/gate-template-actions'
@@ -102,7 +102,7 @@ const processJob = async function () {
         return false
     } else if (!currentJob.checkValidity()) {
         return true
-    } else if (!currentState.backgroundJobsEnabled && !isPriority) {
+    } else if (!isPriority) {
         pushToQueue(currentJob, false)
         return false
     } else {
@@ -148,8 +148,10 @@ for (let i = 0; i < Math.max(os.cpus().length - 2, 1); i++) {
     processJobs()
 }
 
-workerFork.stdout.on('data', (result) => {
+workerFork.stdout.on('data', async (result) => {
     if (reduxStore.getState().sessionLoading && !reduxStore.getState().sessionBroken) {
+        await api.getSession()
+        
         const action = {
             type: 'SET_SESSION_LOADING',
             payload: {
@@ -163,12 +165,8 @@ workerFork.stdout.on('data', (result) => {
             const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
             if (workspace.selectedFCSFileId && workspace.selectedGateTemplateId) {
                 const sample = _.find(currentState.samples, s => s.gateTemplateId === workspace.selectedGateTemplateId && s.FCSFileId === workspace.selectedFCSFileId)
-                if (sample) {
-                    getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
-                }
             }
             for (let sample of currentState.samples) {
-                getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
                 api.applyGateTemplatesToSample(sample.id)
             }
         }
@@ -226,12 +224,12 @@ const filteredSampleAttributes = ['includeEventIds']
 
 const populationDataCache = {}
 
-const getFCSMetadata = async (filePath) => {
+const getFCSMetadata = async (workspaceId, FCSFileId, fileName) => {
     const jobId = uuidv4()
 
     const metadata = await new Promise((resolve, reject) => {
         pushToQueue({
-            jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-fcs-metadata', payload: { filePath } } },
+            jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-fcs-metadata', payload: { workspaceId, FCSFileId, fileName } } },
             jobKey: uuidv4(),
             checkValidity: () => { return true },
             callback: (data) => { resolve(data) }
@@ -239,73 +237,6 @@ const getFCSMetadata = async (filePath) => {
     })
 
     return metadata
-}
-
-// Generates an image for a 2d scatter plot
-const getImageForPlot = async (sample, FCSFile, options, priority) => {
-    options.directory = remote.app.getPath('userData')
-    options.machineType = FCSFile.machineType
-    options.plotWidth = currentState.plotWidth
-    options.plotHeight = currentState.plotHeight
-    const FCSFileId = sample.FCSFileId
-    const sampleId = sample.id
-
-    if (sample.plotImages[getPlotImageKey(options)]) { return sample.plotImages[getPlotImageKey(options)] }
-
-    const jobId = uuidv4()
-
-    const imagePath = await new Promise((resolve, reject) => {
-        pushToQueue({
-            jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-image-for-plot', payload: { sample, FCSFile, options } } },
-            jobKey: 'image_' + sample.id + '_' + _.values(options).reduce((curr, acc) => { return acc + '_' + curr }, '') + (!!priority).toString(),
-            checkValidity: () => {
-                let FCSFileUpdated = _.find(currentState.FCSFiles, fcs => FCSFileId === fcs.id)
-                const workspace = _.find(currentState.workspaces, w => w.id === sample.workspaceId)
-                if (!workspace || options.machineType !== FCSFileUpdated.machineType) {
-                    return false
-                }
-
-                if (workspace.disabledParameters[FCSFile.FCSParameters[options.selectedXParameterIndex].key]
-                    || workspace.disabledParameters[FCSFile.FCSParameters[options.selectedYParameterIndex].key]) {
-                    return false
-                }
-                return true
-            },
-            callback: (data) => { resolve(data) }
-        }, priority)
-    })
-
-    // Save the image path
-    const imageAction = setSamplePlotImage(sample.id, getPlotImageKey(options), imagePath)
-    currentState = applicationReducer(currentState, imageAction)
-    reduxStore.dispatch(imageAction)
-
-    saveSessionToDisk()
-
-    return imagePath
-}
-
-const getAllPlotImages = async (sample, scales) => {
-    const workspace = _.find(currentState.workspaces, w => w.id === sample.workspaceId)
-    const FCSFile = _.find(currentState.FCSFiles, fcs => sample.FCSFileId === fcs.id)
-    let combinations = []
-
-    for (let x = 0; x < FCSFile.FCSParameters.length; x++) {
-        if (workspace.disabledParameters[FCSFile.FCSParameters[x].key]) { continue }
-        for (let y = x + 1; y < FCSFile.FCSParameters.length; y++) {
-            if (workspace.disabledParameters[FCSFile.FCSParameters[y].key]) { continue }
-            const options = {
-                selectedXParameterIndex: workspace.invertedAxisPlots[x + '_' + y] ? y : x,
-                selectedYParameterIndex: workspace.invertedAxisPlots[x + '_' + y] ? x : y,
-                selectedXScale: scales.selectedXScale,
-                selectedYScale: scales.selectedYScale,
-                machineType: FCSFile.machineType
-            }
-            getImageForPlot(sample, FCSFile, options)
-            // Add a short delay to prevent blocking the interface
-            await new Promise((resolve, reject) => { setTimeout(() => { resolve() }, 1) })
-        }
-    }
 }
 
 const sessionFilePath = path.join(remote.app.getPath('userData'), 'session.json')
@@ -376,14 +307,6 @@ export const api = {
             const workspaceId = await api.createWorkspace({ title: 'New Workspace', description: 'New Workspace' })
             await api.selectWorkspace(workspaceId)
         }
-    },
-
-    setBackgroundJobsEnabled: async function (backgroundJobsEnabled) {
-        const action = setBackgroundJobsEnabled(backgroundJobsEnabled)
-        currentState = applicationReducer(currentState, action)
-        reduxStore.dispatch(action)
-
-        await saveSessionToDisk()
     },
 
     setPlotDisplayDimensions: async function (plotWidth, plotHeight) {
@@ -534,11 +457,10 @@ export const api = {
                         machineType: templateGroup.machineType
                     }
 
-                    await getImageForPlot(sample, FCSFile, options, true)
-
                     let homologyResult = await api.calculateHomology(sampleId, options)
 
                     if (homologyResult.status === constants.STATUS_SUCCESS) {
+                        let gates = api.createGatePolygons(homologyResult.data.gates)
                         // Create the negative gate if there is one
                         const negativeGate = _.find(currentState.gateTemplates, gt => gt.gateTemplateGroupId === templateGroup.id && gt.type === constants.GATE_TYPE_NEGATIVE)
                         if (negativeGate) {
@@ -561,7 +483,28 @@ export const api = {
                             gates.push(newGate)
                         }
 
-                        let gates = api.createGatePolygons(homologyResult.data.gates)
+                        // Create the double zero gate if there is one
+                        const doubleZeroGate = _.find(currentState.gateTemplates, gt => gt.gateTemplateGroupId === templateGroup.id && gt.type === constants.GATE_TYPE_DOUBLE_ZERO)
+                        if (doubleZeroGate) {
+                            const newGate = {
+                                id: uuidv4(),
+                                type: constants.GATE_TYPE_DOUBLE_ZERO,
+                                title: FCSFile.FCSParameters[templateGroup.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[templateGroup.selectedYParameterIndex].label + ' Double Zero Gate',
+                                sampleId: sampleId,
+                                FCSFileId: FCSFile.id,
+                                gateTemplateId: doubleZeroGate.id,
+                                selectedXParameterIndex: templateGroup.selectedXParameterIndex,
+                                selectedYParameterIndex: templateGroup.selectedYParameterIndex,
+                                selectedXScale: templateGroup.selectedXScale,
+                                selectedYScale: templateGroup.selectedYScale,
+                                gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                                gateCreatorData: {},
+                                includeEventIds: []
+                            }
+
+                            gates.push(newGate)
+                        }
+
                         gates = await api.getGateIncludedEvents(gates)
 
                         // Create combo gates AFTER we know which events are in each smaller gate so that they can be concatted for combo gate contents
@@ -604,7 +547,6 @@ export const api = {
                                         filePath: sample.filePath,
                                         title: gate.title,
                                         FCSParameters: FCSFile.FCSParameters,
-                                        plotImages: {},
                                         gateTemplateId: gate.gateTemplateId,
                                         selectedXParameterIndex: templateGroup.selectedXParameterIndex,
                                         selectedYParameterIndex: templateGroup.selectedYParameterIndex,
@@ -673,7 +615,17 @@ export const api = {
         currentState = applicationReducer(currentState, selectAction)
         reduxStore.dispatch(selectAction)
 
-        const FCSMetaData = await getFCSMetadata(FCSFile.filePath)
+        // Import the fcs file
+        await new Promise((resolve, reject) => {
+            pushToQueue({
+                jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: uuidv4(), type: 'import-fcs-file', payload: { workspaceId, FCSFileId, filePath: FCSFile.filePath } } },
+                jobKey: uuidv4(),
+                checkValidity: () => { return true },
+                callback: (data) => { resolve(data) }
+            }, true)
+        })
+
+        const FCSMetaData = await getFCSMetadata(workspaceId, FCSFileId, FCSFile.title)
 
         const updateAction = updateFCSFile(FCSFileId, FCSMetaData)
         currentState = applicationReducer(currentState, updateAction)
@@ -703,7 +655,6 @@ export const api = {
         reduxStore.dispatch(updateWorkspaceAction)
 
         const sample = _.find(currentState.samples, s => s.id === sampleId)
-        getAllPlotImages(sample, workspaceParameters)
 
         saveSessionToDisk()
 
@@ -738,8 +689,6 @@ export const api = {
             description: sampleParameters.description,
             gateTemplateId: sampleParameters.gateTemplateId,
             parametersLoading: [],
-            // Below are defaults
-            plotImages: {}
         }
 
         gateParameters.id = gateId
@@ -767,8 +716,6 @@ export const api = {
         }
 
         const updatedSample = _.find(currentState.samples, s => s.id === sample.id)
-
-        getAllPlotImages(updatedSample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
 
         saveSessionToDisk()
     },
@@ -827,7 +774,6 @@ export const api = {
                 await api.updateWorkspace(workspace.id, workspaceParameters)
 
                 for (let sample of currentState.samples) {
-                    getAllPlotImages(sample, workspaceParameters)
                     api.applyGateTemplatesToSample(sample.id)
                 }
             }
@@ -843,12 +789,6 @@ export const api = {
         saveSessionToDisk()
     },
 
-    getImageForPlot: async function (sampleId, options, priority) {
-        const sample = _.find(currentState.samples, w => w.id === sampleId)
-        const FCSFile = _.find(currentState.FCSFiles, fcs => sample.FCSFileId === fcs.id)
-        getImageForPlot(sample, FCSFile, options, priority)
-    },
-
     // Toggle inversion of parameters for display of a particular plot
     invertPlotAxis: async function (workspaceId, selectedXParameterIndex, selectedYParameterIndex) {
         const updateWorkspaceAction = invertPlotAxis(workspaceId, selectedXParameterIndex, selectedYParameterIndex)
@@ -862,7 +802,6 @@ export const api = {
             for (let sample of currentState.samples) {
                 const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
                 const options = { selectedXParameterIndex: selectedYParameterIndex, selectedYParameterIndex: selectedXParameterIndex, selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale, machineType: FCSFile.machineType }
-                getImageForPlot(sample, FCSFile, options)
             }
         }
     },
@@ -874,17 +813,10 @@ export const api = {
         currentState = applicationReducer(currentState, setAction)
         reduxStore.dispatch(setAction)
 
-        // If parameters are only being disabled, don't bother to recalculate images
-        if (!_.values(parameters).reduce((current, accumulator) => { return current || accumulator }, false)) {
-            for (let sample of currentState.samples.slice(0).reverse()) {
-                getAllPlotImages(sample, { selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale })
-            }
-        }
-
         saveSessionToDisk()
     },
 
-    createUnsavedGatesUsingHomology: async function (sampleId, options) {
+    createUnsavedGatesUsingHomology: async function (workspaceId, FCSFileId, sampleId, options) {
         // Dispatch a redux action to mark the gate template as loading
         let loadingMessage = 'Creating gates using Persistent Homology...'
 
@@ -892,7 +824,7 @@ export const api = {
         currentState = applicationReducer(currentState, loadingAction)
         reduxStore.dispatch(loadingAction)
         
-        let homologyResult = await api.calculateHomology(sampleId, options)
+        let homologyResult = await api.calculateHomology(workspaceId, FCSFileId, sampleId, options)
 
         if (homologyResult.status === constants.STATUS_SUCCESS) {
             const gates = api.createGatePolygons(homologyResult.data.gates)
@@ -925,7 +857,7 @@ export const api = {
     //        selectedYScale,
     //        machineType
     //    }
-    calculateHomology: async function (sampleId, options) {
+    calculateHomology: async function (workspaceId, FCSFileId, sampleId, options) {
         const sample = _.find(currentState.samples, s => s.id === sampleId)
         const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
 
@@ -941,7 +873,7 @@ export const api = {
 
         if (!sample) { console.log('Error in calculateHomology(): no sample with id ', sampleId, 'was found'); return }
 
-        let homologyOptions = { sample, FCSFile, options }
+        let homologyOptions = { workspaceId, FCSFileId, sampleId, options }
 
         homologyOptions.options.plotWidth = currentState.plotWidth
         homologyOptions.options.plotHeight = currentState.plotHeight
@@ -1042,11 +974,13 @@ export const api = {
             gates.push(gate)
         }
 
+        homologyOptions.gates = gates
+
         // Expand gates to include zero value data
         if (FCSFile.machineType === constants.MACHINE_CYTOF) {
             gates = await new Promise((resolve, reject) => {
                 pushToQueue({
-                    jobParameters: { url: 'http://127.0.0.1:3145', json: { type: 'get-expanded-gates', payload: { sample, gates, FCSFile, options } } },
+                    jobParameters: { url: 'http://127.0.0.1:3145', json: { type: 'get-expanded-gates', payload: homologyOptions } },
                     jobKey: uuidv4(),
                     checkValidity,
                     callback: (data) => { resolve(data) }
@@ -1398,6 +1332,28 @@ export const api = {
         }
     },
 
+    removeUnsavedGate (gateId) {
+        const gateIndex = _.findIndex(reduxStore.getState().unsavedGates, g => g.id === gateId)
+        if (gateIndex > -1) {
+            const newUnsavedGates = reduxStore.getState().unsavedGates.slice(0, gateIndex).concat(reduxStore.getState().unsavedGates.slice(gateIndex + 1))
+            const polyGates = _.filter(reduxStore.getState().unsavedGates, g => g.type === constants.GATE_TYPE_POLYGON)
+            const axisGroups = getAxisGroups(polyGates.map((g) => { return { id: g.id, nucleus: g.gateData.nucleus } }))
+            for (let gate of polyGates) {
+                gate.xGroup = _.findIndex(axisGroups.xGroups, g => g.peaks.includes(gate.id))
+                gate.yGroup = _.findIndex(axisGroups.yGroups, g => g.peaks.includes(gate.id))
+
+                const template = _.find(currentState.gateTemplates, gt => gt.xGroup === gate.xGroup && gt.yGroup === gate.yGroup)
+                if (template) {
+                    gate.gateTemplateId = template.id
+                }
+            }
+            const setUnsavedGatesAction = setUnsavedGates(newUnsavedGates)
+            reduxStore.dispatch(setUnsavedGatesAction)
+        } else {
+            console.log('Error in updateUnsavedGate: no gate with id ', gateId, 'was found.')
+        }
+    },
+
     setUnsavedNegativeGateVisible (visible) {
         if (visible) {
             const firstGate = reduxStore.getState().unsavedGates.slice(0, 1)[0]
@@ -1433,6 +1389,41 @@ export const api = {
         }
     },
 
+    setUnsavedDoubleZeroGateVisible (visible) {
+        if (visible) {
+            const firstGate = reduxStore.getState().unsavedGates.slice(0, 1)[0]
+            const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === firstGate.FCSFileId)
+            const newGate = {
+                id: uuidv4(),
+                type: constants.GATE_TYPE_DOUBLE_ZERO,
+                title: FCSFile.FCSParameters[firstGate.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[firstGate.selectedYParameterIndex].label + ' Double Zero Gate',
+                sampleId: firstGate.sampleId,
+                FCSFileId: firstGate.FCSFileId,
+                selectedXParameterIndex: firstGate.selectedXParameterIndex,
+                selectedYParameterIndex: firstGate.selectedYParameterIndex,
+                selectedXScale: firstGate.selectedXScale,
+                selectedYScale: firstGate.selectedYScale,
+                gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                gateCreatorData: {},
+                includeEventIds: []
+            }
+            const newUnsavedGates = reduxStore.getState().unsavedGates.concat([newGate])
+            const setUnsavedGatesAction = setUnsavedGates(newUnsavedGates)
+            reduxStore.dispatch(setUnsavedGatesAction)
+
+            api.updateUnsavedGateDerivedData()
+        } else {
+            const gateIndex = _.findIndex(reduxStore.getState().unsavedGates, g => g.type === constants.GATE_TYPE_DOUBLE_ZERO)
+            if (gateIndex > -1) {
+                const newUnsavedGates = reduxStore.getState().unsavedGates.slice(0, gateIndex).concat(reduxStore.getState().unsavedGates.slice(gateIndex + 1))
+                const setUnsavedGatesAction = setUnsavedGates(newUnsavedGates)
+                reduxStore.dispatch(setUnsavedGatesAction)
+            } else {
+                console.log('Error trying to toggle double zero unsaved gate, no double zero gate was found.')
+            }
+        }
+    },
+
     createUnsavedComboGate (gateIds) {
         const firstGate = reduxStore.getState().unsavedGates.slice(0, 1)[0]
         const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === firstGate.FCSFileId)
@@ -1457,18 +1448,6 @@ export const api = {
         const newUnsavedGates = reduxStore.getState().unsavedGates.concat([newGate])
         const setUnsavedGatesAction = setUnsavedGates(newUnsavedGates)
         reduxStore.dispatch(setUnsavedGatesAction)
-    },
-
-    removeUnsavedGate (gateId) {
-        const gateIndex = _.findIndex(reduxStore.getState().unsavedGates, g => g.id === gateId)
-        if (gateIndex > -1) {
-            const newUnsavedGates = reduxStore.getState().unsavedGates.slice(0, gateIndex).concat(reduxStore.getState().unsavedGates.slice(gateIndex + 1))
-        
-            const setUnsavedGatesAction = setUnsavedGates(newUnsavedGates)
-            reduxStore.dispatch(setUnsavedGatesAction)
-        } else {
-            console.log('Error in updateUnsavedGate: no gate with id ', gateId, 'was found.')
-        }
     },
 
     applyUnsavedGatesToSample: async (sampleId, options) => {
@@ -1496,6 +1475,14 @@ export const api = {
                         gateTemplate = {
                             id: gate.id,
                             type: constants.GATE_TYPE_NEGATIVE,
+                            title: gate.title,
+                            creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                            typeSpecificData: {}
+                        }
+                    } else if (gate.type === constants.GATE_TYPE_DOUBLE_ZERO) {
+                        gateTemplate = {
+                            id: gate.id,
+                            type: constants.GATE_TYPE_DOUBLE_ZERO,
                             title: gate.title,
                             creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
                             typeSpecificData: {}
@@ -1568,6 +1555,14 @@ export const api = {
                         creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
                         typeSpecificData: {}
                     }
+                } else if (gate.type === constants.GATE_TYPE_DOUBLE_ZERO) {
+                    gateTemplate = {
+                        id: gate.id,
+                        type: constants.GATE_TYPE_DOUBLE_ZERO,
+                        title: gate.title,
+                        creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                        typeSpecificData: {}
+                    }
                 } else if (gate.type === constants.GATE_TYPE_COMBO) {
                     gateTemplate = {
                         id: gate.id,
@@ -1623,7 +1618,6 @@ export const api = {
                     title: gate.title,
                     filePath: sample.filePath,
                     FCSParameters: FCSFile.FCSParameters,
-                    plotImages: {},
                     gateTemplateId: gate.gateTemplateId,
                     selectedXParameterIndex: options.selectedXParameterIndex,
                     selectedYParameterIndex: options.selectedYParameterIndex,
@@ -1778,6 +1772,28 @@ export const api = {
                 gates.push(newGate)
             }
 
+            // Create the double zero gate if there is one
+            const doubleZeroGate = _.find(currentState.gateTemplates, gt => gt.gateTemplateGroupId === gateTemplateGroup.id && gt.type === constants.GATE_TYPE_DOUBLE_ZERO)
+            if (doubleZeroGate) {
+                const newGate = {
+                    id: uuidv4(),
+                    type: constants.GATE_TYPE_DOUBLE_ZERO,
+                    title: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].label + ' Double Zero Gate',
+                    sampleId: sample.id,
+                    FCSFileId: FCSFile.id,
+                    gateTemplateId: doubleZeroGate.id,
+                    selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
+                    selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
+                    selectedXScale: gateTemplateGroup.selectedXScale,
+                    selectedYScale: gateTemplateGroup.selectedYScale,
+                    gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
+                    gateCreatorData: {},
+                    includeEventIds: []
+                }
+
+                gates.push(newGate)
+            }
+
             gates = await api.getGateIncludedEvents(gates)
 
             // Create combo gates AFTER we know which events are in each smaller gate so that they can be concatted for combo gate contents
@@ -1816,72 +1832,6 @@ export const api = {
             currentState = applicationReducer(currentState, loadingFinishedAction)
             reduxStore.dispatch(loadingFinishedAction)
         }
-    },
-
-    recursiveHomology: async (sampleId) => {
-        const sample = _.find(currentState.samples, s => s.id === sampleId)
-        const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
-
-        let comparisons = []
-
-        for (let x = 3; x < FCSFile.FCSParameters.length; x++) {
-            if (!FCSFile.FCSParameters[x].label.match('_')) {
-                continue
-            }
-            for (let y = x + 1; y < FCSFile.FCSParameters.length; y++) {
-                if (!FCSFile.FCSParameters[y].label.match('_')) {
-                    continue
-                }
-                comparisons.push([x, y])
-            }
-        }
-
-        const calculate = async (workerIndex) => {
-            if (comparisons.length > 0) {
-                const comp = comparisons.splice(0, 1)
-
-                const options = {
-                    selectedXParameterIndex: comp[0][0],
-                    selectedYParameterIndex: comp[0][1],
-                    selectedXScale: constants.SCALE_LOG,
-                    selectedYScale: constants.SCALE_LOG,
-                    machineType: FCSFile.machineType
-                }
-                const population = await api.getPopulationDataForSample(sampleId, options)
-                // Generate the cached images
-                getImageForPlot(sample, options)
-
-                await api.calculateHomology(sample.id, options)
-
-                calculate(workerIndex)
-            }
-        }
-
-        for (let i = 0; i < Math.max(os.cpus().length - 1, 1); i++) {
-            calculate(i)
-        }
-    },
-
-    getPopulationDataForSample: async (sampleId, options) => {
-        options.plotWidth = currentState.plotWidth
-        options.plotHeight = currentState.plotHeight
-        const key = `${sampleId}-${options.selectedXParameterIndex}_${options.selectedXScale}-${options.selectedYParameterIndex}_${options.selectedYScale}`
-        if (populationDataCache[key]) {
-            return populationDataCache[key]
-        }
-        // Find the related sample
-        const sample = _.find(currentState.samples, s => s.id === sampleId)
-
-        const jobId = uuidv4()
-
-        const population = await new Promise((resolve, reject) => {
-            request.post({ url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-population-data', payload: { sample: sample, options: options } } }, function (error, response, body) {
-                resolve(body)
-            });
-        })
-
-        populationDataCache[key] = population
-        return populationDataCache[key]
     },
 
     dragImage: (filePath, event) => {

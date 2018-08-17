@@ -6,6 +6,7 @@ import constants from '../../gatekeeper-utilities/constants'
 import fs from 'fs'
 import FCS from 'fcs'
 import _ from 'lodash'
+import path from 'path'
 import { getScales } from '../../gatekeeper-utilities/utilities'
 
 // Wrap the read file function from FS in a promise
@@ -35,10 +36,11 @@ const getFCSFileFromPath = async (filePath) => {
     }
 }
 
-export default async function getFCSMetadata (filePath) {
-    process.stdout.write(JSON.stringify({ data: 'Reading FCS File: ' + filePath }))
+export default async function getFCSMetadata (workspaceId, FCSFileId, fileName) {
+    const assetDirectory = process.argv[2]
+    const filePath = path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, FCSFileId + '.fcs')
     let FCSFile
-    try  {
+    try {
         FCSFile = await getFCSFileFromPath(filePath)        
     } catch (error) {
         process.stderr.write(JSON.stringify(error))

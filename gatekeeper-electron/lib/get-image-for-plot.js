@@ -24,7 +24,7 @@ const packPNGFile = (newFile, fileName) => {
         newFile.pack()
         .pipe(fs.createWriteStream(fileName))
         .on('finish', function() {
-            resolve(fileName)
+            resolve(newFile.data)
         })
         .on('error', function (error) {
             reject(error)
@@ -33,10 +33,10 @@ const packPNGFile = (newFile, fileName) => {
 }
 
 
-export default async (sample, FCSFile, subPopulation, options) => {
+export default async (workspaceId, FCSFileId, sampleId, subPopulation, options) => {
     // Offset the entire graph and add histograms if we're looking at cytof data
-    let xOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(options.plotWidth, options.plotHeight) * 0.07) : 0
-    let yOffset = FCSFile.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(options.plotWidth, options.plotHeight) * 0.07) : 0
+    let xOffset = options.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(options.plotWidth, options.plotHeight) * 0.07) : 0
+    let yOffset = options.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(options.plotWidth, options.plotHeight) * 0.07) : 0
 
     const data = []
     let PNGFile
@@ -44,13 +44,11 @@ export default async (sample, FCSFile, subPopulation, options) => {
 
     let pointRadius = Math.round(((options.plotWidth - xOffset) + (options.plotHeight - yOffset)) / 1000)
 
-    const xStats = FCSFile.FCSParameters[options.selectedXParameterIndex].statistics
-    const yStats = FCSFile.FCSParameters[options.selectedYParameterIndex].statistics
     const scales = getScales({
         selectedXScale: options.selectedXScale,
         selectedYScale: options.selectedYScale,
-        xRange: [ options.selectedXScale === constants.SCALE_LOG ? xStats.positiveMin : xStats.min, xStats.max ],
-        yRange: [ options.selectedYScale === constants.SCALE_LOG ? yStats.positiveMin : yStats.min, yStats.max ],
+        xRange: [ options.minXValue, options.maxXValue ],
+        yRange: [ options.minYValue, options.maxYValue ],
         width: options.plotWidth - xOffset,
         height: options.plotHeight - yOffset
     })
@@ -77,14 +75,14 @@ export default async (sample, FCSFile, subPopulation, options) => {
     }
 
     // If we're looking at cytof data, render histograms at the left and bottom of the graph
-    if (FCSFile.machineType === constants.MACHINE_CYTOF) {
+    if (options.machineType === constants.MACHINE_CYTOF) {
         PNGFile = new pngjs.PNG({ width: options.plotWidth, height: options.plotHeight })
 
         // Build a new image with the graph and histograms
         for (let i = 0; i < options.plotWidth * options.plotHeight * 4; i += 4) {
             // If we're in the bottom left xOffset * yOffset corner, render the double zero "1d" histogram
             if (i % (options.plotWidth * 4) <= xOffset * 4 && Math.floor((i) / (options.plotWidth * 4)) >= options.plotHeight - yOffset) {
-                const xColour = heatMapRGBForValue(subPopulation.doubleChannelZeroes.length / 4 / subPopulation.maxDensity)                
+                const xColour = heatMapRGBForValue(subPopulation.doubleChannelZeroes.length / 4 / subPopulation.maxDensity)
                 PNGFile.data[i] = xColour[0]
                 PNGFile.data[i + 1] = xColour[1]
                 PNGFile.data[i + 2] = xColour[2]
@@ -117,9 +115,11 @@ export default async (sample, FCSFile, subPopulation, options) => {
         PNGFile = tempPNGFile
     }
 
-    const directory = path.join(options.assetDirectory, 'sample-images', sample.id)
-    const sampleKey = getPlotImageKey(_.merge(options, FCSFile))
+    const assetDirectory = process.argv[2]
+    const directory = path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, sampleId)
+    const sampleKey = getPlotImageKey(options)
     const fileName = path.join(directory, `${sampleKey}.png`)
     await mkdirpPromise(directory)
-    return await packPNGFile(PNGFile, fileName)
+    await packPNGFile(PNGFile, fileName)
+    return fileName
 }
