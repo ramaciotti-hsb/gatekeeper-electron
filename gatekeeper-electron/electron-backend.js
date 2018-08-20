@@ -435,9 +435,8 @@ export const api = {
             if (templateGroup.creator === constants.GATE_CREATOR_PERSISTENT_HOMOLOGY) {
                 // If there hasn't been any gates generated for this sample, try generating them, otherwise leave them as they are
                 if (!_.find(currentState.samples, s => s.parentSampleId === sampleId && _.find(currentState.gateTemplates, gt => gt.id === s.gateTemplateId).gateTemplateGroupId === templateGroup.id)) {
-
-                    const gatingError = _.find(currentState.gatingErrors, e => e.sampleId === sampleId && e.gateTemplateGroupId === templateGroup.id)
-                    if (gatingError) {
+                    // Remove any gating errors that currently exist on this sample
+                    for (let gatingError of _.filter(currentState.gatingErrors, (e) => { return e.sampleId === sampleId && e.gateTemplateGroupId === templateGroup.id })) {
                         const removeGatingErrorAction = removeGatingError(gatingError.id)
                         currentState = applicationReducer(currentState, removeGatingErrorAction)
                         reduxStore.dispatch(removeGatingErrorAction)
@@ -454,10 +453,16 @@ export const api = {
                         selectedYParameterIndex: templateGroup.selectedYParameterIndex,
                         selectedXScale: templateGroup.selectedXScale,
                         selectedYScale: templateGroup.selectedYScale,
-                        machineType: templateGroup.machineType
+                        machineType: templateGroup.machineType,
+                        minXValue: FCSFile.FCSParameters[templateGroup.selectedXParameterIndex].statistics.positiveMin,
+                        maxXValue: FCSFile.FCSParameters[templateGroup.selectedXParameterIndex].statistics.max,
+                        minYValue: FCSFile.FCSParameters[templateGroup.selectedYParameterIndex].statistics.positiveMin,
+                        maxYValue: FCSFile.FCSParameters[templateGroup.selectedYParameterIndex].statistics.max,
+                        plotWidth: currentState.plotWidth,
+                        plotHeight: currentState.plotHeight
                     }
 
-                    let homologyResult = await api.calculateHomology(sampleId, options)
+                    let homologyResult = await api.calculateHomology(sample.workspaceId, sample.FCSFileId, sample.id, options)
 
                     if (homologyResult.status === constants.STATUS_SUCCESS) {
                         let gates = api.createGatePolygons(homologyResult.data.gates)
@@ -536,6 +541,14 @@ export const api = {
                         if (gates.length > 0) {
                             for (let i = 0; i < gates.length; i++) {
                                 const gate = gates[i]
+                                // Delete any other gates or samples that may have been created in the interim
+                                const matchingSample = _.find(currentState.samples, s => s.gateTemplateId === gate.gateTemplateId && s.parentSampleId === sample.id)
+                                if (matchingSample) {
+                                    console.log('removing duplicate sample')
+                                    const removeAction = removeSample(matchingSample.id)
+                                    currentState = applicationReducer(currentState, removeAction)
+                                    reduxStore.dispatch(removeAction)
+                                }
                                 gate.workspaceId = sample.workspaceId
                                 api.createSubSampleAndAddToWorkspace(
                                     sample.workspaceId,
@@ -562,6 +575,15 @@ export const api = {
                         currentState = applicationReducer(currentState, loadingFinishedAction)
                         reduxStore.dispatch(loadingFinishedAction)
                     } else if (homologyResult.status === constants.STATUS_FAIL) {
+                        let gates = api.createGatePolygons(homologyResult.data.gates)
+                        gates = await api.getGateIncludedEvents(gates)
+                        // Remove any duplicate gating errors that may have been created at the same time
+                        for (let gatingError of _.filter(currentState.gatingErrors, (e) => { return e.sampleId === sampleId && e.gateTemplateGroupId === templateGroup.id })) {
+                            const removeGatingErrorAction = removeGatingError(gatingError.id)
+                            currentState = applicationReducer(currentState, removeGatingErrorAction)
+                            reduxStore.dispatch(removeGatingErrorAction)
+                        }
+
                         const gatingError = {
                             id: uuidv4(),
                             sampleId: sampleId,
@@ -569,9 +591,6 @@ export const api = {
                             gates: homologyResult.data.gates,
                             criteria:  homologyResult.data.criteria,
                         }
-
-                        let gates = api.createGatePolygons(homologyResult.data.gates)
-                        gates = await api.getGateIncludedEvents(gates)
                         // Create a gating error
                         const createGatingErrorAction = createGatingError(gatingError)
                         currentState = applicationReducer(currentState, createGatingErrorAction)
@@ -679,6 +698,7 @@ export const api = {
         let workspace = _.find(currentState.workspaces, w => w.id === workspaceId)
 
         const parentSample = _.find(currentState.samples, s => s.id === parentSampleId)
+        const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === parentSample.FCSFileId)
 
         let sample = {
             id: sampleId,
@@ -690,6 +710,29 @@ export const api = {
             gateTemplateId: sampleParameters.gateTemplateId,
             parametersLoading: [],
         }
+
+        const options = {
+            selectedXParameterIndex: gateParameters.selectedXParameterIndex,
+            selectedYParameterIndex: gateParameters.selectedYParameterIndex,
+            selectedXScale: gateParameters.selectedXScale,
+            selectedYScale: gateParameters.selectedYScale,
+            machineType: FCSFile.machineType,
+            minXValue: FCSFile.FCSParameters[gateParameters.selectedXParameterIndex].statistics.positiveMin,
+            maxXValue: FCSFile.FCSParameters[gateParameters.selectedXParameterIndex].statistics.max,
+            minYValue: FCSFile.FCSParameters[gateParameters.selectedYParameterIndex].statistics.positiveMin,
+            maxYValue: FCSFile.FCSParameters[gateParameters.selectedYParameterIndex].statistics.max,
+            plotWidth: currentState.plotWidth,
+            plotHeight: currentState.plotHeight
+        }
+        // Before creating the new subsample, save the included event ids to the disk to use later
+        let result = await new Promise((resolve, reject) => {
+            pushToQueue({
+                jobParameters: { url: 'http://127.0.0.1:3145', json: { type: 'save-new-subsample', payload: { workspaceId: sample.workspaceId, FCSFileId: sample.FCSFileId, parentSampleId, childSampleId: sampleId, gate: gateParameters, options } } },
+                jobKey: uuidv4(),
+                checkValidity: () => { return true },
+                callback: (data) => { resolve(data) }
+            }, true)
+        })
 
         gateParameters.id = gateId
         gateParameters.childSampleId = sampleId
@@ -831,7 +874,7 @@ export const api = {
             const setUnsavedGatesAction = setUnsavedGates(gates)
             reduxStore.dispatch(setUnsavedGatesAction)
 
-            api.updateUnsavedGateDerivedData()
+            await api.updateUnsavedGateDerivedData()
         } else {
             const createErrorAction = setGatingModalErrorMessage(homologyResult.error)
             reduxStore.dispatch(createErrorAction)
@@ -1262,12 +1305,17 @@ export const api = {
     getGateIncludedEvents: async function (gates) {
         const sample = _.find(currentState.samples, s => s.id === gates[0].sampleId)
         const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === gates[0].FCSFileId)
+
         const options = {
             selectedXParameterIndex: gates[0].selectedXParameterIndex,
             selectedYParameterIndex: gates[0].selectedYParameterIndex,
             selectedXScale: gates[0].selectedXScale,
             selectedYScale: gates[0].selectedYScale,
             machineType: FCSFile.machineType,
+            minXValue: FCSFile.FCSParameters[gates[0].selectedXParameterIndex].statistics.positiveMin,
+            maxXValue: FCSFile.FCSParameters[gates[0].selectedXParameterIndex].statistics.max,
+            minYValue: FCSFile.FCSParameters[gates[0].selectedYParameterIndex].statistics.positiveMin,
+            maxYValue: FCSFile.FCSParameters[gates[0].selectedYParameterIndex].statistics.max,
             plotWidth: currentState.plotWidth,
             plotHeight: currentState.plotHeight
         }
@@ -1284,7 +1332,7 @@ export const api = {
         return newUnsavedGates
     },
 
-    updateUnsavedGateDerivedData () {
+    updateUnsavedGateDerivedData: async function () {
         const saveGates = (gates) => {
             const setUnsavedGatesAction = setUnsavedGates(gates)
             reduxStore.dispatch(setUnsavedGatesAction)
@@ -1293,7 +1341,7 @@ export const api = {
         const toSave = api.createGatePolygons(reduxStore.getState().unsavedGates)
         saveGates(toSave)
         
-        api.getGateIncludedEvents(reduxStore.getState().unsavedGates).then((newUnsavedGates) => {
+        await api.getGateIncludedEvents(reduxStore.getState().unsavedGates).then((newUnsavedGates) => {
             if (!reduxStore.getState().unsavedGates) {
                 return
             }
@@ -1607,6 +1655,7 @@ export const api = {
 
         for (let i = 0; i < reduxStore.getState().unsavedGates.length; i++) {
             const gate = reduxStore.getState().unsavedGates[i]
+
             gate.workspaceId = sample.workspaceId
             await api.createSubSampleAndAddToWorkspace(
                 sample.workspaceId,
@@ -1630,6 +1679,7 @@ export const api = {
 
         let gatingError = _.find(currentState.gatingErrors, e => gateTemplateGroup && e.gateTemplateGroupId === gateTemplateGroup.id && e.sampleId === sample.id)
         if (gatingError) {
+            console.log('removing gating error')
             const removeGatingErrorAction = removeGatingError(gatingError.id)
             currentState = applicationReducer(currentState, removeGatingErrorAction)
             reduxStore.dispatch(removeGatingErrorAction)
@@ -1706,12 +1756,18 @@ export const api = {
                     selectedXScale: constants.SCALE_LOG,
                     selectedYScale: constants.SCALE_LOG,
                     machineType: FCSFile.machineType,
+                    minXValue: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].statistics.positiveMin,
+                    maxXValue: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].statistics.max,
+                    minYValue: FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].statistics.positiveMin,
+                    maxYValue: FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].statistics.max,
+                    plotWidth: currentState.plotWidth,
+                    plotHeight: currentState.plotHeight,
                     seedPeaks,
                     sampleXChannelZeroPeaks,
                     sampleYChannelZeroPeaks
                 }
 
-                result = await api.calculateHomology(sample.id, options)
+                result = await api.calculateHomology(sample.workspaceId, sample.FCSFileId, sample.id, options)
             }
         } else if (errorHandler.type === constants.GATING_ERROR_HANDLER_MANUAL) {
             const options = {
@@ -1720,9 +1776,15 @@ export const api = {
                 selectedXScale: constants.SCALE_LOG,
                 selectedYScale: constants.SCALE_LOG,
                 machineType: FCSFile.machineType,
+                minXValue: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].statistics.positiveMin,
+                maxXValue: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].statistics.max,
+                minYValue: FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].statistics.positiveMin,
+                maxYValue: FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].statistics.max,
+                plotWidth: currentState.plotWidth,
+                plotHeight: currentState.plotHeight,
                 seedPeaks: errorHandler.seedPeaks
             }
-            result = await api.calculateHomology(sample.id, options)
+            result = await api.calculateHomology(sample.workspaceId, sample.FCSFileId, sample.id, options)
         } else if (errorHandler.type === constants.GATING_ERROR_HANDLER_IGNORE) {
             for (let gateTemplate of gateTemplates) {
                 for (let gate of gatingError.gates) {

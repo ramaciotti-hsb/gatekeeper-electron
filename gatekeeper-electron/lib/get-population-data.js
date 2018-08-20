@@ -56,24 +56,34 @@ const getFCSFileFromPath = async (filePath) => {
     }
 }
 
-async function getFullSubSamplePopulation (sample, FCSFile) {
-    process.stdout.write(JSON.stringify({ data: 'Reading FCS File: ' + FCSFile.filePath }))
+async function getFullSubSamplePopulation (workspaceId, FCSFileId, sampleId, options) {
+    const assetDirectory = process.argv[2]
+    const directory = path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, sampleId)
+    const sampleKey = getPlotImageKey(options)
+    const filePath = path.join(directory, `${sampleKey}.json`)
+
+    let toReturn = []
+
     let FCSFileData
     try  {
-        FCSFileData = await getFCSFileFromPath(FCSFile.filePath)        
+        FCSFileData = await getFCSFileFromPath(path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, FCSFileId + '.fcs'))
     } catch (error) {
         process.stderr.write(JSON.stringify(error))
         return
     }
 
+    let population = {}
+    try {
+        population = JSON.parse(await readFile(filePath))
+    } catch (error) {
+        console.log("Couldn't find cached population file", error)
+        return FCSFileData.dataAsNumbers.map((p, index) => { return [p, index] })
+    }
+
     const subPopulation = []
 
-    if (sample.includeEventIds && sample.includeEventIds.length > 0) {
-        for (let i = 0; i < sample.includeEventIds.length; i++) {
-            subPopulation.push([ FCSFileData.dataAsNumbers[sample.includeEventIds[i]], sample.includeEventIds[i] ])
-        }
-    } else {
-        return FCSFileData.dataAsNumbers.map((p, index) => { return [p, index] })
+    for (let i = 0; i < population.subPopulation.length; i++) {
+        subPopulation.push([ FCSFileData.dataAsNumbers[population.subPopulation[i]], population.subPopulation[i] ])
     }
 
     return subPopulation
@@ -84,12 +94,11 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
     const directory = path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, sampleId)
     const sampleKey = getPlotImageKey(options)
     const filePath = path.join(directory, `${sampleKey}.json`)
-    console.log(filePath)
 
     try {
         return JSON.parse(await readFile(filePath))
     } catch (error) {
-        console.log("Couldn't find cached population file", error)
+        // console.log("Couldn't find cached population file", error)
     }
 
     await mkdirpPromise(directory)
@@ -116,7 +125,7 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
         const eventResults = await readFile(path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, sampleId, 'include-event-ids.json'))
         includeEventIds = JSON.parse(eventResults)
     } catch (error) {
-        console.log(error)
+        // console.log(error)
     }
 
     if (includeEventIds && includeEventIds.length > 0) {
@@ -470,9 +479,9 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
         maxDensity: realMaxDensity
     }
 
-    fs.writeFile(filePath, JSON.stringify(toReturn), () => { console.log('population data saved to disk') })
+    fs.writeFile(filePath, JSON.stringify(toReturn), () => { /* console.log('population data saved to disk') */ })
 
-    return toRetun
+    return toReturn
 }
 
 async function getPopulationForSample (workspaceId, FCSFileId, sampleId, options) {

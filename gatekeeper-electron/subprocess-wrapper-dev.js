@@ -40,6 +40,7 @@ const getPlotImageKey = require('../gatekeeper-utilities/utilities').getPlotImag
 const fs = require('fs')
 const _ = require('lodash')
 const path = require('path')
+const mkdirp = require('mkdirp')
 
 const cluster = require('cluster');
 const http = require('http');
@@ -71,6 +72,7 @@ if (cluster.isMaster) {
             const parsedUrl = url.parse(request.url,true)
 
             if (parsedUrl.pathname === '/plot_images') {
+                console.log("got a request for an image")
                 const query = parsedUrl.query
                 for (let key of ['plotWidth', 'plotHeight', 'minXValue', 'maxXValue', 'minYValue', 'maxYValue', 'selectedXParameterIndex', 'selectedYParameterIndex']) {
                     query[key] = parseFloat(query[key])
@@ -81,13 +83,19 @@ if (cluster.isMaster) {
                         getPopulationForSample(query.workspaceId, query.FCSFileId, query.sampleId, query).then((population) => {
                             getImageForPlot(query.workspaceId, query.FCSFileId, query.sampleId, population, query).then((newFileName) => {
                                 fs.readFile(newFileName, (err, newData) => {
-                                    response.writeHead(200, { 'Content-Type' : 'image/png' })         
+                                    response.writeHead(200, {
+                                        'Content-Type': 'image/png',
+                                        'Cache-Control': 'max-age=7200'
+                                    })
                                     response.end(newData)
                                 })
                             }).catch(handleError.bind(null, response))
                         }).catch(handleError.bind(null, response))
                     } else {
-                        response.writeHead(200, { 'Content-Type' : 'image/png' })                       
+                        response.writeHead(200, {
+                            'Content-Type': 'image/png',
+                            'Cache-Control': 'max-age=7200'
+                        })
                         response.end(data)
                     }
                 })
@@ -116,17 +124,13 @@ if (cluster.isMaster) {
                         response.end(JSON.stringify(data))
                     })
 
-// get-population-data
-                } else if (body.type === 'get-population-data') {
-                    getPopulation(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options).then((data) => { response.end(JSON.stringify(data)) }).catch(handleError.bind(null, response))
-
 // save-subsample-to-csv
                 } else if (body.type === 'save-subsample-to-csv') {
-                    getFullSubSamplePopulation(body.payload.sample, body.payload.FCSFile)
+                    getFullSubSamplePopulation(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options)
                     .then((data) => {
-                        const header = body.payload.FCSFile.FCSParameters.map(p => p.key).join(',') + '\n'
+                        const header = data[0].join(',') + '\n'
                         fs.writeFile(body.payload.filePath, header, function (error) {
-                            fs.appendFile(body.payload.filePath, data.map(p => p[0].join(',')).join('\n'), function (error) {
+                            fs.appendFile(body.payload.filePath, data.slice(1).map(p => p.join(',')).join('\n'), function (error) {
                                 response.end(JSON.stringify({ status: 'success' }))
                             });
                         });
@@ -137,23 +141,25 @@ if (cluster.isMaster) {
                     getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options).then((population) => {
                         const homology = new PersistentHomology(population, body.payload.options)
                         let percentageComplete = 0
-                        const data = homology.findPeaks((message) => {
+                        homology.findPeaks((message) => {
                             // console.log({ jobId: jobId, type: 'loading-update', data: message })
                             // response.send({ jobId: jobId, type: 'loading-update', data: message })
+                        }).then((data) => {
+                            response.end(JSON.stringify(data))
                         })
-                        response.end(JSON.stringify(data))
                     }).catch(handleError.bind(null, response))
 
 // find-peaks-with-templates
                 } else if (body.type === 'find-peaks-with-template') {
-                    getPopulation(body.payload.sample, body.payload.FCSFile, body.payload.options).then((population) => {
+                    getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options).then((population) => {
                         const homology = new PersistentHomology(population, body.payload.options)
                         let percentageComplete = 0
-                        const data = homology.findPeaksWithTemplate((message) => {
+                        homology.findPeaksWithTemplate((message) => {
                             // console.log({ jobId: jobId, type: 'loading-update', data: message })
                             // response.send({ jobId: jobId, type: 'loading-update', data: message })
-                        }, body.payload.gateTemplates)
-                        response.end(JSON.stringify(data))
+                        }, body.payload.gateTemplates).then((data) => {
+                            response.end(JSON.stringify(data))
+                        })
                     }).catch(handleError.bind(null, response))
                                     
 // get-expanded-gates
@@ -176,6 +182,27 @@ if (cluster.isMaster) {
                     getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options).then((population) => {
                         const alteredGates = findIncludedEvents(population, body.payload.gates, body.payload.options)
                         response.end(JSON.stringify(alteredGates))
+                    }).catch(handleError.bind(null, response))
+
+// save-new-subsample
+                } else if (body.type === 'save-new-subsample') {
+                    getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.parentSampleId, body.payload.options).then((population) => {
+                        const alteredGates = findIncludedEvents(population, [ body.payload.gate ], body.payload.options)
+                        const directory = path.join(assetDirectory, 'workspaces', body.payload.workspaceId, body.payload.FCSFileId, body.payload.childSampleId)
+                        mkdirp(directory, function (error) {
+                            if (error) {
+                                response.end(JSON.stringify({ status: constants.STATUS_FAIL, error }))
+                            } else {
+                                fs.writeFile(path.join(directory, 'include-event-ids.json'), JSON.stringify(alteredGates[0].includeEventIds), (error) => {
+                                    if (error) {
+                                        response.end(JSON.stringify({ status: constants.STATUS_FAIL, error }))
+                                    } else {
+                                        console.log(path.join(directory, 'include-event-ids.json'))
+                                        response.end(JSON.stringify({ status: constants.STATUS_SUCCESS }))
+                                    }
+                                })
+                            }
+                        });
                     }).catch(handleError.bind(null, response))
                 }
             }  

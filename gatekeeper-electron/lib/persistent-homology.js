@@ -34,7 +34,7 @@ export default class PersistentHomology {
         CYTOF_HISTOGRAM_WIDTH = Math.round(Math.min(this.options.plotWidth, this.options.plotHeight) * 0.07)
     }
 
-    findPeaksInternal (stepCallback) {
+    async findPeaksInternal (stepCallback) {
         let currentHeight = 100
         // Add the sample nuclei as small peaks before looking for naturally occuring ones
         let peaks = this.options.seedPeaks.map((peak) => {
@@ -70,11 +70,18 @@ export default class PersistentHomology {
             }
         })
 
-        while (currentHeight > 0) {
-            peaks = this.performHomologyIteration(currentHeight, peaks)
-            currentHeight = currentHeight - 1
-            if (stepCallback) { stepCallback('Gating using Persistent Homology: ' + (100 - currentHeight) + '% complete.') }
-        }
+        await new Promise((resolve, reject) => {
+            const intervalToken = setInterval(() => {
+                if (currentHeight > 0) {
+                    peaks = this.performHomologyIteration(currentHeight, peaks)
+                    currentHeight = currentHeight - 1
+                    if (stepCallback) { stepCallback('Gating using Persistent Homology: ' + (100 - currentHeight) + '% complete.') }
+                } else {
+                    clearInterval(intervalToken)
+                    resolve()
+                }
+            }, 0)
+        })
 
         if (_.filter(peaks, p => p.truePeak).length > 5) {
             console.log("Error in PersistantHomology.findPeaks: too many peaks were found (", peaks.length + ")")
@@ -99,9 +106,9 @@ export default class PersistentHomology {
     }
 
     // Find peaks using gating template information
-    findPeaksWithTemplate (stepCallback, gateTemplates) {
+    async findPeaksWithTemplate (stepCallback, gateTemplates) {
         // First find true peaks at their original size
-        let peaks = this.findPeaksInternal(stepCallback)
+        let peaks = await this.findPeaksInternal(stepCallback)
         const groups = getAxisGroups(peaks)
         for (let peak of peaks) {
             peak.xGroup = _.findIndex(groups.xGroups, g => g.peaks.includes(peak.id))
@@ -126,16 +133,24 @@ export default class PersistentHomology {
         }
 
         let lengthStatus = {
-            'message': 'The same number of populations were found',
+            'message': 'The same number or fewer populations were found',
             'status': constants.STATUS_SUCCESS,
             'information': ''
         }
         // Try and match them to options.gateTemplates
-        if (peaks.length > polygonTemplates.reduce((acc, curr) => { return acc + (curr.typeSpecificData.optional ? 0 : 1) }, 0)) {
+        if (peaks.length < polygonTemplates.reduce((acc, curr) => { return acc + (curr.typeSpecificData.optional ? 0 : 1) }, 0)) {
             lengthStatus = {
-                'message': 'A different number of populations were found',
+                'message': 'Too few populations were found',
                 'status': constants.STATUS_FAIL,
-                'information': `${peaks.length} population${peaks.length === 1 ? ' was' : 's were'} found in this sample, whereas ${gateTemplates.length} population${gateTemplates.length === 1 ? ' was' : 's were'} expected by the template. Consider adjusting Minimum Peak Size / Height to increase or decrease the number of populations discovered.`
+                'information': `${peaks.length} population${peaks.length === 1 ? ' was' : 's were'} found in this sample, whereas ${polygonTemplates.length} population${polygonTemplates.length === 1 ? ' was' : 's were'} expected by the template. Consider adjusting Minimum Peak Size / Height to increase or decrease the number of populations discovered.`
+            }
+        }
+
+        if (peaks.length > polygonTemplates.length) {
+            lengthStatus = {
+                'message': 'Too few populations were found',
+                'status': constants.STATUS_FAIL,
+                'information': `${peaks.length} population${peaks.length === 1 ? ' was' : 's were'} found in this sample, whereas ${polygonTemplates.length} population${polygonTemplates.length === 1 ? ' was' : 's were'} expected by the template. Consider adjusting Minimum Peak Size / Height to increase or decrease the number of populations discovered.`
             }
         }
 
@@ -169,8 +184,8 @@ export default class PersistentHomology {
         }
     }
 
-    findPeaks (stepCallback, dontIncludeZeroes) {
-        const peaks = this.findPeaksInternal(stepCallback)
+    async findPeaks (stepCallback, dontIncludeZeroes) {
+        const peaks = await this.findPeaksInternal(stepCallback)
         const groups = getAxisGroups(peaks)
         // console.log(groups)
         for (let peak of peaks) {
