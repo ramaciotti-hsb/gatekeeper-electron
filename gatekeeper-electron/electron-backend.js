@@ -212,10 +212,17 @@ const writeFile = (path, data, opts = 'utf8') => {
 
 // Loops through the image directories on disk and deletes images that no longer reference a sample on disk
 const cleanupImageDirectories = () => {
-    for (var file of ls(path.join(remote.app.getPath('userData'), 'sample-images', '*'))) {
-        if (!_.find(currentState.samples, s => s.id === file.file)) {
-            console.log('going to delete', file.full)
-            rimraf(file.full, () => { console.log('deleted', file.full) })
+    for (var workspaceFile of ls(path.join(remote.app.getPath('userData'), 'workspaces', '*'))) {
+        if (!_.find(currentState.workspaces, ws => ws.id === workspaceFile.file)) {
+            console.log('going to delete workspace', workspaceFile.full)
+            rimraf(workspaceFile.full, () => { console.log('deleted workspace', workspaceFile.full) })
+        } else {
+            for (var fcsFile of ls(path.join(remote.app.getPath('userData'), 'workspaces', workspaceFile.file, '*'))) {
+                if (!_.find(currentState.FCSFiles, fcs => fcs.id === fcsFile.file)) {
+                    console.log('going to delete fcs file', fcsFile.full)
+                    rimraf(fcsFile.full, () => { console.log('deleted fcs file', fcsFile.full) })
+                }
+            }
         }
     }
 }
@@ -444,20 +451,20 @@ export const api = {
                     // Dispatch a redux action to mark the gate template as loading
                     let loadingMessage = 'Creating gates using Persistent Homology...'
 
-                    let loadingAction = setSampleParametersLoading(sample.id, templateGroup.selectedXParameterIndex + '_' + templateGroup.selectedYParameterIndex, { loading: true, loadingMessage: loadingMessage})
+                    let loadingAction = setSampleParametersLoading(sample.id, templateGroup.selectedXParameter + '_' + templateGroup.selectedYParameter, { loading: true, loadingMessage: loadingMessage})
                     currentState = applicationReducer(currentState, loadingAction)
                     reduxStore.dispatch(loadingAction)
                     
                     const options = {
-                        selectedXParameterIndex: templateGroup.selectedXParameterIndex,
-                        selectedYParameterIndex: templateGroup.selectedYParameterIndex,
+                        selectedXParameter: templateGroup.selectedXParameter,
+                        selectedYParameter: templateGroup.selectedYParameter,
                         selectedXScale: templateGroup.selectedXScale,
                         selectedYScale: templateGroup.selectedYScale,
                         machineType: templateGroup.machineType,
-                        minXValue: FCSFile.FCSParameters[templateGroup.selectedXParameterIndex].statistics.positiveMin,
-                        maxXValue: FCSFile.FCSParameters[templateGroup.selectedXParameterIndex].statistics.max,
-                        minYValue: FCSFile.FCSParameters[templateGroup.selectedYParameterIndex].statistics.positiveMin,
-                        maxYValue: FCSFile.FCSParameters[templateGroup.selectedYParameterIndex].statistics.max,
+                        minXValue: FCSFile.FCSParameters[templateGroup.selectedXParameter].statistics.positiveMin,
+                        maxXValue: FCSFile.FCSParameters[templateGroup.selectedXParameter].statistics.max,
+                        minYValue: FCSFile.FCSParameters[templateGroup.selectedYParameter].statistics.positiveMin,
+                        maxYValue: FCSFile.FCSParameters[templateGroup.selectedYParameter].statistics.max,
                         plotWidth: currentState.plotWidth,
                         plotHeight: currentState.plotHeight
                     }
@@ -472,12 +479,12 @@ export const api = {
                             const newGate = {
                                 id: uuidv4(),
                                 type: constants.GATE_TYPE_NEGATIVE,
-                                title: FCSFile.FCSParameters[templateGroup.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[templateGroup.selectedYParameterIndex].label + ' Negative Gate',
+                                title: FCSFile.FCSParameters[templateGroup.selectedXParameter].label + ' · ' + FCSFile.FCSParameters[templateGroup.selectedYParameter].label + ' Negative Gate',
                                 sampleId: sampleId,
                                 FCSFileId: FCSFile.id,
                                 gateTemplateId: negativeGate.id,
-                                selectedXParameterIndex: templateGroup.selectedXParameterIndex,
-                                selectedYParameterIndex: templateGroup.selectedYParameterIndex,
+                                selectedXParameter: templateGroup.selectedXParameter,
+                                selectedYParameter: templateGroup.selectedYParameter,
                                 selectedXScale: templateGroup.selectedXScale,
                                 selectedYScale: templateGroup.selectedYScale,
                                 gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
@@ -494,12 +501,12 @@ export const api = {
                             const newGate = {
                                 id: uuidv4(),
                                 type: constants.GATE_TYPE_DOUBLE_ZERO,
-                                title: FCSFile.FCSParameters[templateGroup.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[templateGroup.selectedYParameterIndex].label + ' Double Zero Gate',
+                                title: FCSFile.FCSParameters[templateGroup.selectedXParameter].label + ' · ' + FCSFile.FCSParameters[templateGroup.selectedYParameter].label + ' Double Zero Gate',
                                 sampleId: sampleId,
                                 FCSFileId: FCSFile.id,
                                 gateTemplateId: doubleZeroGate.id,
-                                selectedXParameterIndex: templateGroup.selectedXParameterIndex,
-                                selectedYParameterIndex: templateGroup.selectedYParameterIndex,
+                                selectedXParameter: templateGroup.selectedXParameter,
+                                selectedYParameter: templateGroup.selectedYParameter,
                                 selectedXScale: templateGroup.selectedXScale,
                                 selectedYScale: templateGroup.selectedYScale,
                                 gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
@@ -520,12 +527,12 @@ export const api = {
                             const newGate = {
                                 id: uuidv4(),
                                 type: constants.GATE_TYPE_COMBO,
-                                title: FCSFile.FCSParameters[templateGroup.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[templateGroup.selectedYParameterIndex].label + ' Combo Gate',
+                                title: FCSFile.FCSParameters[templateGroup.selectedXParameter].label + ' · ' + FCSFile.FCSParameters[templateGroup.selectedYParameter].label + ' Combo Gate',
                                 sampleId: sampleId,
                                 FCSFileId: FCSFile.id,
                                 gateTemplateId: comboGate.id,
-                                selectedXParameterIndex: templateGroup.selectedXParameterIndex,
-                                selectedYParameterIndex: templateGroup.selectedYParameterIndex,
+                                selectedXParameter: templateGroup.selectedXParameter,
+                                selectedYParameter: templateGroup.selectedYParameter,
                                 selectedXScale: templateGroup.selectedXScale,
                                 selectedYScale: templateGroup.selectedYScale,
                                 gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
@@ -561,8 +568,8 @@ export const api = {
                                         title: gate.title,
                                         FCSParameters: FCSFile.FCSParameters,
                                         gateTemplateId: gate.gateTemplateId,
-                                        selectedXParameterIndex: templateGroup.selectedXParameterIndex,
-                                        selectedYParameterIndex: templateGroup.selectedYParameterIndex,
+                                        selectedXParameter: templateGroup.selectedXParameter,
+                                        selectedYParameter: templateGroup.selectedYParameter,
                                         selectedXScale: templateGroup.selectedXScale,
                                         selectedYScale: templateGroup.selectedYScale
                                     },
@@ -571,7 +578,7 @@ export const api = {
                             }
                         }
 
-                        const loadingFinishedAction = setSampleParametersLoading(sample.id, templateGroup.selectedXParameterIndex + '_' + templateGroup.selectedYParameterIndex, { loading: false, loadingMessage: null })
+                        const loadingFinishedAction = setSampleParametersLoading(sample.id, templateGroup.selectedXParameter + '_' + templateGroup.selectedYParameter, { loading: false, loadingMessage: null })
                         currentState = applicationReducer(currentState, loadingFinishedAction)
                         reduxStore.dispatch(loadingFinishedAction)
                     } else if (homologyResult.status === constants.STATUS_FAIL) {
@@ -596,7 +603,7 @@ export const api = {
                         currentState = applicationReducer(currentState, createGatingErrorAction)
                         reduxStore.dispatch(createGatingErrorAction)
 
-                        const loadingFinishedAction = setSampleParametersLoading(sample.id, templateGroup.selectedXParameterIndex + '_' + templateGroup.selectedYParameterIndex, { loading: false, loadingMessage: null })
+                        const loadingFinishedAction = setSampleParametersLoading(sample.id, templateGroup.selectedXParameter + '_' + templateGroup.selectedYParameter, { loading: false, loadingMessage: null })
                         currentState = applicationReducer(currentState, loadingFinishedAction)
                         reduxStore.dispatch(loadingFinishedAction)
                     }
@@ -712,15 +719,15 @@ export const api = {
         }
 
         const options = {
-            selectedXParameterIndex: gateParameters.selectedXParameterIndex,
-            selectedYParameterIndex: gateParameters.selectedYParameterIndex,
+            selectedXParameterIndex: FCSFile.FCSParameters[gateParameters.selectedXParameter].index,
+            selectedYParameterIndex: FCSFile.FCSParameters[gateParameters.selectedYParameter].index,
             selectedXScale: gateParameters.selectedXScale,
             selectedYScale: gateParameters.selectedYScale,
             machineType: FCSFile.machineType,
-            minXValue: FCSFile.FCSParameters[gateParameters.selectedXParameterIndex].statistics.positiveMin,
-            maxXValue: FCSFile.FCSParameters[gateParameters.selectedXParameterIndex].statistics.max,
-            minYValue: FCSFile.FCSParameters[gateParameters.selectedYParameterIndex].statistics.positiveMin,
-            maxYValue: FCSFile.FCSParameters[gateParameters.selectedYParameterIndex].statistics.max,
+            minXValue: FCSFile.FCSParameters[gateParameters.selectedXParameter].statistics.positiveMin,
+            maxXValue: FCSFile.FCSParameters[gateParameters.selectedXParameter].statistics.max,
+            minYValue: FCSFile.FCSParameters[gateParameters.selectedYParameter].statistics.positiveMin,
+            maxYValue: FCSFile.FCSParameters[gateParameters.selectedYParameter].statistics.max,
             plotWidth: currentState.plotWidth,
             plotHeight: currentState.plotHeight
         }
@@ -833,20 +840,12 @@ export const api = {
     },
 
     // Toggle inversion of parameters for display of a particular plot
-    invertPlotAxis: async function (workspaceId, selectedXParameterIndex, selectedYParameterIndex) {
-        const updateWorkspaceAction = invertPlotAxis(workspaceId, selectedXParameterIndex, selectedYParameterIndex)
+    invertPlotAxis: async function (workspaceId, selectedXParameter, selectedYParameter) {
+        const updateWorkspaceAction = invertPlotAxis(workspaceId, selectedXParameter, selectedYParameter)
         currentState = applicationReducer(currentState, updateWorkspaceAction)
         reduxStore.dispatch(updateWorkspaceAction)
 
         saveSessionToDisk()
-
-        if (currentState.selectedWorkspaceId) {
-            const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
-            for (let sample of currentState.samples) {
-                const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
-                const options = { selectedXParameterIndex: selectedYParameterIndex, selectedYParameterIndex: selectedXParameterIndex, selectedXScale: workspace.selectedXScale, selectedYScale: workspace.selectedYScale, machineType: FCSFile.machineType }
-            }
-        }
     },
 
     setFCSParametersDisabled: async function (workspaceId, parameters) {
@@ -863,7 +862,7 @@ export const api = {
         // Dispatch a redux action to mark the gate template as loading
         let loadingMessage = 'Creating gates using Persistent Homology...'
 
-        let loadingAction = setSampleParametersLoading(sampleId, options.selectedXParameterIndex + '_' + options.selectedYParameterIndex, { loading: true, loadingMessage: loadingMessage})
+        let loadingAction = setSampleParametersLoading(sampleId, options.selectedXParameter + '_' + options.selectedYParameter, { loading: true, loadingMessage: loadingMessage})
         currentState = applicationReducer(currentState, loadingAction)
         reduxStore.dispatch(loadingAction)
         
@@ -880,7 +879,7 @@ export const api = {
             reduxStore.dispatch(createErrorAction)
         }
 
-        const loadingFinishedAction = setSampleParametersLoading(sampleId, options.selectedXParameterIndex + '_' + options.selectedYParameterIndex, { loading: false, loadingMessage: null })
+        const loadingFinishedAction = setSampleParametersLoading(sampleId, options.selectedXParameter + '_' + options.selectedYParameter, { loading: false, loadingMessage: null })
         currentState = applicationReducer(currentState, loadingFinishedAction)
         reduxStore.dispatch(loadingFinishedAction)
     },
@@ -894,8 +893,8 @@ export const api = {
     // If a related gateTemplate already exists it will be applied, otherwise a new one will be created.
     // Options shape:
     //    {
-    //        selectedXParameterIndex,
-    //        selectedYParameterIndex,
+    //        selectedXParameter,
+    //        selectedYParameter,
     //        selectedXScale,
     //        selectedYScale,
     //        machineType
@@ -907,8 +906,8 @@ export const api = {
         let gateTemplate = _.find(currentState.gateTemplates, gt => gt.id === sample.gateTemplateId)
         let gateTemplateGroup = _.find(currentState.gateTemplateGroups, (group) => {
             return group.parentGateTemplateId === sample.gateTemplateId 
-                && group.selectedXParameterIndex === options.selectedXParameterIndex
-                && group.selectedYParameterIndex === options.selectedYParameterIndex
+                && group.selectedXParameter === options.selectedXParameter
+                && group.selectedYParameter === options.selectedYParameter
                 && group.selectedXScale === options.selectedXScale
                 && group.selectedYScale === options.selectedYScale
                 && group.machineType === FCSFile.machineType
@@ -920,6 +919,8 @@ export const api = {
 
         homologyOptions.options.plotWidth = currentState.plotWidth
         homologyOptions.options.plotHeight = currentState.plotHeight
+        homologyOptions.options.selectedXParameterIndex = FCSFile.FCSParameters[options.selectedXParameter].index
+        homologyOptions.options.selectedYParameterIndex = FCSFile.FCSParameters[options.selectedYParameter].index
 
         if (options.seedPeaks) {
             homologyOptions.options.seedPeaks = options.seedPeaks
@@ -933,7 +934,7 @@ export const api = {
         }
 
         // const intervalToken = setInterval(() => {
-        //     loadingAction = setSampleParametersLoading(sampleId, options.selectedXParameterIndex + '_' + options.selectedYParameterIndex, { loading: true, loadingMessage: 'update'})
+        //     loadingAction = setSampleParametersLoading(sampleId, options.selectedXParameter + '_' + options.selectedYParameter, { loading: true, loadingMessage: 'update'})
         //     currentState = applicationReducer(currentState, loadingAction)
         //     reduxStore.dispatch(loadingAction)
         // }, 500)
@@ -951,8 +952,8 @@ export const api = {
             // If the sample or gate template group has been deleted while homology has been calculating, just do nothing
             if (!sample || (gateTemplateGroup && !_.find(currentState.gateTemplateGroups, (group) => {
                 return group.parentGateTemplateId === sample.gateTemplateId 
-                    && group.selectedXParameterIndex === options.selectedXParameterIndex
-                    && group.selectedYParameterIndex === options.selectedYParameterIndex
+                    && group.selectedXParameter === options.selectedXParameter
+                    && group.selectedYParameter === options.selectedYParameter
                     && group.selectedXScale === options.selectedXScale
                     && group.selectedYScale === options.selectedYScale
                     && group.machineType === FCSFile.machineType
@@ -994,7 +995,7 @@ export const api = {
                 gate = {
                     id: uuidv4(),
                     type: constants.GATE_TYPE_POLYGON,
-                    title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + (peak.xGroup == 0 ? ' (LOW) · ' : ' (HIGH) · ') + FCSFile.FCSParameters[options.selectedYParameterIndex].label + (peak.yGroup == 1 ? ' (LOW)' : ' (HIGH)'),
+                    title: FCSFile.FCSParameters[options.selectedXParameter].label + (peak.xGroup == 0 ? ' (LOW) · ' : ' (HIGH) · ') + FCSFile.FCSParameters[options.selectedYParameter].label + (peak.yGroup == 1 ? ' (LOW)' : ' (HIGH)'),
                     gateData: {
                         polygons: peak.polygons,
                         nucleus: peak.nucleus
@@ -1005,8 +1006,8 @@ export const api = {
                     sampleId: sampleId,
                     gateTemplateId: peak.gateTemplateId,
                     includeEventIds: [],
-                    selectedXParameterIndex: options.selectedXParameterIndex,
-                    selectedYParameterIndex: options.selectedYParameterIndex,
+                    selectedXParameter: options.selectedXParameter,
+                    selectedYParameter: options.selectedYParameter,
                     selectedXScale: options.selectedXScale,
                     selectedYScale: options.selectedYScale,
                     gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
@@ -1036,8 +1037,8 @@ export const api = {
         return homologyResult
     },
 
-    showGatingModal (sampleId, selectedXParameterIndex, selectedYParameterIndex) {
-        const showGatingModalAction = showGatingModal(sampleId, selectedXParameterIndex, selectedYParameterIndex)
+    showGatingModal (sampleId, selectedXParameter, selectedYParameter) {
+        const showGatingModalAction = showGatingModal(sampleId, selectedXParameter, selectedYParameter)
         currentState = applicationReducer(currentState, showGatingModalAction)
         reduxStore.dispatch(showGatingModalAction)
 
@@ -1307,15 +1308,15 @@ export const api = {
         const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === gates[0].FCSFileId)
 
         const options = {
-            selectedXParameterIndex: gates[0].selectedXParameterIndex,
-            selectedYParameterIndex: gates[0].selectedYParameterIndex,
+            selectedXParameterIndex: FCSFile.FCSParameters[gates[0].selectedXParameter].index,
+            selectedYParameterIndex: FCSFile.FCSParameters[gates[0].selectedYParameter].index,
             selectedXScale: gates[0].selectedXScale,
             selectedYScale: gates[0].selectedYScale,
             machineType: FCSFile.machineType,
-            minXValue: FCSFile.FCSParameters[gates[0].selectedXParameterIndex].statistics.positiveMin,
-            maxXValue: FCSFile.FCSParameters[gates[0].selectedXParameterIndex].statistics.max,
-            minYValue: FCSFile.FCSParameters[gates[0].selectedYParameterIndex].statistics.positiveMin,
-            maxYValue: FCSFile.FCSParameters[gates[0].selectedYParameterIndex].statistics.max,
+            minXValue: FCSFile.FCSParameters[gates[0].selectedXParameter].statistics.positiveMin,
+            maxXValue: FCSFile.FCSParameters[gates[0].selectedXParameter].statistics.max,
+            minYValue: FCSFile.FCSParameters[gates[0].selectedYParameter].statistics.positiveMin,
+            maxYValue: FCSFile.FCSParameters[gates[0].selectedYParameter].statistics.max,
             plotWidth: currentState.plotWidth,
             plotHeight: currentState.plotHeight
         }
@@ -1409,11 +1410,11 @@ export const api = {
             const newGate = {
                 id: uuidv4(),
                 type: constants.GATE_TYPE_NEGATIVE,
-                title: FCSFile.FCSParameters[firstGate.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[firstGate.selectedYParameterIndex].label + ' Negative Gate',
+                title: FCSFile.FCSParameters[firstGate.selectedXParameter].label + ' · ' + FCSFile.FCSParameters[firstGate.selectedYParameter].label + ' Negative Gate',
                 sampleId: firstGate.sampleId,
                 FCSFileId: firstGate.FCSFileId,
-                selectedXParameterIndex: firstGate.selectedXParameterIndex,
-                selectedYParameterIndex: firstGate.selectedYParameterIndex,
+                selectedXParameter: firstGate.selectedXParameter,
+                selectedYParameter: firstGate.selectedYParameter,
                 selectedXScale: firstGate.selectedXScale,
                 selectedYScale: firstGate.selectedYScale,
                 gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
@@ -1444,11 +1445,11 @@ export const api = {
             const newGate = {
                 id: uuidv4(),
                 type: constants.GATE_TYPE_DOUBLE_ZERO,
-                title: FCSFile.FCSParameters[firstGate.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[firstGate.selectedYParameterIndex].label + ' Double Zero Gate',
+                title: FCSFile.FCSParameters[firstGate.selectedXParameter].label + ' · ' + FCSFile.FCSParameters[firstGate.selectedYParameter].label + ' Double Zero Gate',
                 sampleId: firstGate.sampleId,
                 FCSFileId: firstGate.FCSFileId,
-                selectedXParameterIndex: firstGate.selectedXParameterIndex,
-                selectedYParameterIndex: firstGate.selectedYParameterIndex,
+                selectedXParameter: firstGate.selectedXParameter,
+                selectedYParameter: firstGate.selectedYParameter,
                 selectedXScale: firstGate.selectedXScale,
                 selectedYScale: firstGate.selectedYScale,
                 gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
@@ -1480,11 +1481,11 @@ export const api = {
         const newGate = {
             id: uuidv4(),
             type: constants.GATE_TYPE_COMBO,
-            title: FCSFile.FCSParameters[firstGate.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[firstGate.selectedYParameterIndex].label + ' Combo Gate',
+            title: FCSFile.FCSParameters[firstGate.selectedXParameter].label + ' · ' + FCSFile.FCSParameters[firstGate.selectedYParameter].label + ' Combo Gate',
             sampleId: firstGate.sampleId,
             FCSFileId: firstGate.FCSFileId,
-            selectedXParameterIndex: firstGate.selectedXParameterIndex,
-            selectedYParameterIndex: firstGate.selectedYParameterIndex,
+            selectedXParameter: firstGate.selectedXParameter,
+            selectedYParameter: firstGate.selectedYParameter,
             selectedXScale: firstGate.selectedXScale,
             selectedYScale: firstGate.selectedYScale,
             gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
@@ -1502,7 +1503,7 @@ export const api = {
         const sample = _.find(currentState.samples, s => s.id === sampleId)
         const FCSFile = _.find(currentState.FCSFiles, fcs => fcs.id === sample.FCSFileId)
         // Find if there is already a gate template group for this combination or not
-        let gateTemplateGroup = _.find(currentState.gateTemplateGroups, g => g.parentGateTemplateId === sample.gateTemplateId && g.selectedXParameterIndex === options.selectedXParameterIndex && g.selectedYParameterIndex === options.selectedYParameterIndex)
+        let gateTemplateGroup = _.find(currentState.gateTemplateGroups, g => g.parentGateTemplateId === sample.gateTemplateId && g.selectedXParameter === options.selectedXParameter && g.selectedYParameter === options.selectedYParameter)
         let gateTemplateGroupExists = !!gateTemplateGroup
 
         if (gateTemplateGroup) {
@@ -1570,10 +1571,10 @@ export const api = {
             const newGateTemplateGroup = {
                 id: gateTemplateGroupId,
                 workspaceId: sample.workspaceId,
-                title: FCSFile.FCSParameters[options.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[options.selectedYParameterIndex].label,
+                title: FCSFile.FCSParameters[options.selectedXParameter].label + ' · ' + FCSFile.FCSParameters[options.selectedYParameter].label,
                 creator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
-                selectedXParameterIndex: options.selectedXParameterIndex,
-                selectedYParameterIndex: options.selectedYParameterIndex,
+                selectedXParameter: options.selectedXParameter,
+                selectedYParameter: options.selectedYParameter,
                 selectedXScale: options.selectedXScale,
                 selectedYScale: options.selectedYScale,
                 machineType: FCSFile.machineType,
@@ -1668,8 +1669,8 @@ export const api = {
                     filePath: sample.filePath,
                     FCSParameters: FCSFile.FCSParameters,
                     gateTemplateId: gate.gateTemplateId,
-                    selectedXParameterIndex: options.selectedXParameterIndex,
-                    selectedYParameterIndex: options.selectedYParameterIndex,
+                    selectedXParameter: options.selectedXParameter,
+                    selectedYParameter: options.selectedYParameter,
                     selectedXScale: options.selectedXScale,
                     selectedYScale: options.selectedYScale
                 },
@@ -1691,7 +1692,7 @@ export const api = {
             api.applyGateTemplatesToSample(sampleToRecalculate.id)
         }
 
-        const loadingFinishedAction = setSampleParametersLoading(sampleId, options.selectedXParameterIndex + '_' + options.selectedYParameterIndex, { loading: false, loadingMessage: null })
+        const loadingFinishedAction = setSampleParametersLoading(sampleId, options.selectedXParameter + '_' + options.selectedYParameter, { loading: false, loadingMessage: null })
         currentState = applicationReducer(currentState, loadingFinishedAction)
         reduxStore.dispatch(loadingFinishedAction)
     },
@@ -1703,7 +1704,7 @@ export const api = {
         const gateTemplateGroup = _.find(currentState.gateTemplateGroups, g => g.id === gatingError.gateTemplateGroupId)
         const gateTemplates = _.filter(currentState.gateTemplates, gt => gt.gateTemplateGroupId === gateTemplateGroup.id)
 
-        const loadingStartedAction = setSampleParametersLoading(sample.id, gateTemplateGroup.selectedXParameterIndex + '_' + gateTemplateGroup.selectedYParameterIndex, { loading: true, loadingMessage: 'Recalculating Gates...' })
+        const loadingStartedAction = setSampleParametersLoading(sample.id, gateTemplateGroup.selectedXParameter + '_' + gateTemplateGroup.selectedYParameter, { loading: true, loadingMessage: 'Recalculating Gates...' })
         currentState = applicationReducer(currentState, loadingStartedAction)
         reduxStore.dispatch(loadingStartedAction)
 
@@ -1751,15 +1752,15 @@ export const api = {
                 })
 
                 const options = {
-                    selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
-                    selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
+                    selectedXParameter: gateTemplateGroup.selectedXParameter,
+                    selectedYParameter: gateTemplateGroup.selectedYParameter,
                     selectedXScale: constants.SCALE_LOG,
                     selectedYScale: constants.SCALE_LOG,
                     machineType: FCSFile.machineType,
-                    minXValue: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].statistics.positiveMin,
-                    maxXValue: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].statistics.max,
-                    minYValue: FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].statistics.positiveMin,
-                    maxYValue: FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].statistics.max,
+                    minXValue: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameter].statistics.positiveMin,
+                    maxXValue: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameter].statistics.max,
+                    minYValue: FCSFile.FCSParameters[gateTemplateGroup.selectedYParameter].statistics.positiveMin,
+                    maxYValue: FCSFile.FCSParameters[gateTemplateGroup.selectedYParameter].statistics.max,
                     plotWidth: currentState.plotWidth,
                     plotHeight: currentState.plotHeight,
                     seedPeaks,
@@ -1771,15 +1772,15 @@ export const api = {
             }
         } else if (errorHandler.type === constants.GATING_ERROR_HANDLER_MANUAL) {
             const options = {
-                selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
-                selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
+                selectedXParameter: gateTemplateGroup.selectedXParameter,
+                selectedYParameter: gateTemplateGroup.selectedYParameter,
                 selectedXScale: constants.SCALE_LOG,
                 selectedYScale: constants.SCALE_LOG,
                 machineType: FCSFile.machineType,
-                minXValue: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].statistics.positiveMin,
-                maxXValue: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].statistics.max,
-                minYValue: FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].statistics.positiveMin,
-                maxYValue: FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].statistics.max,
+                minXValue: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameter].statistics.positiveMin,
+                maxXValue: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameter].statistics.max,
+                minYValue: FCSFile.FCSParameters[gateTemplateGroup.selectedYParameter].statistics.positiveMin,
+                maxYValue: FCSFile.FCSParameters[gateTemplateGroup.selectedYParameter].statistics.max,
                 plotWidth: currentState.plotWidth,
                 plotHeight: currentState.plotHeight,
                 seedPeaks: errorHandler.seedPeaks
@@ -1802,7 +1803,7 @@ export const api = {
             }
         }
 
-        const loadingFinishedAction = setSampleParametersLoading(sample.id, gateTemplateGroup.selectedXParameterIndex + '_' + gateTemplateGroup.selectedYParameterIndex, { loading: false, loadingMessage: null })
+        const loadingFinishedAction = setSampleParametersLoading(sample.id, gateTemplateGroup.selectedXParameter + '_' + gateTemplateGroup.selectedYParameter, { loading: false, loadingMessage: null })
         currentState = applicationReducer(currentState, loadingFinishedAction)
         reduxStore.dispatch(loadingFinishedAction)
 
@@ -1818,12 +1819,12 @@ export const api = {
                 const newGate = {
                     id: uuidv4(),
                     type: constants.GATE_TYPE_NEGATIVE,
-                    title: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].label + ' Negative Gate',
+                    title: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameter].label + ' · ' + FCSFile.FCSParameters[gateTemplateGroup.selectedYParameter].label + ' Negative Gate',
                     sampleId: sample.id,
                     FCSFileId: FCSFile.id,
                     gateTemplateId: negativeGate.id,
-                    selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
-                    selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
+                    selectedXParameter: gateTemplateGroup.selectedXParameter,
+                    selectedYParameter: gateTemplateGroup.selectedYParameter,
                     selectedXScale: gateTemplateGroup.selectedXScale,
                     selectedYScale: gateTemplateGroup.selectedYScale,
                     gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
@@ -1840,12 +1841,12 @@ export const api = {
                 const newGate = {
                     id: uuidv4(),
                     type: constants.GATE_TYPE_DOUBLE_ZERO,
-                    title: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].label + ' Double Zero Gate',
+                    title: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameter].label + ' · ' + FCSFile.FCSParameters[gateTemplateGroup.selectedYParameter].label + ' Double Zero Gate',
                     sampleId: sample.id,
                     FCSFileId: FCSFile.id,
                     gateTemplateId: doubleZeroGate.id,
-                    selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
-                    selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
+                    selectedXParameter: gateTemplateGroup.selectedXParameter,
+                    selectedYParameter: gateTemplateGroup.selectedYParameter,
                     selectedXScale: gateTemplateGroup.selectedXScale,
                     selectedYScale: gateTemplateGroup.selectedYScale,
                     gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
@@ -1866,12 +1867,12 @@ export const api = {
                 const newGate = {
                     id: uuidv4(),
                     type: constants.GATE_TYPE_COMBO,
-                    title: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameterIndex].label + ' · ' + FCSFile.FCSParameters[gateTemplateGroup.selectedYParameterIndex].label + ' Combo Gate',
+                    title: FCSFile.FCSParameters[gateTemplateGroup.selectedXParameter].label + ' · ' + FCSFile.FCSParameters[gateTemplateGroup.selectedYParameter].label + ' Combo Gate',
                     sampleId: sample.id,
                     FCSFileId: FCSFile.id,
                     gateTemplateId: comboGate.id,
-                    selectedXParameterIndex: gateTemplateGroup.selectedXParameterIndex,
-                    selectedYParameterIndex: gateTemplateGroup.selectedYParameterIndex,
+                    selectedXParameter: gateTemplateGroup.selectedXParameter,
+                    selectedYParameter: gateTemplateGroup.selectedYParameter,
                     selectedXScale: gateTemplateGroup.selectedXScale,
                     selectedYScale: gateTemplateGroup.selectedYScale,
                     gateCreator: constants.GATE_CREATOR_PERSISTENT_HOMOLOGY,
@@ -1890,7 +1891,7 @@ export const api = {
                 api.updateUnsavedGateDerivedData()
             }
 
-            const loadingFinishedAction = setSampleParametersLoading(sample.id, gateTemplateGroup.selectedXParameterIndex + '_' + gateTemplateGroup.selectedYParameterIndex, { loading: false, loadingMessage: null })
+            const loadingFinishedAction = setSampleParametersLoading(sample.id, gateTemplateGroup.selectedXParameter + '_' + gateTemplateGroup.selectedYParameter, { loading: false, loadingMessage: null })
             currentState = applicationReducer(currentState, loadingFinishedAction)
             reduxStore.dispatch(loadingFinishedAction)
         }

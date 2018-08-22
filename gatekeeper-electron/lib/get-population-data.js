@@ -479,7 +479,7 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
         maxDensity: realMaxDensity
     }
 
-    fs.writeFile(filePath, JSON.stringify(toReturn), () => { /* console.log('population data saved to disk') */ })
+    fs.writeFile(filePath, JSON.stringify(toReturn), (error) => { if (error) { console.log(error) } /* console.log('population data saved to disk') */ })
 
     return toReturn
 }

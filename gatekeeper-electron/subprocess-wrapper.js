@@ -33,7 +33,7 @@ if (cluster.isMaster) {
     const populationCache = {}
 
     const getPopulation = (sample, FCSFile, options) => {
-        const key = `${sample.id}-${options.selectedXParameterIndex}_${options.selectedXScale}-${options.selectedYParameterIndex}_${options.selectedYScale}`
+        const key = `${sample.id}-${options.selectedXParameter}_${options.selectedXScale}-${options.selectedYParameter}_${options.selectedYScale}`
         
         return new Promise((resolve, reject) => {
             if (populationCache[key]) {

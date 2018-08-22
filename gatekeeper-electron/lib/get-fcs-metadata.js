@@ -60,6 +60,7 @@ export default async function getFCSMetadata (workspaceId, FCSFileId, fileName) 
             FCSParameters[parseInt(key.match(/\d+/)[0]) - 1] = {
                 key: FCSFile.text[key],
                 label: FCSFile.text[key],
+                index: parseInt(key.match(/\d+/)[0]) - 1,
                 statistics: {
                     min: Infinity,
                     positiveMin: Infinity,
@@ -76,29 +77,35 @@ export default async function getFCSMetadata (workspaceId, FCSFileId, fileName) 
         }
     }
 
+    const FCSParametersByKey = {}
+    for (let parameter of FCSParameters) {
+        FCSParametersByKey[parameter.key] = parameter
+    }
+
     for (let i = 0; i < FCSFile.dataAsNumbers.length; i++) {
         for (let j = 0; j < FCSFile.dataAsNumbers[i].length; j++) {
-            if (FCSFile.dataAsNumbers[i][j] < FCSParameters[j].statistics.min) {
-                FCSParameters[j].statistics.min = FCSFile.dataAsNumbers[i][j]
+            const parameter = _.find(FCSParameters, p => p.index === j)
+            if (FCSFile.dataAsNumbers[i][j] < parameter.statistics.min) {
+                parameter.statistics.min = FCSFile.dataAsNumbers[i][j]
             }
 
-            if (FCSFile.dataAsNumbers[i][j] < FCSParameters[j].statistics.positiveMin && FCSFile.dataAsNumbers[i][j] > 0) {
-                FCSParameters[j].statistics.positiveMin = Math.max(FCSFile.dataAsNumbers[i][j], 0.01)
+            if (FCSFile.dataAsNumbers[i][j] < parameter.statistics.positiveMin && FCSFile.dataAsNumbers[i][j] > 0) {
+                parameter.statistics.positiveMin = Math.max(FCSFile.dataAsNumbers[i][j], 0.01)
             }
 
-            if (FCSFile.dataAsNumbers[i][j] > FCSParameters[j].statistics.max) {
-                FCSParameters[j].statistics.max = FCSFile.dataAsNumbers[i][j]
+            if (FCSFile.dataAsNumbers[i][j] > parameter.statistics.max) {
+                parameter.statistics.max = FCSFile.dataAsNumbers[i][j]
             }
 
             // If we're looking at Cytof data, exclude zero values from mean calculation (they aren't useful)
             if (FCSFile.dataAsNumbers[i][j] > 0) {
-                FCSParameters[j].statistics.mean += FCSFile.dataAsNumbers[i][j] / FCSFile.dataAsNumbers.length                
+                parameter.statistics.mean += FCSFile.dataAsNumbers[i][j] / FCSFile.dataAsNumbers.length                
             }
         }
     }
 
     return {
-        FCSParameters,
+        FCSParameters: FCSParametersByKey,
         populationCount,
         machineType
     }

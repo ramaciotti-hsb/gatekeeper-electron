@@ -18,6 +18,6 @@ const mkdirpPromise = (directory) => {
 
 export default async function importFCSFile (workspaceId, FCSFileId, filePath) {
     const assetDirectory = process.argv[2]
-    await mkdirp(path.join(assetDirectory, workspaceId, FCSFileId))
+    await mkdirp(path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId))
     await fs.copy(filePath, path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, FCSFileId + '.fcs'))
 }
