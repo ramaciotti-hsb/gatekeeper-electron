@@ -4,15 +4,87 @@
 		"selected_items":
 		[
 			[
+				"cacheIm",
+				"cacheImage"
+			],
+			[
+				"selecte",
+				"selectedYParameterIndex"
+			],
+			[
+				"FCSPar",
+				"FCSParmetersByKey"
+			],
+			[
+				"popua",
+				"populationEvents"
+			],
+			[
+				"selectedY",
+				"selectedYParameterIndex"
+			],
+			[
+				"selectedX",
+				"selectedXParameterIndex"
+			],
+			[
+				"FCSFIL",
+				"FCSFileId"
+			],
+			[
+				"sample",
+				"sample"
+			],
+			[
+				"lnr-cros",
+				"lnr-cross-circle"
+			],
+			[
+				"rendered",
+				"renderedXCutoffs"
+			],
+			[
+				"gateTemplate",
+				"gateTemplateGroup"
+			],
+			[
+				"gateTemplateGroup",
+				"gateTemplateGroupId"
+			],
+			[
+				"gateTempla",
+				"gateTemplateGroup"
+			],
+			[
+				"gateTEmplate",
+				"gateTemplateGroup"
+			],
+			[
+				"childGate",
+				"childGateTemplateGroup"
+			],
+			[
+				"newGateTemplate",
+				"newGateTemplateGroup"
+			],
+			[
+				"selectedGate",
+				"selectedGateTemplateId"
+			],
+			[
+				"FCSFile",
+				"FCSFileId"
+			],
+			[
+				"FCSFIl",
+				"FCSFiles"
+			],
+			[
 				"permission",
 				"permissionsResult"
 			],
 			[
 				"FCSFI",
-				"FCSFileId"
-			],
-			[
-				"FCSFile",
 				"FCSFileId"
 			],
 			[
@@ -92,16 +164,8 @@
 				"FCSFileId"
 			],
 			[
-				"gateTemplate",
-				"gateTemplateGroup"
-			],
-			[
 				"gatingErro",
 				"gatingErrors"
-			],
-			[
-				"selectedGate",
-				"selectedGateTemplate"
 			],
 			[
 				"gatingError",
@@ -114,10 +178,6 @@
 			[
 				"current",
 				"currentState"
-			],
-			[
-				"gateTEmplate",
-				"gateTemplateGroup"
 			],
 			[
 				"gatingE",
@@ -142,10 +202,6 @@
 			[
 				"CHARACTER",
 				"CHARACTER_CODE_RIGHT_ARROW"
-			],
-			[
-				"gateTemplateGroup",
-				"gateTemplateGroups"
 			],
 			[
 				"gateTemplatePo",
@@ -316,10 +372,6 @@
 				"widthIndex"
 			],
 			[
-				"cacheIm",
-				"cacheImage"
-			],
-			[
 				"cacheImage",
 				"cacheImageKey"
 			],
@@ -436,10 +488,6 @@
 				"workspaceIndex"
 			],
 			[
-				"selectedX",
-				"selectedXParameterIndex"
-			],
-			[
 				"machine",
 				"machineType"
 			],
@@ -466,81 +514,52 @@
 			[
 				"onDrop",
 				"onDropFile"
-			],
-			[
-				"samples",
-				"samplesToRecalculate"
-			],
-			[
-				"childGate",
-				"childGateTemplates"
-			],
-			[
-				"selectedSa",
-				"selectedSample"
-			],
-			[
-				"gateTEmplateG",
-				"gateTemplateGroup"
-			],
-			[
-				"minPe",
-				"minPeakHeight"
-			],
-			[
-				"gateTempl",
-				"gateTemplateGroup"
-			],
-			[
-				"sample",
-				"sampleId"
-			],
-			[
-				"createFCS",
-				"createFCSFileAndAddToWorkspace"
-			],
-			[
-				"FCSFIL",
-				"FCSFileReducer"
-			],
-			[
-				"updateGate",
-				"updateGateTemplateGroup"
-			],
-			[
-				"selecteDX",
-				"selectedXParameterIndex"
-			],
-			[
-				"highli",
-				"highlight-colour"
 			]
 		]
 	},
 	"buffers":
 	[
 		{
+			"file": "package.json",
+			"settings":
+			{
+				"buffer_size": 1995,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "Searching 102 files for \"localhost.key\"\n\n/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/create-https-certificate.js:\n   83          fs.writeFile(path.join(directory, 'localhost.crt'), pem, (error) => {\n   84              console.log(error)\n   85:             fs.writeFile(path.join(directory, 'localhost.key'), key, (error2) => {\n   86                  console.log(error2)\n   87                  resolve()\n\n/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/electron-backend.js:\n   51      const certsDirectory = path.join(remote.app.getPath('userData'), 'certs')\n   52      try {\n   53:         fs.statSync(path.join(certsDirectory, 'localhost.key'))\n   54          fs.statSync(path.join(certsDirectory, 'localhost.crt'))\n   55      } catch (error) {\n   ..\n   87  \n   88              const client = http2.connect('https://localhost:3146', {\n   89:               ca: fs.readFileSync(path.join(__dirname, 'localhost.key'))\n   90              });\n   91              client.on('error', (err) => console.error(err));\n\n/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/subprocess-wrapper-dev.js:\n   81  \n   82      const imageServer = http2.createSecureServer({\n   83:         key: fs.readFileSync(path.join(assetDirectory, 'certs', 'localhost.key')),\n   84          cert: fs.readFileSync(path.join(assetDirectory, 'certs', 'localhost.crt'))\n   85      });\n\n/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/subprocess-wrapper.js:\n   45  \n   46      const imageServer = http2.createSecureServer({\n   47:         key: fs.readFileSync(path.join(assetDirectory, 'certs', 'localhost.key')),\n   48          cert: fs.readFileSync(path.join(assetDirectory, 'certs', 'localhost.crt'))\n   49      });\n\n5 matches across 4 files\n",
+			"settings":
+			{
+				"buffer_size": 1783,
+				"line_ending": "Unix",
+				"name": "Find Results",
+				"scratch": true
+			}
+		},
+		{
 			"file": "gatekeeper-electron/electron-backend.js",
 			"settings":
 			{
-				"buffer_size": 94636,
+				"buffer_size": 96009,
 				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "gatekeeper-frontend/reducers/gate-template-reducer.js",
+			"file": "main.js",
 			"settings":
 			{
-				"buffer_size": 2623,
+				"buffer_size": 2404,
+				"encoding": "UTF-8",
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "gatekeeper-frontend/reducers/sample-reducer.js",
+			"file": "index.production.html",
 			"settings":
 			{
-				"buffer_size": 5958,
+				"buffer_size": 570,
 				"line_ending": "Unix"
 			}
 		}
@@ -557,12 +576,16 @@
 		"selected_items":
 		[
 			[
-				"web",
-				"View: Toggle Side Bar"
-			],
-			[
 				"babel",
 				"Set Syntax: JavaScript (Babel)"
+			],
+			[
+				"pyton",
+				"Set Syntax: Python"
+			],
+			[
+				"web",
+				"View: Toggle Side Bar"
 			],
 			[
 				"babe",
@@ -930,13 +953,65 @@
 	],
 	"file_history":
 	[
-		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/reducers/workspace-reducer.js",
-		"/Users/nicbarker/Documents/gatekeeper-electron/webpack.production.js",
-		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/reducers/fcs-file-reducer.js",
 		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/electron-backend.js",
-		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/lib/gate-utilities.js",
-		"/Users/nicbarker/Documents/gatekeeper-electron/webpack.dev.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/subprocess-wrapper-dev.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/subprocess-wrapper.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/components/sample-components/bivariate-plot-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/containers/multiple-sample-view-container.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/scss/sample-view/sample-gates.scss",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/components/sample-components/multiple-sample-view-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/application.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/lib/get-population-data.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/main.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/application-container.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/containers/bivariate-plot-container.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-electron/client.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/test.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-utilities/utilities.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/lib/get-image-for-plot.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/scss/homology-modal.scss",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/lib/import-fcs-file.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/reducers/workspace-reducer.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/reducers/application-reducer.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/components/homology-modal-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/scss/gating-error-modal.scss",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/components/gating-error-modal-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/scss/mixins.scss",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/actions/workspace-actions.js",
 		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/lib/get-fcs-metadata.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/components/fcs-parameter-selector-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/reducers/fcs-file-reducer.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-utilities/constants.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/application-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/containers/gating-error-modal-container.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-utilities/scales/logicle-scale.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-utilities/scales/arcsinh-scale.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/containers/homology-modal-container.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/actions/application-actions.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/components/workspace-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/containers/workspace-container.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/reducers/gate-template-group-reducer.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/Find Results",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/reducers/gating-error-reducer.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/actions/gating-error-actions.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/lib/gate-utilities.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/lib/persistent-homology.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-utilities/polygon-utilities.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-electron/lib/save-new-subsample.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/components/fcs-file-selector-component.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-electron/package.json",
+		"/Users/nicbarker/Documents/gatekeeper-electron/webpack.dev.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/containers/fcs-file-selector-container.jsx",
+		"/Users/nicbarker/Documents/gatekeeper-electron/webpack.production.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/reducers/sample-reducer.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/api/web-api.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/actions/fcs-file-actions.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/actions/gate-template-group-actions.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/reducers/gate-reducer.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/actions/gate-template-actions.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/reducers/gate-template-reducer.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/actions/gate-actions.js",
+		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/actions/sample-actions.js",
 		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/components/workspace-component.jsx",
 		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-jobs/endpoints/fcs-files.js",
 		"/Users/nicbarker/Documents/gatekeeper-web-dev/file-server/index.js",
@@ -1005,59 +1080,7 @@
 		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/scss/mixins.scss",
 		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/scss/menu-bar-component.scss",
 		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/revert/create_fcs_file_parameters_table.sql",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/create_fcs_file_parameters_table.sql",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/deploy/create_fcs_file_events_table.sql",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/revert/create_fcs_files_table.sql",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/create_fcs_files_table.sql",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/components/sample-components/bivariate-plot-component.jsx",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/api/seed.sql",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/actions/workspace-actions.js",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/deploy/initial_schema.sql",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/revert/create_user_workspaces_table.sql",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/revert/initial_schema.sql",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/initial_schema.sql",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/application.js",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/lib/database.js",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/webpack.common.js",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/revert/create_user_settings_table.sql",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/create_user_settings_table.sql",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/create_user_workspaces_table.sql",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/revert/create_workspaces_table.sql",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/create_workspaces_table.sql",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/scss/homology-modal.scss",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/components/homology-modal-component.jsx",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/api/pm2.config.json",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/dev-scripts/developmentDB.sh",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/lib/global-keyboard-listener.js",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/components/login-component.jsx",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/scss/login-component.scss",
-		"/Users/nicbarker/Documents/salestrack-dev/salestrack-frontend/js/libs/auth-helper.js",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/api/curl -d '{\"email\": \"test@test.com\",\"password\": \"12",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/node_modules/shelljs/global.js",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/actions/user-actions.js",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/lib/config.js",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/dev-scripts/productionDB.sh",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/api/startup.sh",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/webpack/Dockerfile",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/frontend/Dockerfile",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/postgres/Dockerfile",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/README.md",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/sqitch.conf",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/.babelrc",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/package.json",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-utilities/package.json",
-		"/Users/nicbarker/Documents/gatekeeper-electron/gatekeeper-frontend/node_modules/d3-hierarchy/src/pack/siblings.js",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/index.production.html",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/webpack/webpack.common.js",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/webpack/webpack.dev.js",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/webpack/index.dev.html",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-frontend/index.dev.html",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/README.md",
-		"/Users/nicbarker/Documents/gatekeeper-web-dev/docker/gulp/Dockerfile",
-		"/Users/nicbarker/Documents/gatekeeper/gatekeeper-frontend/.gitignore",
-		"/Users/nicbarker/Documents/gatekeeper/gatekeeper-frontend/lib/dropdown-inline.jsx",
-		"/Users/nicbarker/Documents/gatekeeper/gatekeeper-frontend/lib/dropdown.jsx",
-		"/Users/nicbarker/Documents/gatekeeper/gatekeeper-frontend/reducers/workspace-reducer.js"
+		"/Users/nicbarker/Documents/gatekeeper-web-dev/gatekeeper-api/sqitch/verify/create_fcs_file_parameters_table.sql"
 	],
 	"find":
 	{
@@ -1068,6 +1091,10 @@
 		"height": 91.0,
 		"where_history":
 		[
+			"-dist/*, -node_modules/**/*, -gatekeeper-frontend/node_modules/**/*, -webpack-build/*, -yarn.lock",
+			"-dist/*, -node_modules/**/*, -gatekeeper-frontend/node_modules/**/*, -webpack-build/*",
+			"-dist/*, -node_modules/**/*, -gatekeeper-frontend/node_modules/**/*, -webpack-build/*, gatekeeper-electron/lib",
+			"-dist/*, -node_modules/**/*, -gatekeeper-frontend/node_modules/**/*, -webpack-build/*",
 			"-dist/*, -node_modules/**/*, -gatekeeper-frontend/node_modules/**/*",
 			""
 		]
@@ -1077,10 +1104,134 @@
 		"case_sensitive": false,
 		"find_history":
 		[
-			"workspace.gateTemplateIds",
-			"populationCount",
-			"statistics.min",
-			"getFCSm"
+			"localhost.key",
+			"remote.app.getPath('userData'), 'certs'",
+			"mkdirp",
+			"defer",
+			"cacheimage.src",
+			"options",
+			"imageloading",
+			"http2",
+			"server",
+			"query",
+			"got a request for",
+			"download-image",
+			"download-iamge",
+			"dataTransfer",
+			"download-image",
+			"ondragstart",
+			"this.props.selectedYParameter",
+			"this.props.selectedXParameter",
+			"rops.sele",
+			"window.JOBS",
+			"button",
+			".button",
+			"apply-gates",
+			"loader small",
+			"loader-outer small",
+			"${action.payload.selectedXParameter}",
+			"c[1]",
+			"c[0]",
+			"{x}",
+			"x",
+			"invert",
+			"constants.",
+			"file.",
+			"ws",
+			"fcs",
+			"getPlotImageKey",
+			"assetDirectory",
+			"selectedXPar",
+			"componentdid",
+			"i",
+			"parameters",
+			"createGraphLayout",
+			"parameter-row toggle-all",
+			"Parameter",
+			"x + ",
+			"x",
+			"y2",
+			"this.props.FCSFile.FCSParameters[y]",
+			"this.props.FCSFile.FCSParameters[x]",
+			"xstats",
+			"xStats = ",
+			".label",
+			" || ''",
+			"modalOptions:",
+			"modalOptions =",
+			"FCSParmetersByKey",
+			"parameters",
+			".index",
+			"options = {",
+			"selectedYParameter[^d]",
+			"selectedYParameter[^I]",
+			"options.selectedYParameter",
+			"options.selectedXParameter",
+			"FCSParameters[j]",
+			"selectedYParameterIndex",
+			"selectedXParameterIndex",
+			"Index",
+			"selectedXParameterIndex",
+			"selectedYParameterIndex",
+			"selectedXParameterIndex",
+			"gateTemplates.length",
+			"optional",
+			"body.payload.sampleId",
+			"gates[0]",
+			"createsubsample",
+			"result",
+			"includedevent",
+			"oldGatingError",
+			"gatingError",
+			"removeGatingError",
+			"createGatingError",
+			"s",
+			"getfcsmeta",
+			"loading fcs file metadata",
+			"getaxisgroups",
+			"peaks.reduce",
+			"updateUnsavedGateDer",
+			"applygatetemplatestosample",
+			"includeEventIds",
+			"createSubSampleAndAdd",
+			"sample.includeEventIds",
+			"isloading",
+			"console.log",
+			"FCSFile",
+			"gates[0]",
+			"gates[0",
+			"gates[0]",
+			"Width",
+			"calculateHomology",
+			"setBackgroundJobs",
+			"this.props.modalOptions.",
+			"this.props.selectedFCSFile",
+			"options = {",
+			"persiste",
+			"options =",
+			"FCSFile.machineType",
+			"get-included-events",
+			"get-included",
+			"filename",
+			"createUnsavedGatesUsingHomology",
+			"calculateHomology",
+			"calculatehomology",
+			"calculateHomology",
+			"image",
+			"filePath",
+			"toSave",
+			"api.getSession",
+			"background",
+			"console.log",
+			"console",
+			"console.log",
+			"\n                ",
+			"data",
+			"Width",
+			"plotwidth",
+			"maxdensity",
+			"fcsfile",
+			"FCSFile.machineType"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1088,6 +1239,8 @@
 		"regex": false,
 		"replace_history":
 		[
+			"selectedYParameter",
+			"selectedXParameter"
 		],
 		"reverse": false,
 		"show_context": true,
@@ -1103,29 +1256,29 @@
 			[
 				{
 					"buffer": 0,
-					"file": "gatekeeper-electron/electron-backend.js",
+					"file": "package.json",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 94636,
+						"buffer_size": 1995,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								16642,
-								16642
+								520,
+								520
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/JavaScriptNext - ES6 Syntax/JavaScriptNext.tmLanguage",
-							"tab_size": 4,
+							"syntax": "Packages/JavaScriptNext - ES6 Syntax/JSON (JavaScriptNext).tmLanguage",
+							"tab_size": 2,
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 6135.0,
+						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 2,
@@ -1133,26 +1286,59 @@
 				},
 				{
 					"buffer": 1,
-					"file": "gatekeeper-frontend/reducers/gate-template-reducer.js",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 2623,
+						"buffer_size": 1783,
 						"regions":
 						{
+							"match":
+							{
+								"flags": 112,
+								"regions":
+								[
+									[
+										314,
+										327
+									],
+									[
+										671,
+										684
+									],
+									[
+										941,
+										954
+									],
+									[
+										1282,
+										1295
+									],
+									[
+										1634,
+										1647
+									]
+								],
+								"scope": ""
+							}
 						},
 						"selection":
 						[
 							[
-								422,
-								423
+								947,
+								947
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/JavaScriptNext - ES6 Syntax/JavaScriptNext.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
+							"detect_indentation": false,
+							"line_numbers": false,
+							"output_tag": 1,
+							"result_base_dir": "",
+							"result_file_regex": "^([^ \t].*):$",
+							"result_line_regex": "^ +([0-9]+):",
+							"scroll_past_end": true,
+							"syntax": "Packages/Default/Find Results.hidden-tmLanguage",
+							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
@@ -1163,19 +1349,19 @@
 				},
 				{
 					"buffer": 2,
-					"file": "gatekeeper-frontend/reducers/sample-reducer.js",
+					"file": "gatekeeper-electron/electron-backend.js",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 5958,
+						"buffer_size": 96009,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1247,
-								726
+								847,
+								847
 							]
 						],
 						"settings":
@@ -1189,6 +1375,67 @@
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "main.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2404,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								835,
+								835
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScriptNext - ES6 Syntax/JavaScriptNext.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "index.production.html",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 570,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"is_xml": false,
+							"syntax": "Packages/HTML/HTML.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
 					"type": "text"
 				}
 			]
@@ -1259,32 +1506,412 @@
 		"selected_items":
 		[
 			[
-				"sample-re",
-				"gatekeeper-frontend/reducers/sample-reducer.js"
+				"produc",
+				"index.production.html"
 			],
 			[
-				"workspace",
+				"electron-bac",
+				"gatekeeper-electron/electron-backend.js"
+			],
+			[
+				"application.js",
+				"gatekeeper-electron/application.js"
+			],
+			[
+				"application-",
+				"gatekeeper-electron/application-container.jsx"
+			],
+			[
+				"multiple-sample",
+				"gatekeeper-frontend/containers/multiple-sample-view-container.jsx"
+			],
+			[
+				"bivariate",
+				"gatekeeper-frontend/components/sample-components/bivariate-plot-component.jsx"
+			],
+			[
+				"electron-b",
+				"gatekeeper-electron/electron-backend.js"
+			],
+			[
+				"bivari",
+				"gatekeeper-frontend/containers/bivariate-plot-container.jsx"
+			],
+			[
+				"bivariate-",
+				"gatekeeper-frontend/components/sample-components/bivariate-plot-component.jsx"
+			],
+			[
+				"electron",
+				"gatekeeper-electron/electron-backend.js"
+			],
+			[
+				"bivariate-plt",
+				"gatekeeper-frontend/components/sample-components/bivariate-plot-component.jsx"
+			],
+			[
+				"modal",
+				"gatekeeper-frontend/scss/homology-modal.scss"
+			],
+			[
+				"mixins",
+				"gatekeeper-frontend/scss/mixins.scss"
+			],
+			[
+				"homology-mo",
+				"gatekeeper-frontend/components/homology-modal-component.jsx"
+			],
+			[
+				"workspace re",
 				"gatekeeper-frontend/reducers/workspace-reducer.js"
 			],
 			[
-				"gate-template-re",
-				"gatekeeper-frontend/reducers/gate-template-reducer.js"
+				"workspace-ac",
+				"gatekeeper-frontend/actions/workspace-actions.js"
+			],
+			[
+				"gatekeeper-elec",
+				"gatekeeper-electron/electron-backend.js"
+			],
+			[
+				"subprocess dev",
+				"gatekeeper-electron/subprocess-wrapper-dev.js"
+			],
+			[
+				"get-po",
+				"gatekeeper-electron/lib/get-population-data.js"
 			],
 			[
 				"electron-back",
 				"gatekeeper-electron/electron-backend.js"
 			],
 			[
+				"utilities",
+				"gatekeeper-utilities/utilities.js"
+			],
+			[
+				"electron-ba",
+				"gatekeeper-electron/electron-backend.js"
+			],
+			[
+				"get-pop",
+				"gatekeeper-electron/lib/get-population-data.js"
+			],
+			[
+				"get-",
+				"gatekeeper-electron/lib/get-fcs-metadata.js"
+			],
+			[
+				"utilti",
+				"gatekeeper-utilities/utilities.js"
+			],
+			[
+				"get-image",
+				"gatekeeper-electron/lib/get-image-for-plot.js"
+			],
+			[
+				"constants",
+				"gatekeeper-utilities/constants.js"
+			],
+			[
+				"bivariate-plo",
+				"gatekeeper-frontend/containers/bivariate-plot-container.jsx"
+			],
+			[
+				"utilties",
+				"gatekeeper-utilities/utilities.js"
+			],
+			[
+				"bivariate-plot",
+				"gatekeeper-frontend/containers/bivariate-plot-container.jsx"
+			],
+			[
 				"fcs-file-re",
 				"gatekeeper-frontend/reducers/fcs-file-reducer.js"
+			],
+			[
+				"get-fcs-meta",
+				"gatekeeper-electron/lib/get-fcs-metadata.js"
+			],
+			[
+				"application-re",
+				"gatekeeper-frontend/reducers/application-reducer.js"
+			],
+			[
+				"application-com",
+				"gatekeeper-electron/application-component.jsx"
+			],
+			[
+				"homology-modal",
+				"gatekeeper-frontend/components/homology-modal-component.jsx"
+			],
+			[
+				"gating-error-modal",
+				"gatekeeper-frontend/containers/gating-error-modal-container.jsx"
+			],
+			[
+				"homology-moda",
+				"gatekeeper-frontend/components/homology-modal-component.jsx"
+			],
+			[
+				"population",
+				"gatekeeper-electron/lib/get-population-data.js"
+			],
+			[
+				"get-fcs",
+				"gatekeeper-electron/lib/get-fcs-metadata.js"
+			],
+			[
+				"utilitie",
+				"gatekeeper-utilities/utilities.js"
+			],
+			[
+				"parameter",
+				"gatekeeper-frontend/components/fcs-parameter-selector-component.jsx"
+			],
+			[
+				"polygon",
+				"gatekeeper-utilities/polygon-utilities.js"
+			],
+			[
+				"persiste",
+				"gatekeeper-electron/lib/persistent-homology.js"
 			],
 			[
 				"gate-ut",
 				"gatekeeper-electron/lib/gate-utilities.js"
 			],
 			[
+				"gating-erro",
+				"gatekeeper-frontend/actions/gating-error-actions.js"
+			],
+			[
+				"bivariat",
+				"gatekeeper-frontend/components/sample-components/bivariate-plot-component.jsx"
+			],
+			[
 				"get-fcs-",
 				"gatekeeper-electron/lib/get-fcs-metadata.js"
+			],
+			[
+				"bivariate-pl",
+				"gatekeeper-frontend/components/sample-components/bivariate-plot-component.jsx"
+			],
+			[
+				"persisten",
+				"gatekeeper-electron/lib/persistent-homology.js"
+			],
+			[
+				"get-popul",
+				"gatekeeper-electron/lib/get-population-data.js"
+			],
+			[
+				"gating-modal",
+				"gatekeeper-frontend/components/gating-error-modal-component.jsx"
+			],
+			[
+				"persist",
+				"gatekeeper-electron/lib/persistent-homology.js"
+			],
+			[
+				"gate-util",
+				"gatekeeper-electron/lib/gate-utilities.js"
+			],
+			[
+				"homology",
+				"gatekeeper-frontend/components/homology-modal-component.jsx"
+			],
+			[
+				"getpopul",
+				"gatekeeper-electron/lib/get-population-data.js"
+			],
+			[
+				"electron-",
+				"gatekeeper-electron/electron-backend.js"
+			],
+			[
+				"subprocess",
+				"gatekeeper-electron/subprocess-wrapper-dev.js"
+			],
+			[
+				"utiliti",
+				"gatekeeper-utilities/utilities.js"
+			],
+			[
+				"multiple-samp",
+				"gatekeeper-frontend/components/sample-components/multiple-sample-view-component.jsx"
+			],
+			[
+				"polygon-",
+				"gatekeeper-utilities/polygon-utilities.js"
+			],
+			[
+				"gating-error",
+				"gatekeeper-frontend/scss/gating-error-modal.scss"
+			],
+			[
+				"homolo",
+				"gatekeeper-frontend/components/homology-modal-component.jsx"
+			],
+			[
+				"get-popu",
+				"gatekeeper-electron/lib/get-population-data.js"
+			],
+			[
+				"multiple-sam",
+				"gatekeeper-frontend/components/sample-components/multiple-sample-view-component.jsx"
+			],
+			[
+				"package",
+				"package.json"
+			],
+			[
+				"gate-",
+				"gatekeeper-electron/lib/gate-utilities.js"
+			],
+			[
+				"application-red",
+				"gatekeeper-frontend/reducers/application-reducer.js"
+			],
+			[
+				"fcs file conta",
+				"gatekeeper-frontend/containers/fcs-file-selector-container.jsx"
+			],
+			[
+				"fcs-file-selet",
+				"gatekeeper-frontend/components/fcs-file-selector-component.jsx"
+			],
+			[
+				"workspace-com",
+				"gatekeeper-frontend/components/workspace-component.jsx"
+			],
+			[
+				"multiplesample",
+				"gatekeeper-frontend/components/sample-components/multiple-sample-view-component.jsx"
+			],
+			[
+				"workspace",
+				"gatekeeper-frontend/components/workspace-component.jsx"
+			],
+			[
+				"workspace-con",
+				"gatekeeper-frontend/containers/workspace-container.jsx"
+			],
+			[
+				"electr",
+				"gatekeeper-electron/electron-backend.js"
+			],
+			[
+				"gate-re",
+				"gatekeeper-frontend/reducers/gate-reducer.js"
+			],
+			[
+				"gate group ac",
+				"gatekeeper-frontend/actions/gate-template-group-actions.js"
+			],
+			[
+				"gate group re",
+				"gatekeeper-frontend/reducers/gate-template-group-reducer.js"
+			],
+			[
+				"gate-template-group-re",
+				"gatekeeper-frontend/reducers/gate-template-group-reducer.js"
+			],
+			[
+				"gate-template-group-",
+				"gatekeeper-frontend/actions/gate-template-group-actions.js"
+			],
+			[
+				"gate-template-group",
+				"gatekeeper-frontend/reducers/gate-template-group-reducer.js"
+			],
+			[
+				"electron-backe",
+				"gatekeeper-electron/electron-backend.js"
+			],
+			[
+				"gate-template-gr",
+				"gatekeeper-frontend/actions/gate-template-group-actions.js"
+			],
+			[
+				"workspace-compon",
+				"gatekeeper-frontend/components/workspace-component.jsx"
+			],
+			[
+				"workspace-re",
+				"gatekeeper-frontend/reducers/workspace-reducer.js"
+			],
+			[
+				"gate-template-ac",
+				"gatekeeper-frontend/actions/gate-template-actions.js"
+			],
+			[
+				"gate-template-re",
+				"gatekeeper-frontend/reducers/gate-template-reducer.js"
+			],
+			[
+				"gate-template-aci",
+				"gatekeeper-frontend/actions/gate-template-actions.js"
+			],
+			[
+				"fcs-file-sele",
+				"gatekeeper-frontend/components/fcs-file-selector-component.jsx"
+			],
+			[
+				"fcs-file-sel",
+				"gatekeeper-frontend/containers/fcs-file-selector-container.jsx"
+			],
+			[
+				"bivariate-p",
+				"gatekeeper-frontend/containers/bivariate-plot-container.jsx"
+			],
+			[
+				"fcs-file-ac",
+				"gatekeeper-frontend/actions/fcs-file-actions.js"
+			],
+			[
+				"workspace-coo",
+				"gatekeeper-frontend/components/workspace-component.jsx"
+			],
+			[
+				"workspace-",
+				"gatekeeper-frontend/components/workspace-component.jsx"
+			],
+			[
+				"gate-ac",
+				"gatekeeper-frontend/actions/gate-actions.js"
+			],
+			[
+				"sample-re",
+				"gatekeeper-frontend/reducers/sample-reducer.js"
+			],
+			[
+				"sample-act",
+				"gatekeeper-frontend/actions/sample-actions.js"
+			],
+			[
+				"sample-ac",
+				"gatekeeper-frontend/actions/sample-actions.js"
+			],
+			[
+				"gate-act",
+				"gatekeeper-frontend/actions/gate-actions.js"
+			],
+			[
+				"gate-reu",
+				"gatekeeper-frontend/reducers/gate-reducer.js"
+			],
+			[
+				"sample-redu",
+				"gatekeeper-frontend/reducers/sample-reducer.js"
+			],
+			[
+				"sample",
+				"gatekeeper-frontend/reducers/sample-reducer.js"
+			],
+			[
+				"multiple-sample-",
+				"gatekeeper-frontend/components/sample-components/multiple-sample-view-component.jsx"
 			],
 			[
 				"docker-compose",
@@ -1339,14 +1966,6 @@
 				"gatekeeper-jobs/endpoints/fcs-files.js"
 			],
 			[
-				"package",
-				"gatekeeper-api/package.json"
-			],
-			[
-				"multiple-samp",
-				"gatekeeper-frontend/components/sample-components/multiple-sample-view-component.jsx"
-			],
-			[
 				"sessions",
 				"gatekeeper-api/endpoints/session.js"
 			],
@@ -1375,10 +1994,6 @@
 				"gatekeeper-api/endpoints/progress-tokens.js"
 			],
 			[
-				"fcs-file-sel",
-				"gatekeeper-frontend/scss/fcs-file-selector-component.scss"
-			],
-			[
 				"fcs-file-sec",
 				"gatekeeper-frontend/components/fcs-file-selector-component.jsx"
 			],
@@ -1399,376 +2014,8 @@
 				"gatekeeper-frontend/reducers/application-reducer.js"
 			],
 			[
-				"workspace-con",
-				"gatekeeper-frontend/containers/workspace-container.jsx"
-			],
-			[
 				"fcs-file-se",
 				"gatekeeper-frontend/components/fcs-file-selector-component.jsx"
-			],
-			[
-				"application-re",
-				"gatekeeper-frontend/reducers/application-reducer.js"
-			],
-			[
-				"application-ac",
-				"gatekeeper-frontend/actions/application-actions.js"
-			],
-			[
-				"index.j",
-				"gatekeeper-api/index.js"
-			],
-			[
-				"workspace-cont",
-				"gatekeeper-frontend/containers/workspace-container.jsx"
-			],
-			[
-				"workspace-comp",
-				"gatekeeper-frontend/components/workspace-component.jsx"
-			],
-			[
-				"applica",
-				"gatekeeper-frontend/components/application-component.jsx"
-			],
-			[
-				"session.js",
-				"gatekeeper-api/endpoints/session.js"
-			],
-			[
-				"dep create fcs",
-				"gatekeeper-api/sqitch/deploy/create_fcs_files_table.sql"
-			],
-			[
-				"auth",
-				"gatekeeper-api/endpoints/authentication.js"
-			],
-			[
-				"fcs-f",
-				"gatekeeper-api/endpoints/fcs-files.js"
-			],
-			[
-				"workspac",
-				"gatekeeper-api/endpoints/workspaces.js"
-			],
-			[
-				"fcs-file-sele",
-				"gatekeeper-frontend/components/fcs-file-selector-component.jsx"
-			],
-			[
-				"user-set",
-				"gatekeeper-api/endpoints/user-settings.js"
-			],
-			[
-				"workspace.j",
-				"gatekeeper-api/endpoints/workspaces.js"
-			],
-			[
-				"session",
-				"gatekeeper-api/endpoints/session.js"
-			],
-			[
-				"application.jsx",
-				"gatekeeper-frontend/components/application-component.jsx"
-			],
-			[
-				"fcs-file",
-				"gatekeeper-api/endpoints/fcs-files.js"
-			],
-			[
-				".plan",
-				"gatekeeper-api/sqitch/sqitch.plan"
-			],
-			[
-				"application-js",
-				"gatekeeper-frontend/components/application-component.jsx"
-			],
-			[
-				"web-",
-				"gatekeeper-frontend/api/web-api.js"
-			],
-			[
-				"index",
-				"gatekeeper-api/index.js"
-			],
-			[
-				"menu",
-				"gatekeeper-frontend/scss/menu-bar-component.scss"
-			],
-			[
-				"applicaiton-re",
-				"gatekeeper-frontend/reducers/application-reducer.js"
-			],
-			[
-				"dropdow",
-				"gatekeeper-frontend/scss/dropdown.scss"
-			],
-			[
-				"mixins",
-				"gatekeeper-frontend/scss/mixins.scss"
-			],
-			[
-				"application-com",
-				"gatekeeper-frontend/components/application-component.jsx"
-			],
-			[
-				"workspace-acion",
-				"gatekeeper-frontend/actions/workspace-actions.js"
-			],
-			[
-				"workspace-re",
-				"gatekeeper-frontend/reducers/workspace-reducer.js"
-			],
-			[
-				"create_work",
-				"gatekeeper-api/sqitch/deploy/create_workspaces_table.sql"
-			],
-			[
-				"application-red",
-				"gatekeeper-frontend/reducers/application-reducer.js"
-			],
-			[
-				"index.js",
-				"gatekeeper-api/index.js"
-			],
-			[
-				"workspace-compon",
-				"gatekeeper-frontend/components/workspace-component.jsx"
-			],
-			[
-				"constan",
-				"gatekeeper-utilities/constants.js"
-			],
-			[
-				"app js",
-				"gatekeeper-frontend/application.js"
-			],
-			[
-				"workspace-compone",
-				"gatekeeper-frontend/components/workspace-component.jsx"
-			],
-			[
-				"workspace-ac",
-				"gatekeeper-frontend/actions/workspace-actions.js"
-			],
-			[
-				"database",
-				"gatekeeper-api/lib/database.js"
-			],
-			[
-				"dropdown.sc",
-				"gatekeeper-frontend/scss/dropdown.scss"
-			],
-			[
-				"app re",
-				"gatekeeper-frontend/reducers/application-reducer.js"
-			],
-			[
-				"application-compo",
-				"gatekeeper-frontend/components/application-component.jsx"
-			],
-			[
-				"application.js",
-				"gatekeeper-frontend/application.js"
-			],
-			[
-				"auth end",
-				"gatekeeper-api/endpoints/authentication.js"
-			],
-			[
-				"app actions",
-				"gatekeeper-frontend/actions/application-actions.js"
-			],
-			[
-				"glo ke",
-				"gatekeeper-frontend/lib/global-keyboard-listener.js"
-			],
-			[
-				"app con",
-				"gatekeeper-frontend/containers/application-container.jsx"
-			],
-			[
-				"application-cont",
-				"gatekeeper-frontend/containers/application-container.jsx"
-			],
-			[
-				"app red",
-				"gatekeeper-frontend/reducers/application-reducer.js"
-			],
-			[
-				"global",
-				"gatekeeper-api/node_modules/shelljs/global.js"
-			],
-			[
-				"constants",
-				"gatekeeper-utilities/constants.js"
-			],
-			[
-				"dropdown-",
-				"gatekeeper-frontend/lib/dropdown-inline.jsx"
-			],
-			[
-				"config",
-				"gatekeeper-api/lib/config.js"
-			],
-			[
-				"bivariate-plot",
-				"gatekeeper-frontend/components/sample-components/bivariate-plot-component.jsx"
-			],
-			[
-				"bivariate-",
-				"gatekeeper-frontend/components/sample-components/bivariate-plot-component.jsx"
-			],
-			[
-				"bivariate-plot-",
-				"js/components/sample-components/bivariate-plot-component.jsx"
-			],
-			[
-				"gate-uti",
-				"js/electron/lib/gate-utilities.js"
-			],
-			[
-				"get-popu",
-				"js/lib/get-population-data.js"
-			],
-			[
-				"subprocess-wra",
-				"js/electron/subprocess-wrapper.js"
-			],
-			[
-				"app comp",
-				"js/components/application-component.jsx"
-			],
-			[
-				"get-pop",
-				"js/lib/get-population-data.js"
-			],
-			[
-				"get-po",
-				"js/lib/get-population-data.js"
-			],
-			[
-				"get-population",
-				"js/lib/get-population-data.js"
-			],
-			[
-				"application-compon",
-				"js/components/application-component.jsx"
-			],
-			[
-				"multiple-sample",
-				"js/components/sample-components/multiple-sample-view-component.jsx"
-			],
-			[
-				"gating-error-mo",
-				"js/containers/gating-error-modal-container.jsx"
-			],
-			[
-				"gating-error-modal",
-				"js/components/gating-error-modal-component.jsx"
-			],
-			[
-				"fcs-para",
-				"scss/fcs-parameter-selector.scss"
-			],
-			[
-				"parameter",
-				"js/components/fcs-parameter-selector-component.jsx"
-			],
-			[
-				"gate-re",
-				"js/reducers/gate-reducer.js"
-			],
-			[
-				"gate-reduc",
-				"js/reducers/gate-reducer.js"
-			],
-			[
-				"application-redu",
-				"js/reducers/application-reducer.js"
-			],
-			[
-				"gate-template-reu",
-				"js/reducers/gate-template-reducer.js"
-			],
-			[
-				"gate-template-redu",
-				"js/reducers/gate-template-reducer.js"
-			],
-			[
-				"gate-template",
-				"js/actions/gate-template-group-actions.js"
-			],
-			[
-				"gate-redu",
-				"js/reducers/gate-reducer.js"
-			],
-			[
-				"multiple contain",
-				"js/containers/multiple-sample-view-container.jsx"
-			],
-			[
-				"homology coan",
-				"js/containers/homology-modal-container.jsx"
-			],
-			[
-				"homology contain",
-				"js/containers/homology-modal-container.jsx"
-			],
-			[
-				"electr",
-				"js/electron/electron-backend.js"
-			],
-			[
-				"gate-reu",
-				"js/reducers/gate-reducer.js"
-			],
-			[
-				"bivariate-plot-contain",
-				"js/containers/bivariate-plot-container.jsx"
-			],
-			[
-				"bivariate",
-				"js/components/sample-components/bivariate-plot-component.jsx"
-			],
-			[
-				"modal-compon",
-				"js/components/homology-modal-component.jsx"
-			],
-			[
-				"electron-backen",
-				"js/electron/electron-backend.js"
-			],
-			[
-				"-dev",
-				"js/electron/subprocess-wrapper-dev.js"
-			],
-			[
-				"persiste",
-				"js/lib/persistent-homology.js"
-			],
-			[
-				"erro contain",
-				"js/containers/gating-error-modal-container.jsx"
-			],
-			[
-				"gating-erro modal",
-				"js/components/gating-error-modal-component.jsx"
-			],
-			[
-				"gating-error-moda",
-				"js/containers/gating-error-modal-container.jsx"
-			],
-			[
-				"homology-modal",
-				"js/components/homology-modal-component.jsx"
-			],
-			[
-				"bivariate-plot-conta",
-				"js/containers/bivariate-plot-container.jsx"
-			],
-			[
-				"workspace-conta",
-				"js/containers/workspace-container.jsx"
 			]
 		],
 		"width": 0.0
@@ -1776,16 +2023,16 @@
 	"select_project":
 	{
 		"height": 500.0,
-		"last_filter": "web",
+		"last_filter": "",
 		"selected_items":
 		[
 			[
-				"web",
-				"~/Documents/gatekeeper-web-dev/gatekeeper-web-dev.sublime-project"
+				"",
+				"~/Documents/memoretti/memoretti.sublime-project"
 			],
 			[
-				"",
-				"~/Documents/gatekeeper-electron/gatekeeper-electron.sublime-project"
+				"web",
+				"~/Documents/gatekeeper-web-dev/gatekeeper-web-dev.sublime-project"
 			],
 			[
 				"elec",
@@ -1806,12 +2053,16 @@
 	"selected_group": 0,
 	"settings":
 	{
+		"xdebug":
+		{
+			"hide_conflict": false
+		}
 	},
 	"show_minimap": true,
 	"show_open_files": false,
 	"show_tabs": true,
 	"side_bar_visible": true,
-	"side_bar_width": 362.0,
+	"side_bar_width": 212.0,
 	"status_bar_visible": true,
 	"template_settings":
 	{

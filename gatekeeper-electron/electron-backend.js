@@ -13,11 +13,14 @@ import uuidv4 from 'uuid/v4'
 import _ from 'lodash'
 import * as d3 from "d3"
 import os from 'os'
+import http2 from 'http2'
+import mkdirp from 'mkdirp'
 import { getPlotImageKey, heatMapRGBForValue, getScales, getPolygonCenter, getPolygonBoundaries, getAxisGroups } from '../gatekeeper-utilities/utilities'
 import constants from '../gatekeeper-utilities/constants'
 import { fork } from 'child_process'
 import ls from 'ls'
 import rimraf from 'rimraf'
+import createHttpsCertificate from './create-https-certificate'
 import pointInsidePolygon from 'point-in-polygon'
 import polygonsIntersect from 'polygon-overlap'
 import area from 'area-polygon'
@@ -43,13 +46,86 @@ let reduxStore
 // Fork a new node process for doing CPU intensive jobs
 let workerFork
 
-const createFork = function () {
+const createFork = async function () {
     console.log('starting fork')
+    const certsDirectory = path.join(remote.app.getPath('userData'), 'certs')
+    try {
+        fs.statSync(path.join(certsDirectory, 'localhost.key'))
+        fs.statSync(path.join(certsDirectory, 'localhost.crt'))
+    } catch (error) {
+        console.log('generating local ssl certificate')
+        await new Promise((resolve, reject) => {
+            mkdirp(certsDirectory, function (error) {
+                if (error) {
+                    reject()
+                } else {
+                    resolve()
+                }
+            })
+        })
+        await createHttpsCertificate(certsDirectory)
+    }
+
     if (isDev) {
         workerFork = fork(__dirname + '/gatekeeper-electron/subprocess-wrapper-dev.js', [ remote.app.getPath('userData') ], { silent: true })
     } else {
         workerFork = fork(__dirname + '/webpack-build/fork.bundle.js', [ remote.app.getPath('userData') ], { silent: true })
     }
+
+    workerFork.stdout.on('data', async (result) => {
+        if (reduxStore.getState().sessionLoading && !reduxStore.getState().sessionBroken) {
+            await api.getSession()
+            
+            const action = {
+                type: 'SET_SESSION_LOADING',
+                payload: {
+                    sessionLoading: false
+                }
+            }
+            currentState = applicationReducer(currentState, action)
+            reduxStore.dispatch(action)
+
+            const client = http2.connect('https://localhost:3146', {
+              ca: fs.readFileSync(path.join(certsDirectory, 'localhost.crt'))
+            });
+            client.on('error', (err) => console.error(err));
+
+            const req = client.request({ ':path': '/' });
+
+            req.on('response', (headers, flags) => {
+              for (const name in headers) {
+                console.log(`${name}: ${headers[name]}`);
+              }
+            });
+
+            req.setEncoding('utf8');
+            let data = '';
+            req.on('data', (chunk) => { data += chunk; });
+            req.on('end', () => {
+              // console.log(`\n${data}`);
+              // client.close();
+            });
+            req.end();
+
+            if (currentState.selectedWorkspaceId) {
+                const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
+                if (workspace.selectedFCSFileId && workspace.selectedGateTemplateId) {
+                    const sample = _.find(currentState.samples, s => s.gateTemplateId === workspace.selectedGateTemplateId && s.FCSFileId === workspace.selectedFCSFileId)
+                }
+                for (let sample of currentState.samples) {
+                    api.applyGateTemplatesToSample(sample.id)
+                }
+            }
+        }
+        console.log(result.toString('utf8'))
+    })
+
+    workerFork.stderr.on('data', (result) => {
+        console.log(result.toString('utf8'))
+    })
+
+    workerFork.on('close', createFork);
+    workerFork.on('error', createFork);
 }
 
 createFork()
@@ -144,42 +220,9 @@ const processJobs = async function () {
     }
 }
 
-for (let i = 0; i < Math.max(os.cpus().length - 2, 1); i++) {
+for (let i = 0; i < Math.max(os.cpus().length - 1, 1); i++) {
     processJobs()
 }
-
-workerFork.stdout.on('data', async (result) => {
-    if (reduxStore.getState().sessionLoading && !reduxStore.getState().sessionBroken) {
-        await api.getSession()
-        
-        const action = {
-            type: 'SET_SESSION_LOADING',
-            payload: {
-                sessionLoading: false
-            }
-        }
-        currentState = applicationReducer(currentState, action)
-        reduxStore.dispatch(action)
-
-        if (currentState.selectedWorkspaceId) {
-            const workspace = _.find(currentState.workspaces, w => w.id === currentState.selectedWorkspaceId)
-            if (workspace.selectedFCSFileId && workspace.selectedGateTemplateId) {
-                const sample = _.find(currentState.samples, s => s.gateTemplateId === workspace.selectedGateTemplateId && s.FCSFileId === workspace.selectedFCSFileId)
-            }
-            for (let sample of currentState.samples) {
-                api.applyGateTemplatesToSample(sample.id)
-            }
-        }
-    }
-    console.log(result.toString('utf8'))
-})
-
-workerFork.stderr.on('data', (result) => {
-    console.log(result.toString('utf8'))
-})
-
-workerFork.on('close', createFork);
-workerFork.on('error', createFork);
 
 // Wrap the read and write file functions from FS in promises
 const readFile = (path, opts = 'utf8') => {
@@ -1897,9 +1940,22 @@ export const api = {
         }
     },
 
+    getJobsApiUrl: () => {
+        return 'https://localhost:3146'
+    },
+
     dragImage: (filePath, event) => {
         event.preventDefault()
         event.nativeEvent.effectAllowed = 'copy'
         ipcRenderer.send('ondragstart', filePath)
+    },
+
+    generatePlotImage: (parameters) => {
+        pushToQueue({
+            jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: uuidv4(), type: 'generate-plot-image', payload: parameters } },
+            jobKey: JSON.stringify(parameters),
+            checkValidity: () => { return true },
+            callback: (data) => { }
+        }, true)
     }
 }

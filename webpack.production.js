@@ -21,7 +21,8 @@ module.exports = merge(common, {
         new webpack.DefinePlugin({
             'process.env': {
                 'NODE_ENV': JSON.stringify('production'),
-                'CONTEXT': JSON.stringify('electron')
+                'CONTEXT': JSON.stringify('electron'),
+                'JOBS_API_URL': JSON.stringify('http://localhost:3145')
             }
         }),
         // new MinifyPlugin({}, { comments: false }),
