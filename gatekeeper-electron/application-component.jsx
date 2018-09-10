@@ -19,7 +19,7 @@ export default class Application extends Component {
                 submenu: [
                     {label: 'New Workspace', accelerator: 'Cmd+Shift+N', click: this.newWorkspace.bind(this) },
                     // {label: 'Save Workspace', accelerator: 'Cmd+S' },//, click: this.showSaveWorkspaceAsDialogBox.bind(this) },
-                    {label: 'Open FCS File(s)', accelerator: 'Cmd+Shift+O', click: this.showOpenFCSFileDialog.bind(this) },
+                    {label: 'Open FCS or CSV File(s)', accelerator: 'Cmd+Shift+O', click: this.showOpenFCSFileDialog.bind(this) },
                     // {label: 'Open Workspace(s)',  accelerator: 'Cmd+O' }//, click: this.showOpenWorkspacesDialog.bind(this) }
                 ]
             },
@@ -148,7 +148,7 @@ export default class Application extends Component {
         event.preventDefault();
 
         for (let file of event.dataTransfer.files) {
-            if (file.path.match(/\.fcs/)) {
+            if (file.path.match(/\.fcs/) || file.path.match(/\.csv/)) {
                 this.addNewFCSFilesToWorkspace([file.path])
             }
         }
@@ -240,7 +240,7 @@ export default class Application extends Component {
 
     showOpenFCSFileDialog () {
         let workspace = _.find(this.props.workspaces, workspace => workspace.id === this.props.selectedWorkspaceId)
-        dialog.showOpenDialog({ title: `Open Sample File`, filters: [{ name: 'FCS Files', extensions: ['fcs']}], message: `Open Sample File`, properties: ['openFile', 'multiSelections'] }, (filePaths) => {
+        dialog.showOpenDialog({ title: `Open Sample File`, filters: [{ name: 'Cytometry Data Files', extensions: ['fcs', 'csv']}], message: `Open Sample File`, properties: ['openFile', 'multiSelections'] }, (filePaths) => {
             this.addNewFCSFilesToWorkspace(filePaths)
         })
     }

@@ -7,7 +7,7 @@ import mkdirp from 'mkdirp'
 import FCS from 'fcs'
 import _ from 'lodash'
 import path from 'path'
-import { getScales, getPlotImageKey, getMetadataFromFCSFileText } from '../../gatekeeper-utilities/utilities'
+import { getScales, getPlotImageKey, getMetadataFromFCSFileText, getMetadataFromCSVFileHeader } from '../../gatekeeper-utilities/utilities'
 import constants from '../../gatekeeper-utilities/constants'
 
 // Wrap the read file function from FS in a promise
@@ -40,6 +40,7 @@ const mkdirpPromise = (directory) => {
 }
 
 const FCSFileCache = {}
+const CSVFileCache = {}
 
 const unblock = async () => {
     new Promise((resolve, reject) => { _.defer(resolve) })
@@ -58,6 +59,20 @@ const getFCSFileFromPath = async (filePath) => {
     } catch (error) {
         process.stderr.write(JSON.stringify(error))
     }
+}
+
+const getCSVFileFromPath = async (filePath) => {
+    if (CSVFileCache[filePath]) {
+        return CSVFileCache[filePath]
+    }
+    // Read in the data from the CSV file, and emit another action when finished
+    const file = await readFile(filePath)
+    const CSVFile = file.split('\n').map(row => row.split(','))
+    CSVFileCache[filePath] = {
+        headers: getMetadataFromCSVFileHeader(CSVFile[0]),
+        data: CSVFile.slice(1)
+    }
+    return CSVFileCache[filePath]
 }
 
 // Data should be an array of 2d points, in [x, y] format i.e. [[1, 1], [2, 2]]
@@ -374,12 +389,20 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
 
     await mkdirpPromise(directory)
 
-    let FCSFileData
+    let fileData
+    let isCSV
     try  {
-        FCSFileData = await getFCSFileFromPath(path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, FCSFileId + '.fcs'))
+        const FCSFile = await getFCSFileFromPath(path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, FCSFileId + '.fcs'))
+        fileData = FCSFile.dataAsNumbers
     } catch (error) {
-        process.stderr.write(JSON.stringify(error))
-        return
+        try {
+            const CSVFile = await getCSVFileFromPath(path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, FCSFileId + '.csv'))
+            fileData = CSVFile.data
+            isCSV = true
+        } catch (error2) {
+            console.log(error2.message)
+            return
+        }
     }
 
     let xOffset = options.machineType === constants.MACHINE_CYTOF ? Math.round(Math.min(options.plotWidth, options.plotHeight) * 0.07) : 0
@@ -401,7 +424,11 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
 
     if (includeEventIds && includeEventIds.length > 0) {
         for (let i = 0; i < includeEventIds.length; i++) {
-            const point = FCSFileData.dataAsNumbers[includeEventIds[i]]
+            let point = fileData[includeEventIds[i]]
+            if (isCSV) {
+                point[options.selectedXParameterIndex] = parseFloat(point[options.selectedXParameterIndex], 10)
+                point[options.selectedYParameterIndex] = parseFloat(point[options.selectedYParameterIndex], 10)
+            }
 
             if (options.machineType === constants.MACHINE_CYTOF) {
                 // Every point that has a zero in the selected X channel
@@ -418,7 +445,7 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
                     aboveZeroPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], includeEventIds[i] ])
                 }
             } else {
-                aboveZeroPopulation.push([ FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex], FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], includeEventIds[i] ])
+                aboveZeroPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], includeEventIds[i] ])
             }
 
             subPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], includeEventIds[i] ])
@@ -428,25 +455,30 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
             }
         }
     } else {
-        for (let i = 0; i < FCSFileData.dataAsNumbers.length; i++) {
+        for (let i = 0; i < fileData.length; i++) {
+            let point = fileData[i]
+            if (isCSV) {
+                point[options.selectedXParameterIndex] = parseFloat(point[options.selectedXParameterIndex], 10)
+                point[options.selectedYParameterIndex] = parseFloat(point[options.selectedYParameterIndex], 10)
+            }
             if (options.machineType === constants.MACHINE_CYTOF) {
                 // Every point that has a zero in the selected X channel
-                if (FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex] === 0 && FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex] === 0) {
-                    doubleChannelZeroes.push([ FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], i ])
+                if (point[options.selectedXParameterIndex] === 0 && point[options.selectedYParameterIndex] === 0) {
+                    doubleChannelZeroes.push([ point[options.selectedYParameterIndex], i ])
                 }
                 // Every point that has a zero in the selected X channel
-                else if (FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex] === 0) {
-                    xChannelZeroes.push([ FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], i ])
+                else if (point[options.selectedXParameterIndex] === 0) {
+                    xChannelZeroes.push([ point[options.selectedYParameterIndex], i ])
                 // Every point that has a zero in the selected Y channel
-                } else if (FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex] === 0) {
-                    yChannelZeroes.push([ FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex], i ])
+                } else if (point[options.selectedYParameterIndex] === 0) {
+                    yChannelZeroes.push([ point[options.selectedXParameterIndex], i ])
                 } else {
-                    aboveZeroPopulation.push([ FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex], FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], i ])
+                    aboveZeroPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], i ])
                 }
-                subPopulation.push([ FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex], FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], i ])
+                subPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], i ])
             } else {
-                subPopulation.push([ FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex], FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], i ])
-                aboveZeroPopulation.push([ FCSFileData.dataAsNumbers[i][options.selectedXParameterIndex], FCSFileData.dataAsNumbers[i][options.selectedYParameterIndex], i ])
+                subPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], i ])
+                aboveZeroPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], i ])
             }
 
             if (i % 10000 === 0) {

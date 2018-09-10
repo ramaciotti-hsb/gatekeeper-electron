@@ -7,9 +7,8 @@ import fs from 'fs'
 import FCS from 'fcs'
 import _ from 'lodash'
 import path from 'path'
-import { getScales, getMetadataFromFCSFileText } from '../../gatekeeper-utilities/utilities'
+import { getScales, getMetadataFromFCSFileText, getMetadataFromCSVFileHeader } from '../../gatekeeper-utilities/utilities'
 
-// Wrap the read file function from FS in a promise
 const readFileBuffer = (path) => {
     return new Promise((res, rej) => {
         fs.readFile(path, (err, buffer) => {
@@ -19,70 +18,106 @@ const readFileBuffer = (path) => {
     })
 }
 
+const readFile = (path, opts = 'utf8') => {
+    return new Promise((res, rej) => {
+        fs.readFile(path, opts, (err, data) => {
+            if (err) rej(err)
+            else res(data)
+        })
+    })
+}
+
 const FCSFileCache = {}
+const CSVFileCache = {}
 
 const getFCSFileFromPath = async (filePath) => {
     if (FCSFileCache[filePath]) {
         return FCSFileCache[filePath]
     }
     // Read in the data from the FCS file, and emit another action when finished
-    try {
-        const buffer = await readFileBuffer(filePath)        
-        const FCSFile = new FCS({ dataFormat: 'asNumber', eventsToRead: -1 }, buffer)
-        FCSFileCache[filePath] = FCSFile
-        return FCSFile
-    } catch (error) {
-        process.stderr.write(JSON.stringify(error))
+    const buffer = await readFileBuffer(filePath)        
+    const FCSFile = new FCS({ dataFormat: 'asNumber', eventsToRead: -1 }, buffer)
+    FCSFileCache[filePath] = FCSFile
+    return FCSFile
+}
+
+const getCSVFileFromPath = async (filePath) => {
+    if (CSVFileCache[filePath]) {
+        return CSVFileCache[filePath]
     }
+    // Read in the data from the CSV file, and emit another action when finished
+    const file = await readFile(filePath)
+    const CSVFile = file.split('\n').map(row => row.split(','))
+    CSVFileCache[filePath] = {
+        headers: getMetadataFromCSVFileHeader(CSVFile[0]),
+        data: CSVFile.slice(1)
+    }
+    return CSVFileCache[filePath]
 }
 
 export default async function getFCSMetadata (workspaceId, FCSFileId, fileName) {
     const assetDirectory = process.argv[2]
-    const filePath = path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, FCSFileId + '.fcs')
-    let FCSFile
+    const FCSfilePath = path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, FCSFileId + '.fcs')
+    const CSVfilePath = path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, FCSFileId + '.csv')
+    let machineType
+    let populationCount
+    let fileData
+    let parameters
+    let isCSV
+    // If we can't find an FCS file with this id, try a CSV file
     try {
-        FCSFile = await getFCSFileFromPath(filePath)        
+        const FCSFile = await getFCSFileFromPath(FCSfilePath)
+        machineType = FCSFile.text['$CYT'] && FCSFile.text['$CYT'].match(/CYTOF/) ? constants.MACHINE_CYTOF : constants.MACHINE_FLORESCENT
+        populationCount = parseInt(FCSFile.text['$TOT'], 10)
+        fileData = FCSFile.dataAsNumbers
+        parameters = getMetadataFromFCSFileText(FCSFile.text)
     } catch (error) {
-        process.stderr.write(JSON.stringify(error))
-        return
+        try {
+            const CSVFile = await getCSVFileFromPath(CSVfilePath)
+            machineType = constants.MACHINE_CYTOF
+            populationCount = CSVFile.data.length
+            fileData = CSVFile.data
+            parameters = CSVFile.headers
+            isCSV = true
+        } catch (error2) {
+            console.log(error2.message, error2.stack)
+            return
+        }
     }
 
-    const machineType = FCSFile.text['$CYT'] && FCSFile.text['$CYT'].match(/CYTOF/) ? constants.MACHINE_CYTOF : constants.MACHINE_FLORESCENT
-
-    const populationCount = parseInt(FCSFile.text['$TOT'], 10)
+    const parametersByKey = {}
+    for (let parameter of parameters) {
+        parametersByKey[parameter.key] = parameter
+    }
 
     // Loop through the parameters and get the min and max values of all the data points
-    const FCSParameters = getMetadataFromFCSFileText(FCSFile.text)
-
-    const FCSParametersByKey = {}
-    for (let parameter of FCSParameters) {
-        FCSParametersByKey[parameter.key] = parameter
-    }
-
-    for (let i = 0; i < FCSFile.dataAsNumbers.length; i++) {
-        for (let j = 0; j < FCSFile.dataAsNumbers[i].length; j++) {
-            const parameter = _.find(FCSParameters, p => p.index === j)
-            if (FCSFile.dataAsNumbers[i][j] < parameter.statistics.min) {
-                parameter.statistics.min = FCSFile.dataAsNumbers[i][j]
+    for (let i = 0; i < fileData.length; i++) {
+        for (let j = 0; j < fileData[i].length; j++) {
+            if (isCSV) {
+                fileData[i][j] = parseFloat(fileData[i][j], 10)
+            }
+            const parameter = _.find(parameters, p => p.index === j)
+            if (fileData[i][j] < parameter.statistics.min) {
+                parameter.statistics.min = fileData[i][j]
             }
 
-            if (FCSFile.dataAsNumbers[i][j] < parameter.statistics.positiveMin && FCSFile.dataAsNumbers[i][j] > 0) {
-                parameter.statistics.positiveMin = Math.max(FCSFile.dataAsNumbers[i][j], 0.01)
+            if (fileData[i][j] < parameter.statistics.positiveMin && fileData[i][j] > 0) {
+                parameter.statistics.positiveMin = Math.max(fileData[i][j], 0.01)
             }
 
-            if (FCSFile.dataAsNumbers[i][j] > parameter.statistics.max) {
-                parameter.statistics.max = FCSFile.dataAsNumbers[i][j]
+            if (fileData[i][j] > parameter.statistics.max) {
+                parameter.statistics.max = fileData[i][j]
             }
 
             // If we're looking at Cytof data, exclude zero values from mean calculation (they aren't useful)
-            if (FCSFile.dataAsNumbers[i][j] > 0) {
-                parameter.statistics.mean += FCSFile.dataAsNumbers[i][j] / FCSFile.dataAsNumbers.length                
+            if (fileData[i][j] > 0) {
+                parameter.statistics.mean += fileData[i][j] / fileData.length
             }
         }
     }
 
     return {
-        FCSParameters: FCSParametersByKey,
+        FCSParameters: parametersByKey,
         populationCount,
         machineType
     }
