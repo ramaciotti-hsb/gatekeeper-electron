@@ -171,7 +171,7 @@ if (cluster.isMaster) {
                 })                   
 // save-subsample-to-csv
             } else if (body.type === 'save-subsample-to-csv') {
-                getFullSubSamplePopulation(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options)
+                getFullSubSamplePopulation(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId)
                 .then((data) => {
                     const header = data[0].join(',') + '\n'
                     fs.writeFile(body.payload.filePath, header, function (error) {

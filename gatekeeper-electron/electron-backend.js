@@ -625,26 +625,28 @@ export const api = {
                         currentState = applicationReducer(currentState, loadingFinishedAction)
                         reduxStore.dispatch(loadingFinishedAction)
                     } else if (homologyResult.status === constants.STATUS_FAIL) {
-                        let gates = api.createGatePolygons(homologyResult.data.gates)
-                        gates = await api.getGateIncludedEvents(gates)
-                        // Remove any duplicate gating errors that may have been created at the same time
-                        for (let gatingError of _.filter(currentState.gatingErrors, (e) => { return e.sampleId === sampleId && e.gateTemplateGroupId === templateGroup.id })) {
-                            const removeGatingErrorAction = removeGatingError(gatingError.id)
-                            currentState = applicationReducer(currentState, removeGatingErrorAction)
-                            reduxStore.dispatch(removeGatingErrorAction)
-                        }
+                        if (homologyResult.data) {
+                            let gates = api.createGatePolygons(homologyResult.data.gates)
+                            gates = await api.getGateIncludedEvents(gates)
+                            // Remove any duplicate gating errors that may have been created at the same time
+                            for (let gatingError of _.filter(currentState.gatingErrors, (e) => { return e.sampleId === sampleId && e.gateTemplateGroupId === templateGroup.id })) {
+                                const removeGatingErrorAction = removeGatingError(gatingError.id)
+                                currentState = applicationReducer(currentState, removeGatingErrorAction)
+                                reduxStore.dispatch(removeGatingErrorAction)
+                            }
 
-                        const gatingError = {
-                            id: uuidv4(),
-                            sampleId: sampleId,
-                            gateTemplateGroupId: templateGroup.id,
-                            gates: homologyResult.data.gates,
-                            criteria:  homologyResult.data.criteria,
+                            const gatingError = {
+                                id: uuidv4(),
+                                sampleId: sampleId,
+                                gateTemplateGroupId: templateGroup.id,
+                                gates: homologyResult.data.gates,
+                                criteria:  homologyResult.data.criteria,
+                            }
+                            // Create a gating error
+                            const createGatingErrorAction = createGatingError(gatingError)
+                            currentState = applicationReducer(currentState, createGatingErrorAction)
+                            reduxStore.dispatch(createGatingErrorAction)
                         }
-                        // Create a gating error
-                        const createGatingErrorAction = createGatingError(gatingError)
-                        currentState = applicationReducer(currentState, createGatingErrorAction)
-                        reduxStore.dispatch(createGatingErrorAction)
 
                         const loadingFinishedAction = setSampleParametersLoading(sample.id, templateGroup.selectedXParameter + '_' + templateGroup.selectedYParameter, { loading: false, loadingMessage: null })
                         currentState = applicationReducer(currentState, loadingFinishedAction)
@@ -829,7 +831,7 @@ export const api = {
             if (filePath) {
                 new Promise((resolve, reject) => {
                     pushToQueue({
-                        jobParameters: { url: 'http://127.0.0.1:3145', json: { type: 'save-subsample-to-csv', payload: { sample, FCSFile, filePath } } },
+                        jobParameters: { url: 'http://127.0.0.1:3145', json: { type: 'save-subsample-to-csv', payload: { workspaceId: sample.workspaceId, FCSFileId: sample.FCSFileId, sampleId, filePath } } },
                         jobKey: uuidv4(),
                         checkValidity: () => { return true },
                         callback: (data) => { resolve(data) }

@@ -7,7 +7,7 @@ import fs from 'fs'
 import FCS from 'fcs'
 import _ from 'lodash'
 import path from 'path'
-import { getScales } from '../../gatekeeper-utilities/utilities'
+import { getScales, getMetadataFromFCSFileText } from '../../gatekeeper-utilities/utilities'
 
 // Wrap the read file function from FS in a promise
 const readFileBuffer = (path) => {
@@ -52,30 +52,7 @@ export default async function getFCSMetadata (workspaceId, FCSFileId, fileName) 
     const populationCount = parseInt(FCSFile.text['$TOT'], 10)
 
     // Loop through the parameters and get the min and max values of all the data points
-    const FCSParameters = []
-
-    for (let key of _.keys(FCSFile.text)) {
-        if ((key.match(/^\$P.+N$/) || key.match(/^\$P.+S$/)) &&
-            !FCSParameters[parseInt(key.match(/\d+/)[0]) - 1]) {
-            FCSParameters[parseInt(key.match(/\d+/)[0]) - 1] = {
-                key: FCSFile.text[key],
-                label: FCSFile.text[key],
-                index: parseInt(key.match(/\d+/)[0]) - 1,
-                statistics: {
-                    min: Infinity,
-                    positiveMin: Infinity,
-                    max: -Infinity,
-                    mean: 0
-                }
-            }
-        }
-
-        if (key.match(/^\$P.+N$/)) {
-            FCSParameters[parseInt(key.match(/\d+/)[0]) - 1].key = FCSFile.text[key]
-        } else if (key.match(/^\$P.+S$/)) {
-            FCSParameters[parseInt(key.match(/\d+/)[0]) - 1].label = FCSFile.text[key]
-        }
-    }
+    const FCSParameters = getMetadataFromFCSFileText(FCSFile.text)
 
     const FCSParametersByKey = {}
     for (let parameter of FCSParameters) {

@@ -7,7 +7,7 @@ import mkdirp from 'mkdirp'
 import FCS from 'fcs'
 import _ from 'lodash'
 import path from 'path'
-import { getScales, getPlotImageKey } from '../../gatekeeper-utilities/utilities'
+import { getScales, getPlotImageKey, getMetadataFromFCSFileText } from '../../gatekeeper-utilities/utilities'
 import constants from '../../gatekeeper-utilities/constants'
 
 // Wrap the read file function from FS in a promise
@@ -330,11 +330,9 @@ async function calculateDensity1D (points, scale, densityWidth = 2) {
     }
 }
 
-async function getFullSubSamplePopulation (workspaceId, FCSFileId, sampleId, options) {
+async function getFullSubSamplePopulation (workspaceId, FCSFileId, sampleId) {
     const assetDirectory = process.argv[2]
-    const directory = path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, sampleId)
-    const sampleKey = getPlotImageKey(options)
-    const filePath = path.join(directory, `${sampleKey}.json`)
+    const filePath = path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, sampleId, 'include-event-ids.json')
 
     let toReturn = []
 
@@ -346,18 +344,17 @@ async function getFullSubSamplePopulation (workspaceId, FCSFileId, sampleId, opt
         return
     }
 
-    let population = {}
+    let includeEventIds = {}
     try {
-        population = JSON.parse(await readFile(filePath))
+        includeEventIds = JSON.parse(await readFile(filePath))
     } catch (error) {
         console.log("Couldn't find cached population file", error)
         return FCSFileData.dataAsNumbers.map((p, index) => { return [p, index] })
     }
 
-    const subPopulation = []
-
-    for (let i = 0; i < population.subPopulation.length; i++) {
-        subPopulation.push([ FCSFileData.dataAsNumbers[population.subPopulation[i]], population.subPopulation[i] ])
+    const subPopulation = [ getMetadataFromFCSFileText(FCSFileData.text).map(m => m.key) ]
+    for (let i = 0; i < includeEventIds.length; i++) {
+        subPopulation.push(FCSFileData.dataAsNumbers[includeEventIds[i]])
     }
 
     return subPopulation
