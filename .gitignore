@@ -4,3 +4,4 @@ yarn-error.log
 dist/
 production/
 webpack-build/
+gatekeeper-electron.sublime-workspace

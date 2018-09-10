@@ -8,11 +8,10 @@
     "start": "webpack-dev-server --config webpack.dev.js",
     "dist": "webpack --config webpack.production.js",
     "pack": "electron-builder --dir",
-    "build": "electron-builder"
+    "build": "electron-builder -mw"
   },
   "build": {
     "appId": "gatekeeper",
-    "asar": false,
     "mac": {
       "category": "utilities"
     },
