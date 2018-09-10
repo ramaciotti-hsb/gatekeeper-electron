@@ -148,7 +148,7 @@ export default class PersistentHomology {
 
         if (peaks.length > polygonTemplates.length) {
             lengthStatus = {
-                'message': 'Too few populations were found',
+                'message': 'Too many populations were found',
                 'status': constants.STATUS_FAIL,
                 'information': `${peaks.length} population${peaks.length === 1 ? ' was' : 's were'} found in this sample, whereas ${polygonTemplates.length} population${polygonTemplates.length === 1 ? ' was' : 's were'} expected by the template. Consider adjusting Minimum Peak Size / Height to increase or decrease the number of populations discovered.`
             }
