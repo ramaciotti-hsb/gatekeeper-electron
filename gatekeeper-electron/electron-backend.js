@@ -779,7 +779,7 @@ export const api = {
         // Before creating the new subsample, save the included event ids to the disk to use later
         let result = await new Promise((resolve, reject) => {
             pushToQueue({
-                jobParameters: { url: 'http://127.0.0.1:3145', json: { type: 'save-new-subsample', payload: { workspaceId: sample.workspaceId, FCSFileId: sample.FCSFileId, parentSampleId, childSampleId: sampleId, gate: gateParameters, options } } },
+                jobParameters: { url: 'http://127.0.0.1:3145', json: { type: 'save-new-subsample', payload: { workspaceId: sample.workspaceId, FCSFileId: sample.FCSFileId, parentSampleId, childSampleId: sampleId, gate: gateParameters, includeEventIds: gateParameters.includeEventIds, options } } },
                 jobKey: uuidv4(),
                 checkValidity: () => { return true },
                 callback: (data) => { resolve(data) }
@@ -1551,8 +1551,10 @@ export const api = {
         let gateTemplateGroup = _.find(currentState.gateTemplateGroups, g => g.parentGateTemplateId === sample.gateTemplateId && g.selectedXParameter === options.selectedXParameter && g.selectedYParameter === options.selectedYParameter)
         let gateTemplateGroupExists = !!gateTemplateGroup
 
+        const gates = await api.getGateIncludedEvents(reduxStore.getState().unsavedGates)
+
         if (gateTemplateGroup) {
-            for (let gate of reduxStore.getState().unsavedGates) {
+            for (let gate of gates) {
                 if (!gate.gateTemplateId) {
                     let gateTemplate
                     if (gate.type === constants.GATE_TYPE_POLYGON) {
@@ -1628,7 +1630,7 @@ export const api = {
                 typeSpecificData: options
             }
 
-            const newGateTemplates = reduxStore.getState().unsavedGates.map((gate, index) => {
+            const newGateTemplates = gates.map((gate, index) => {
                 let gateTemplate
 
                 if (gate.type === constants.GATE_TYPE_POLYGON) {
@@ -1686,7 +1688,7 @@ export const api = {
             gateTemplateGroup = _.find(currentState.gateTemplateGroups, g => g.id === gateTemplateGroupId)
         }
 
-        const minPeakSize = _.filter(reduxStore.getState().unsavedGates, g => g.type === constants.GATE_TYPE_POLYGON).reduce((accumulator, current) => {
+        const minPeakSize = _.filter(gates, g => g.type === constants.GATE_TYPE_POLYGON).reduce((accumulator, current) => {
             return Math.min(accumulator, area(current.gateData.polygons[current.gateCreatorData.truePeakWidthIndex]))
         }, Infinity)
 
@@ -1699,8 +1701,8 @@ export const api = {
         currentState = applicationReducer(currentState, updateGateTemplateGroupAction)
         reduxStore.dispatch(updateGateTemplateGroupAction)
 
-        for (let i = 0; i < reduxStore.getState().unsavedGates.length; i++) {
-            const gate = reduxStore.getState().unsavedGates[i]
+        for (let i = 0; i < gates.length; i++) {
+            const gate = gates[i]
 
             gate.workspaceId = sample.workspaceId
             await api.createSubSampleAndAddToWorkspace(

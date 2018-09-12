@@ -232,13 +232,12 @@ if (cluster.isMaster) {
 // save-new-subsample
             } else if (body.type === 'save-new-subsample') {
                 getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.parentSampleId, body.payload.options).then((population) => {
-                    const alteredGates = findIncludedEvents(population, [ body.payload.gate ], body.payload.options)
                     const directory = path.join(assetDirectory, 'workspaces', body.payload.workspaceId, body.payload.FCSFileId, body.payload.childSampleId)
                     mkdirp(directory, function (error) {
                         if (error) {
                             response.end(JSON.stringify({ status: constants.STATUS_FAIL, error }))
                         } else {
-                            fs.writeFile(path.join(directory, 'include-event-ids.json'), JSON.stringify(alteredGates[0].includeEventIds), (error) => {
+                            fs.writeFile(path.join(directory, 'include-event-ids.json'), JSON.stringify(body.payload.includeEventIds), (error) => {
                                 if (error) {
                                     response.end(JSON.stringify({ status: constants.STATUS_FAIL, error }))
                                 } else {
