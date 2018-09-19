@@ -75,7 +75,7 @@ const createFork = async function () {
     workerFork.stdout.on('data', async (result) => {
         if (reduxStore.getState().sessionLoading && !reduxStore.getState().sessionBroken) {
             await api.getSession()
-            
+
             const action = {
                 type: 'SET_SESSION_LOADING',
                 payload: {
@@ -220,7 +220,7 @@ const processJobs = async function () {
     }
 }
 
-for (let i = 0; i < Math.max(os.cpus().length - 1, 1); i++) {
+for (let i = 0; i < Math.max(os.cpus().length - 2, 1); i++) {
     processJobs()
 }
 
@@ -432,7 +432,7 @@ export const api = {
 
         // Update any child templates that depend on these
         if (gateTemplate.gateTemplateGroupId) {
-            await api.recalculateGateTemplateGroup(gateTemplate.gateTemplateGroupId)            
+            await api.recalculateGateTemplateGroup(gateTemplate.gateTemplateGroupId)
         }
 
         saveSessionToDisk()
@@ -497,7 +497,7 @@ export const api = {
                     let loadingAction = setSampleParametersLoading(sample.id, templateGroup.selectedXParameter + '_' + templateGroup.selectedYParameter, { loading: true, loadingMessage: loadingMessage})
                     currentState = applicationReducer(currentState, loadingAction)
                     reduxStore.dispatch(loadingAction)
-                    
+
                     const options = {
                         selectedXParameter: templateGroup.selectedXParameter,
                         selectedYParameter: templateGroup.selectedYParameter,
@@ -910,7 +910,7 @@ export const api = {
         let loadingAction = setSampleParametersLoading(sampleId, options.selectedXParameter + '_' + options.selectedYParameter, { loading: true, loadingMessage: loadingMessage})
         currentState = applicationReducer(currentState, loadingAction)
         reduxStore.dispatch(loadingAction)
-        
+
         let homologyResult = await api.calculateHomology(workspaceId, FCSFileId, sampleId, options)
 
         if (homologyResult.status === constants.STATUS_SUCCESS) {
@@ -950,7 +950,7 @@ export const api = {
 
         let gateTemplate = _.find(currentState.gateTemplates, gt => gt.id === sample.gateTemplateId)
         let gateTemplateGroup = _.find(currentState.gateTemplateGroups, (group) => {
-            return group.parentGateTemplateId === sample.gateTemplateId 
+            return group.parentGateTemplateId === sample.gateTemplateId
                 && group.selectedXParameter === options.selectedXParameter
                 && group.selectedYParameter === options.selectedYParameter
                 && group.selectedXScale === options.selectedXScale
@@ -996,7 +996,7 @@ export const api = {
             const sample = _.find(currentState.samples, s => s.id === sampleId)
             // If the sample or gate template group has been deleted while homology has been calculating, just do nothing
             if (!sample || (gateTemplateGroup && !_.find(currentState.gateTemplateGroups, (group) => {
-                return group.parentGateTemplateId === sample.gateTemplateId 
+                return group.parentGateTemplateId === sample.gateTemplateId
                     && group.selectedXParameter === options.selectedXParameter
                     && group.selectedYParameter === options.selectedYParameter
                     && group.selectedXScale === options.selectedXScale
@@ -1176,14 +1176,14 @@ export const api = {
             if (!closestIndex0) {
                 for (let j = 0; j < gate.renderedPolygon.length; j++) {
                     const point = gate.renderedPolygon[j]
-                    
+
                     if (distanceBetweenPoints(point, [gate.renderedYCutoffs[0], maxYValue]) < closestDistance0) {
                         closestDistance0 = Math.round(distanceBetweenPoints(point, [gate.renderedYCutoffs[0], maxYValue]))
                         closestIndex0 = j
                     }
                 }
             }
-            
+
             if (!closestIndex1) {
                 for (let j = 0; j < gate.renderedPolygon.length; j++) {
                     const point = gate.renderedPolygon[j]
@@ -1292,7 +1292,7 @@ export const api = {
             if (!closestIndex0) {
                 for (let j = 0; j < gate.renderedPolygon.length; j++) {
                     const point = gate.renderedPolygon[j]
-                    
+
                     if (distanceBetweenPoints(point, [0, gate.renderedXCutoffs[0]]) < closestDistance0) {
                         closestDistance0 = Math.round(distanceBetweenPoints(point, [0, gate.renderedXCutoffs[0]]))
                         closestIndex0 = j
@@ -1386,12 +1386,12 @@ export const api = {
 
         const toSave = api.createGatePolygons(reduxStore.getState().unsavedGates)
         saveGates(toSave)
-        
+
         await api.getGateIncludedEvents(reduxStore.getState().unsavedGates).then((newUnsavedGates) => {
             if (!reduxStore.getState().unsavedGates) {
                 return
             }
-            
+
             const toSave = newUnsavedGates.map((gate) => {
                 const updatedGate = _.find(reduxStore.getState().unsavedGates, g => g.id === gate.id)
                 updatedGate.includeEventIds = gate.includeEventIds
@@ -1416,7 +1416,7 @@ export const api = {
             const newGate = _.merge(_.cloneDeep(reduxStore.getState().unsavedGates[gateIndex]), parameters)
             newGate.gateCreatorData.widthIndex = Math.max(Math.min(newGate.gateCreatorData.widthIndex, newGate.gateData.polygons.length - 1 - newGate.gateCreatorData.truePeakWidthIndex), - newGate.gateCreatorData.truePeakWidthIndex)
             const newUnsavedGates = reduxStore.getState().unsavedGates.slice(0, gateIndex).concat(newGate).concat(reduxStore.getState().unsavedGates.slice(gateIndex + 1))
-        
+
             const setUnsavedGatesAction = setUnsavedGates(newUnsavedGates)
             reduxStore.dispatch(setUnsavedGatesAction)
 
@@ -1674,7 +1674,7 @@ export const api = {
                 gate.gateTemplateId = gateTemplate.id
                 gateTemplate.gateTemplateGroupId = newGateTemplateGroup.id
                 gateTemplate.workspaceId = sample.workspaceId
-        
+
                 const createGateTemplateAction = createGateTemplate(gateTemplate)
                 currentState = applicationReducer(currentState, createGateTemplateAction)
                 reduxStore.dispatch(createGateTemplateAction)
@@ -1732,7 +1732,7 @@ export const api = {
             currentState = applicationReducer(currentState, removeGatingErrorAction)
             reduxStore.dispatch(removeGatingErrorAction)
         }
-        
+
         let samplesToRecalculate = _.filter(currentState.samples, s => s.gateTemplateId === sample.gateTemplateId)
         // Recalculate the gates on other FCS files
         for (let sampleToRecalculate of samplesToRecalculate) {
@@ -1859,7 +1859,7 @@ export const api = {
             const createErrorAction = setGatingModalErrorMessage(result.error)
             reduxStore.dispatch(createErrorAction)
         } else if (result.status === constants.STATUS_SUCCESS) {
-            let gates = api.createGatePolygons(result.data.gates)            
+            let gates = api.createGatePolygons(result.data.gates)
             // Create the negative gate if there is one
             const negativeGate = _.find(currentState.gateTemplates, gt => gt.gateTemplateGroupId === gateTemplateGroup.id && gt.type === constants.GATE_TYPE_NEGATIVE)
             if (negativeGate) {

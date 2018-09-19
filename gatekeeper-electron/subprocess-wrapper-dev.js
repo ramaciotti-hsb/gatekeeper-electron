@@ -47,7 +47,7 @@ const cluster = require('cluster');
 const http = require('http');
 const http2 = require('http2');
 const url = require('url');
-const numCPUs = Math.max(require('os').cpus().length - 1, 1);
+const numCPUs = Math.max(require('os').cpus().length - 2, 1);
 
 // Wrap the read file function from FS in a promise
 const readFileBuffer = (path) => {
@@ -168,7 +168,7 @@ if (cluster.isMaster) {
                     } else {
                         response.end(JSON.stringify({ status: 'success' }))
                     }
-                })                   
+                })
 // save-subsample-to-csv
             } else if (body.type === 'save-subsample-to-csv') {
                 getFullSubSamplePopulation(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId)
@@ -206,14 +206,14 @@ if (cluster.isMaster) {
                         response.end(JSON.stringify(data))
                     })
                 }).catch(handleError.bind(null, response))
-                                
+
 // get-expanded-gates
             } else if (body.type === 'get-expanded-gates') {
                 getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options).then((population) => {
                     const xOptions = _.clone(body.payload.options)
                     xOptions.knownPeaks = xOptions.sampleXChannelZeroPeaks
                     const xCutoffs = find1DPeaks(population.zeroDensityX.densityMap, population.maxDensity, xOptions)
-                    
+
                     const yOptions = _.clone(body.payload.options)
                     yOptions.knownPeaks = xOptions.sampleYChannelZeroPeaks
                     const yCutoffs = find1DPeaks(population.zeroDensityY.densityMap, population.maxDensity, yOptions)
@@ -241,7 +241,6 @@ if (cluster.isMaster) {
                                 if (error) {
                                     response.end(JSON.stringify({ status: constants.STATUS_FAIL, error }))
                                 } else {
-                                    console.log(path.join(directory, 'include-event-ids.json'))
                                     response.end(JSON.stringify({ status: constants.STATUS_SUCCESS }))
                                 }
                             })

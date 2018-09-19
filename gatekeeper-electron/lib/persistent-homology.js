@@ -47,7 +47,7 @@ export default class PersistentHomology {
                     peak.position[1] + radius * Math.sin(2 * Math.PI * i / edges)
                 ])
             }
-            
+
             let includedPoints = []
             for (let x = peak.position[0] - radius; x < peak.position[0] + radius; x++) {
                 for (let y = peak.position[1] - radius; y < peak.position[1] + radius; y++) {
@@ -169,7 +169,7 @@ export default class PersistentHomology {
             const template = _.find(gateTemplates, gt => gt.xGroup === peak.xGroup && gt.yGroup === peak.yGroup)
             if (template) {
                 peak.gateCreatorData = template.typeSpecificData
-                peak.gateCreatorData.truePeakWidthIndex = peak.truePeakWidthIndex                    
+                peak.gateCreatorData.truePeakWidthIndex = peak.truePeakWidthIndex
                 peak.gateCreatorData.widthIndex = Math.max(Math.min(peak.polygons.length - 1 - peak.gateCreatorData.truePeakWidthIndex, peak.gateCreatorData.widthIndex), -peak.gateCreatorData.truePeakWidthIndex)
                 // peak.gateCreatorData.widthIndex = peak.polygons.length - peak.truePeakWidthIndex - 5
                 peak.gateTemplateId = template.id
@@ -263,7 +263,7 @@ export default class PersistentHomology {
         for (let peak of newPeaks) {
             if (peak.recalculate) {
                 // Recalculate the polygon boundary
-                peak.includedPoints.length                
+                peak.includedPoints.length
                 const newPolygon = hull(peak.includedPoints, 50)
                 peak.polygons.push(newPolygon)
                 peak.recalculate = false
@@ -295,7 +295,7 @@ export default class PersistentHomology {
                         let newIncludedPoints = newPeaks[i].includedPoints.concat(newPeaks[j].includedPoints)
                         // Rebuild polygons after combining
                         let newPolygon = hull(newIncludedPoints, 50)
-                        
+
                         newPeaks.splice(i, 1, {
                             polygons: newPeaks[i].polygons.concat([ newPolygon ]),
                             nucleus: newPeaks[i].nucleus,

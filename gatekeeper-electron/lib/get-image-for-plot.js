@@ -82,7 +82,7 @@ export default async (workspaceId, FCSFileId, sampleId, subPopulation, options) 
         for (let i = 0; i < options.plotWidth * options.plotHeight * 4; i += 4) {
             // If we're in the bottom left xOffset * yOffset corner, render the double zero "1d" histogram
             if (i % (options.plotWidth * 4) <= xOffset * 4 && Math.floor((i) / (options.plotWidth * 4)) >= options.plotHeight - yOffset) {
-                const xColour = heatMapRGBForValue(subPopulation.doubleChannelZeroes.length / 4 / subPopulation.maxDensity)
+                const xColour = heatMapRGBForValue(subPopulation.doubleChannelZeroDensity / subPopulation.maxDensity)
                 PNGFile.data[i] = xColour[0]
                 PNGFile.data[i + 1] = xColour[1]
                 PNGFile.data[i + 2] = xColour[2]

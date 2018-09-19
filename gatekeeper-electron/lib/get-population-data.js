@@ -7,6 +7,7 @@ import mkdirp from 'mkdirp'
 import FCS from 'fcs'
 import _ from 'lodash'
 import path from 'path'
+import { scaleLog } from 'd3-scale'
 import { getScales, getPlotImageKey, getMetadataFromFCSFileText, getMetadataFromCSVFileHeader } from '../../gatekeeper-utilities/utilities'
 import constants from '../../gatekeeper-utilities/constants'
 
@@ -52,7 +53,7 @@ const getFCSFileFromPath = async (filePath) => {
     }
     // Read in the data from the FCS file, and emit another action when finished
     try {
-        const buffer = await readFileBuffer(filePath)        
+        const buffer = await readFileBuffer(filePath)
         const FCSFile = new FCS({ dataFormat: 'asNumber', eventsToRead: -1 }, buffer)
         FCSFileCache[filePath] = FCSFile
         return FCSFile
@@ -80,7 +81,7 @@ async function calculateDensity (points, scales, densityWidth = 2, options) {
     // Create a sorted point cache that's accessible by [row][column] for faster density estimation
     const pointCache = []
     let maxDensity = 0
-    
+
     for (let i = 0; i < points.length; i++) {
         const point = points[i]
 
@@ -253,7 +254,7 @@ async function calculateDensity (points, scales, densityWidth = 2, options) {
         for (let x = 1; x < options.plotWidth - 1; x++) {
             const toAdd = (newDensityMap[y - 1][x - 1] + newDensityMap[y - 1][x + 1] + newDensityMap[y + 1][x - 1] + newDensityMap[y + 1][x + 1]) / 4
             newDensityMap[y][x] += toAdd
-            maxDensity = Math.max(maxDensity, newDensityMap[y][x])                
+            maxDensity = Math.max(maxDensity, newDensityMap[y][x])
         }
     }
 
@@ -270,7 +271,7 @@ async function calculateDensity1D (points, scale, densityWidth = 2) {
     // Create a sorted point cache that's accessible by [row] for faster density estimation
     const pointCache = Array(points.length).fill(0)
     let maxDensity = 0
-    
+
     for (let i = 0; i < points.length; i++) {
         const point = points[i][0]
 
@@ -413,6 +414,7 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
     const doubleChannelZeroes = []
     const xChannelZeroes = []
     const yChannelZeroes = []
+    const scaledPopulation = []
 
     let includeEventIds = []
     try {
@@ -421,6 +423,15 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
     } catch (error) {
         // console.log(error)
     }
+
+    const scales = getScales({
+        selectedXScale: options.selectedXScale,
+        selectedYScale: options.selectedYScale,
+        xRange: [ options.minXValue, options.maxXValue ],
+        yRange: [ options.minYValue, options.maxYValue ],
+        width: options.plotWidth - xOffset,
+        height: options.plotHeight - yOffset
+    })
 
     if (includeEventIds && includeEventIds.length > 0) {
         for (let i = 0; i < includeEventIds.length; i++) {
@@ -473,11 +484,13 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
                 } else if (point[options.selectedYParameterIndex] === 0) {
                     yChannelZeroes.push([ point[options.selectedXParameterIndex], i ])
                 } else {
+                    scaledPopulation.push([ scales.xScale(point[options.selectedXParameterIndex]), scales.yScale(point[options.selectedYParameterIndex]) ])
                     aboveZeroPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], i ])
                 }
                 subPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], i ])
             } else {
                 subPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], i ])
+                scaledPopulation.push([ scales.xScale(point[options.selectedXParameterIndex]), scales.yScale(point[options.selectedYParameterIndex]) ])
                 aboveZeroPopulation.push([ point[options.selectedXParameterIndex], point[options.selectedYParameterIndex], i ])
             }
 
@@ -487,22 +500,15 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
         }
     }
 
-    const scales = getScales({
-        selectedXScale: options.selectedXScale,
-        selectedYScale: options.selectedYScale,
-        xRange: [ options.minXValue, options.maxXValue ],
-        yRange: [ options.minYValue, options.maxYValue ],
-        width: options.plotWidth - xOffset,
-        height: options.plotHeight - yOffset
-    })
-
     const densityWidth = Math.floor((options.plotWidth + options.plotHeight) * 0.012)
 
     const densityMap = await calculateDensity(aboveZeroPopulation, scales, densityWidth, options)
+
     let zeroDensityY
     let zeroDensityX
     let maxDensityY
     let maxDensityX
+    let doubleChannelZeroDensity
 
     if (options.machineType === constants.MACHINE_CYTOF) {
         zeroDensityX = await calculateDensity1D(xChannelZeroes, scales.yScale, densityWidth)
@@ -517,13 +523,60 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
         realMaxDensity = Math.max(realMaxDensity, zeroDensityY.maxDensity)
     }
     if (doubleChannelZeroes.length > 0) {
-        realMaxDensity = Math.max(realMaxDensity, doubleChannelZeroes.length / 4)   
+        doubleChannelZeroDensity = doubleChannelZeroes.length / 4
+        realMaxDensity = Math.max(realMaxDensity, doubleChannelZeroDensity)
     }
+
+    const densityScale = scaleLog()
+        .range([0, 100])
+        .domain([5, realMaxDensity * 2])
+
+    const scaleValue = (value) => {
+        return Math.min(Math.max(densityScale(value), 0), 100)
+    }
+
+    for (let i = 0; i < densityMap.densityMap.length; i++) {
+        if (densityMap.densityMap[i]) {
+            for (let j = 0; j < densityMap.densityMap[i].length; j++) {
+                if (densityMap.densityMap[i][j]) {
+                    densityMap.densityMap[i][j] = scaleValue(densityMap.densityMap[i][j])
+                }
+            }
+        }
+    }
+
+    if (zeroDensityX) {
+        for (let i = 0; i < zeroDensityX.densityMap.length; i++) {
+            if (zeroDensityX.densityMap[i]) {
+                if (zeroDensityX.densityMap[i]) {
+                    zeroDensityX.densityMap[i] = scaleValue(zeroDensityX.densityMap[i])
+                }
+            }
+        }
+    }
+
+    if (zeroDensityY) {
+        for (let i = 0; i < zeroDensityY.densityMap.length; i++) {
+            if (zeroDensityY.densityMap[i]) {
+                if (zeroDensityY.densityMap[i]) {
+                    zeroDensityY.densityMap[i] = scaleValue(zeroDensityY.densityMap[i])
+                }
+            }
+        }
+    }
+
+    realMaxDensity = scaleValue(realMaxDensity)
+    doubleChannelZeroDensity = scaleValue(doubleChannelZeroDensity)
+    densityMap.maxDensity = scaleValue(densityMap.maxDensity)
+    zeroDensityX.maxDensity = scaleValue(zeroDensityX.maxDensity)
+    zeroDensityY.maxDensity = scaleValue(zeroDensityY.maxDensity)
 
     const toReturn = {
         subPopulation,
+        scaledPopulation,
         aboveZeroPopulation,
         doubleChannelZeroes,
+        doubleChannelZeroDensity,
         xChannelZeroes,
         yChannelZeroes,
         densityMap,

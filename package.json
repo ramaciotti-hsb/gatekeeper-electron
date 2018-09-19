@@ -26,6 +26,7 @@
   "license": "ISC",
   "dependencies": {
     "area-polygon": "^1.0.1",
+    "clusters": "^0.0.4",
     "d3": "^4.12.0",
     "distance-to-polygon": "^2.0.2",
     "electron-is-dev": "^0.3.0",
