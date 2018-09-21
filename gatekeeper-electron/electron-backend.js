@@ -615,10 +615,6 @@ export const api = {
                                 )
                             }
                         }
-
-                        const loadingFinishedAction = setSampleParametersLoading(sample.id, templateGroup.selectedXParameter + '_' + templateGroup.selectedYParameter, { loading: false, loadingMessage: null })
-                        currentState = applicationReducer(currentState, loadingFinishedAction)
-                        reduxStore.dispatch(loadingFinishedAction)
                     } else if (homologyResult.status === constants.STATUS_FAIL) {
                         if (homologyResult.data) {
                             let gates = api.createGatePolygons(homologyResult.data.gates)
@@ -642,20 +638,19 @@ export const api = {
                             currentState = applicationReducer(currentState, createGatingErrorAction)
                             reduxStore.dispatch(createGatingErrorAction)
                         }
-
-                        const loadingFinishedAction = setSampleParametersLoading(sample.id, templateGroup.selectedXParameter + '_' + templateGroup.selectedYParameter, { loading: false, loadingMessage: null })
-                        currentState = applicationReducer(currentState, loadingFinishedAction)
-                        reduxStore.dispatch(loadingFinishedAction)
                     }
 
                     saveSessionToDisk()
+
+                    const loadingFinishedAction = setSampleParametersLoading(sample.id, templateGroup.selectedXParameter + '_' + templateGroup.selectedYParameter, { loading: false, loadingMessage: null })
+                    currentState = applicationReducer(currentState, loadingFinishedAction)
+                    reduxStore.dispatch(loadingFinishedAction)
                 }
             }
         }
 
         // If homology was succesful, the sample will now have child samples
         for (let subSample of _.filter(currentState.samples, s => s.parentSampleId === sampleId)) {
-            console.log('applygate templates')
             await api.applyGateTemplatesToSample(subSample.id)
         }
     },
@@ -1416,12 +1411,17 @@ export const api = {
         if (gateIndex > -1) {
             const newGate = _.merge(_.cloneDeep(reduxStore.getState().unsavedGates[gateIndex]), parameters)
             newGate.gateCreatorData.widthIndex = Math.max(Math.min(newGate.gateCreatorData.widthIndex, newGate.gateData.polygons.length - 1 - newGate.gateCreatorData.truePeakWidthIndex), - newGate.gateCreatorData.truePeakWidthIndex)
-            const newUnsavedGates = reduxStore.getState().unsavedGates.slice(0, gateIndex).concat(newGate).concat(reduxStore.getState().unsavedGates.slice(gateIndex + 1))
-
+            const newUnsavedGates = api.createGatePolygons(reduxStore.getState().unsavedGates.slice(0, gateIndex).concat(newGate).concat(reduxStore.getState().unsavedGates.slice(gateIndex + 1)))
             const setUnsavedGatesAction = setUnsavedGates(newUnsavedGates)
             reduxStore.dispatch(setUnsavedGatesAction)
 
-            api.updateUnsavedGateDerivedData()
+            if (this.updateUnsavedGateTimeout) {
+                clearTimeout(this.updateUnsavedGateTimeout)
+            }
+
+            this.updateUnsavedGateTimeout = setTimeout(() => {
+                api.updateUnsavedGateDerivedData()
+            }, 500)
         } else {
             console.log('Error in updateUnsavedGate: no gate with id ', gateId, 'was found.')
         }
