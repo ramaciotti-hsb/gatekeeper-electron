@@ -484,13 +484,8 @@ export const api = {
         for (let templateGroup of templateGroups) {
             if (templateGroup.creator === constants.GATE_CREATOR_PERSISTENT_HOMOLOGY) {
                 // If there hasn't been any gates generated for this sample, try generating them, otherwise leave them as they are
-                if (!_.find(currentState.samples, s => s.parentSampleId === sampleId && _.find(currentState.gateTemplates, gt => gt.id === s.gateTemplateId).gateTemplateGroupId === templateGroup.id)) {
-                    // Remove any gating errors that currently exist on this sample
-                    for (let gatingError of _.filter(currentState.gatingErrors, (e) => { return e.sampleId === sampleId && e.gateTemplateGroupId === templateGroup.id })) {
-                        const removeGatingErrorAction = removeGatingError(gatingError.id)
-                        currentState = applicationReducer(currentState, removeGatingErrorAction)
-                        reduxStore.dispatch(removeGatingErrorAction)
-                    }
+                if (!_.find(currentState.samples, s => s.parentSampleId === sampleId && _.find(currentState.gateTemplates, gt => gt.id === s.gateTemplateId).gateTemplateGroupId === templateGroup.id)
+                    && !_.find(currentState.gatingErrors, (e) => { return e.sampleId === sampleId && e.gateTemplateGroupId === templateGroup.id })) {
                     // Dispatch a redux action to mark the gate template as loading
                     let loadingMessage = 'Creating gates using Persistent Homology...'
 
@@ -600,7 +595,7 @@ export const api = {
                                     reduxStore.dispatch(removeAction)
                                 }
                                 gate.workspaceId = sample.workspaceId
-                                api.createSubSampleAndAddToWorkspace(
+                                await api.createSubSampleAndAddToWorkspace(
                                     sample.workspaceId,
                                     sampleId,
                                     {
@@ -660,6 +655,7 @@ export const api = {
 
         // If homology was succesful, the sample will now have child samples
         for (let subSample of _.filter(currentState.samples, s => s.parentSampleId === sampleId)) {
+            console.log('applygate templates')
             await api.applyGateTemplatesToSample(subSample.id)
         }
     },
@@ -685,6 +681,11 @@ export const api = {
         const selectAction = selectFCSFile(FCSFileId, workspaceId)
         currentState = applicationReducer(currentState, selectAction)
         reduxStore.dispatch(selectAction)
+
+        // Select the root gate when adding a new FCS file
+        const selectGateTemplateAction = selectGateTemplate(_.find(currentState.gateTemplates, gt => gt.workspaceId === workspaceId && !gt.gateTemplateGroupId).id, workspaceId)
+        currentState = applicationReducer(currentState, selectGateTemplateAction)
+        reduxStore.dispatch(selectGateTemplateAction)
 
         // Import the fcs file
         await new Promise((resolve, reject) => {
