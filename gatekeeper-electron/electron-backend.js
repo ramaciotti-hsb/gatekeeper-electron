@@ -291,6 +291,8 @@ const getFCSMetadata = async (workspaceId, FCSFileId, fileName) => {
 
 const sessionFilePath = path.join(remote.app.getPath('userData'), 'session.json')
 
+let updateUnsavedGateTimeout
+
 // -------------------------------------------------------------
 // Exported functions below
 // -------------------------------------------------------------
@@ -1415,11 +1417,11 @@ export const api = {
             const setUnsavedGatesAction = setUnsavedGates(newUnsavedGates)
             reduxStore.dispatch(setUnsavedGatesAction)
 
-            if (this.updateUnsavedGateTimeout) {
-                clearTimeout(this.updateUnsavedGateTimeout)
+            if (updateUnsavedGateTimeout) {
+                clearTimeout(updateUnsavedGateTimeout)
             }
 
-            this.updateUnsavedGateTimeout = setTimeout(() => {
+            updateUnsavedGateTimeout = setTimeout(() => {
                 api.updateUnsavedGateDerivedData()
             }, 500)
         } else {
@@ -1911,7 +1913,6 @@ export const api = {
             const comboGates = _.filter(currentState.gateTemplates, gt => gt.gateTemplateGroupId === gateTemplateGroup.id && gt.type === constants.GATE_TYPE_COMBO)
             for (let comboGate of comboGates) {
                 const includedGates = _.filter(gates, g => comboGate.typeSpecificData.gateTemplateIds.includes(g.gateTemplateId))
-
                 const newGate = {
                     id: uuidv4(),
                     type: constants.GATE_TYPE_COMBO,

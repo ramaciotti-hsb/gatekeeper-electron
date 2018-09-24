@@ -49,8 +49,8 @@ export default class PersistentHomology {
             }
 
             let includedPoints = []
-            for (let x = peak.position[0] - radius; x < peak.position[0] + radius; x++) {
-                for (let y = peak.position[1] - radius; y < peak.position[1] + radius; y++) {
+            for (let y = Math.max(peak.position[1] - radius, 0); y < Math.min(peak.position[1] + radius, this.population.densityMap.densityMap.length); y++) {
+                for (let x = Math.max(peak.position[0] - radius, 0); x < Math.min(peak.position[0] + radius, this.population.densityMap.densityMap[y].length); x++) {
                     if (this.population.densityMap.densityMap[y][x] >= 1 && pointInsidePolygon([x, y], circle)) {
                         includedPoints.push([x, y])
                     }
