@@ -35,7 +35,7 @@ import { createGateTemplate, updateGateTemplate, removeGateTemplate } from '../g
 import { createGateTemplateGroup, updateGateTemplateGroup, removeGateTemplateGroup, addGateTemplateToGroup } from '../gatekeeper-frontend/actions/gate-template-group-actions'
 import { createFCSFile, updateFCSFile, removeFCSFile } from '../gatekeeper-frontend/actions/fcs-file-actions'
 import { createGatingError, updateGatingError, removeGatingError } from '../gatekeeper-frontend/actions/gating-error-actions'
-import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace, selectFCSFile, invertPlotAxis, selectGateTemplate, setFCSParametersDisabled } from '../gatekeeper-frontend/actions/workspace-actions'
+import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace, selectFCSFile, invertPlotAxis, selectGateTemplate, setFCSDisabledParameters } from '../gatekeeper-frontend/actions/workspace-actions'
 
 import request from 'request'
 
@@ -388,7 +388,8 @@ export const api = {
             selectedYScale: parameters.selectedYScale || constants.SCALE_LOG,
             disabledParameters: {},
             hideUngatedPlots: false,
-            invertedAxisPlots: {}
+            invertedAxisPlots: {},
+            filteredParameters: []
         }
 
         const createAction = createWorkspace(newWorkspace)
@@ -891,10 +892,10 @@ export const api = {
         saveSessionToDisk()
     },
 
-    setFCSParametersDisabled: async function (workspaceId, parameters) {
+    setFCSDisabledParameters: async function (workspaceId, parameters) {
         const workspace = _.find(currentState.workspaces, w => w.id === workspaceId)
 
-        const setAction = setFCSParametersDisabled(workspaceId, parameters)
+        const setAction = setFCSDisabledParameters(workspaceId, parameters)
         currentState = applicationReducer(currentState, setAction)
         reduxStore.dispatch(setAction)
 
