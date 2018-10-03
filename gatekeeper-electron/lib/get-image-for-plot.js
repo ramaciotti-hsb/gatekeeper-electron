@@ -55,7 +55,7 @@ export default async (workspaceId, FCSFileId, sampleId, subPopulation, options) 
 
     for (let i = 0; i < subPopulation.aboveZeroPopulation.length; i++) {
         const point = [ Math.round(scales.xScale(subPopulation.aboveZeroPopulation[i][0])), Math.round(scales.yScale(subPopulation.aboveZeroPopulation[i][1])) ]
-        if (subPopulation.densityMap.densityMap[point[1]] && subPopulation.densityMap.densityMap[point[1]][point[0]]) {
+        if (subPopulation.densityMap.densityMap[point[1]] && !_.isUndefined(subPopulation.densityMap.densityMap[point[1]][point[0]])) {
             const color = heatMapRGBForValue(subPopulation.densityMap.densityMap[point[1]][point[0]] / subPopulation.maxDensity)
             for (let y = point[1] - pointRadius * 2; y < point[1] + pointRadius * 2; y++) {
                 for (let x = point[0] - pointRadius * 2; x < point[0] + pointRadius * 2; x++) {

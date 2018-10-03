@@ -529,7 +529,7 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
 
     const densityScale = scaleLog()
         .range([0, 100])
-        .domain([5, realMaxDensity * 2])
+        .domain([1, realMaxDensity * 2])
 
     const scaleValue = (value) => {
         return Math.min(Math.max(densityScale(value), 0), 100)
