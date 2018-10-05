@@ -1434,7 +1434,7 @@ export const api = {
         const gateIndex = _.findIndex(reduxStore.getState().unsavedGates, g => g.id === gateId)
         if (gateIndex > -1) {
             const newUnsavedGates = reduxStore.getState().unsavedGates.slice(0, gateIndex).concat(reduxStore.getState().unsavedGates.slice(gateIndex + 1))
-            const polyGates = _.filter(reduxStore.getState().unsavedGates, g => g.type === constants.GATE_TYPE_POLYGON)
+            const polyGates = _.filter(newUnsavedGates, g => g.type === constants.GATE_TYPE_POLYGON)
             const axisGroups = getAxisGroups(polyGates.map((g) => { return { id: g.id, nucleus: g.gateData.nucleus } }))
             for (let gate of polyGates) {
                 gate.xGroup = _.findIndex(axisGroups.xGroups, g => g.peaks.includes(gate.id))
@@ -1859,9 +1859,29 @@ export const api = {
         reduxStore.dispatch(loadingFinishedAction)
 
         if (result.status === constants.STATUS_FAIL) {
-            console.log(result)
-            const createErrorAction = setGatingModalErrorMessage(result.error)
-            reduxStore.dispatch(createErrorAction)
+            if (result.data) {
+                let gates = api.createGatePolygons(result.data.gates)
+                gates = await api.getGateIncludedEvents(gates)
+
+                const newGatingError = {
+                    id: uuidv4(),
+                    sampleId: gatingError.sampleId,
+                    gateTemplateGroupId: gatingError.gateTemplateGroupId,
+                    gates: result.data.gates,
+                    criteria: result.data.criteria,
+                }
+                // Create a gating error
+                const createGatingErrorAction = createGatingError(newGatingError)
+                currentState = applicationReducer(currentState, createGatingErrorAction)
+                reduxStore.dispatch(createGatingErrorAction)
+
+                // Remove the current gating error
+                const removeGatingErrorAction = removeGatingError(gatingError.id)
+                currentState = applicationReducer(currentState, removeGatingErrorAction)
+                reduxStore.dispatch(removeGatingErrorAction)
+            } else {
+                console.log(result)
+            }
         } else if (result.status === constants.STATUS_SUCCESS) {
             let gates = api.createGatePolygons(result.data.gates)
             // Create the negative gate if there is one
