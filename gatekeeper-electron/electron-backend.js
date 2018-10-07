@@ -427,6 +427,16 @@ export const api = {
     },
 
     // Update a gate template with arbitrary parameters
+    updateGateTemplate: async function (gateTemplateId, parameters) {
+        const gateTemplate = _.find(currentState.gateTemplates, gt => gt.id === gateTemplateId)
+        const updateAction = updateGateTemplate(gateTemplateId, parameters)
+        currentState = applicationReducer(currentState, updateAction)
+        reduxStore.dispatch(updateAction)
+
+        saveSessionToDisk()
+    },
+
+    // Update a gate template with arbitrary parameters
     updateGateTemplateAndRecalculate: async function (gateTemplateId, parameters) {
         const gateTemplate = _.find(currentState.gateTemplates, gt => gt.id === gateTemplateId)
         const updateAction = updateGateTemplate(gateTemplateId, parameters)
