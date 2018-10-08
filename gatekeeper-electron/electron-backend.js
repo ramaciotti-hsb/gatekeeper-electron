@@ -743,10 +743,21 @@ export const api = {
     },
 
     removeFCSFile: async function (FCSFileId) {
-        const removeAction = removeFCSFile(FCSFileId)
+        const FCSFilesInWorkspace = currentState.FCSFiles.filter(fcs => fcs.workspaceId === currentState.selectedWorkspaceId)
+        const FCSFileIndex = FCSFilesInWorkspace.findIndex(fcs => fcs.id === FCSFileId)
 
+        const removeAction = removeFCSFile(FCSFileId)
         currentState = applicationReducer(currentState, removeAction)
         reduxStore.dispatch(removeAction)
+
+        if (currentState.FCSFiles.length > 0) {
+            const newIndex = Math.min(Math.max(FCSFileIndex, 0), currentState.FCSFiles.length - 1)
+            console.log(newIndex)
+
+            const selectAction = selectFCSFile(currentState.FCSFiles[newIndex].id, currentState.selectedWorkspaceId)
+            currentState = applicationReducer(currentState, selectAction)
+            reduxStore.dispatch(selectAction)
+        }
 
         saveSessionToDisk()
     },
