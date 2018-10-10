@@ -740,6 +740,8 @@ export const api = {
 
         // Recursively apply the existing gating hierarchy
         api.applyGateTemplatesToSample(sampleId)
+
+        return FCSFileId
     },
 
     removeFCSFile: async function (FCSFileId) {
@@ -1750,8 +1752,8 @@ export const api = {
             )
         }
 
-        let gatingError = _.find(currentState.gatingErrors, e => gateTemplateGroup && e.gateTemplateGroupId === gateTemplateGroup.id && e.sampleId === sample.id)
-        if (gatingError) {
+        let gatingErrors = currentState.gatingErrors.filter(e => gateTemplateGroup && e.gateTemplateGroupId === gateTemplateGroup.id)
+        for (let gatingError of gatingErrors) {
             console.log('removing gating error')
             const removeGatingErrorAction = removeGatingError(gatingError.id)
             currentState = applicationReducer(currentState, removeGatingErrorAction)

@@ -152,7 +152,7 @@ export default class Application extends Component {
                 this.addNewFCSFilesToWorkspace([file.path])
             }
         }
-        
+
         return false;
     }
 
