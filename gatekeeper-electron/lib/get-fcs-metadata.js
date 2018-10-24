@@ -35,7 +35,7 @@ const getFCSFileFromPath = async (filePath) => {
         return FCSFileCache[filePath]
     }
     // Read in the data from the FCS file, and emit another action when finished
-    const buffer = await readFileBuffer(filePath)        
+    const buffer = await readFileBuffer(filePath)
     const FCSFile = new FCS({ dataFormat: 'asNumber', eventsToRead: -1 }, buffer)
     FCSFileCache[filePath] = FCSFile
     return FCSFile
@@ -102,7 +102,7 @@ export default async function getFCSMetadata (workspaceId, FCSFileId, fileName) 
             }
 
             if (fileData[i][j] < parameter.statistics.positiveMin && fileData[i][j] > 0) {
-                parameter.statistics.positiveMin = Math.max(fileData[i][j], 0.01)
+                parameter.statistics.positiveMin = Math.max(fileData[i][j], 0.02)
             }
 
             if (fileData[i][j] > parameter.statistics.max) {

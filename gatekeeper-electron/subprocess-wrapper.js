@@ -6,6 +6,7 @@ const assetDirectory = process.argv[2]
 
 import { getPopulationForSample, getFullSubSamplePopulation }   from './lib/get-population-data.js'
 import getImageForPlot                                          from './lib/get-image-for-plot.js'
+import createPopulationFromGates                                from './lib/create-population-from-gates.js'
 import PersistentHomology                                       from './lib/persistent-homology.js'
 import getFCSMetadata                                           from './lib/get-fcs-metadata.js'
 import { expandToIncludeZeroes, findIncludedEvents }            from './lib/gate-utilities'
@@ -22,6 +23,7 @@ import cluster                                                  from 'cluster'
 import http                                                     from 'http'
 import http2                                                    from 'http2'
 import url                                                      from 'url'
+import md5                                                      from 'md5'
 
 const numCPUs = Math.max(require('os').cpus().length - 2, 1);
 
@@ -58,7 +60,7 @@ if (cluster.isMaster) {
                 query[key] = parseFloat(query[key])
             }
             const fileName = getPlotImageKey(query) + '.png'
-            const filePath = path.join(assetDirectory, 'workspaces', query.workspaceId, query.FCSFileId, query.sampleId, fileName)
+            const filePath = path.join(assetDirectory, 'workspaces', query.workspaceId, query.FCSFileId, query.sampleId || path.join('other-samples', query.gatingHash), fileName)
 
             fs.readFile(filePath, (error, data) => {
                 if (error) {
@@ -121,10 +123,10 @@ if (cluster.isMaster) {
 // generate-plot-image
             } else if (body.type === 'generate-plot-image') {
                 const fileName = getPlotImageKey(body.payload) + '.png'
-                fs.readFile(path.join(assetDirectory, 'workspaces', body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, fileName), (err, data) => {
+                fs.readFile(path.join(assetDirectory, 'workspaces', body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId || path.join('other-samples', body.payload.gatingHash), fileName), (err, data) => {
                     if (err) {
-                        getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload).then((population) => {
-                            getImageForPlot(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, population, body.payload)
+                        getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId || path.join('other-samples', body.payload.gatingHash), body.payload).then((population) => {
+                            getImageForPlot(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId || path.join('other-samples', body.payload.gatingHash), population, body.payload)
                             .then(() => {
                                 response.end(JSON.stringify({ status: 'success' }))
                             }).catch(handleError.bind(null, response))
@@ -132,10 +134,11 @@ if (cluster.isMaster) {
                     } else {
                         response.end(JSON.stringify({ status: 'success' }))
                     }
-                })                   
+                })
+
 // save-subsample-to-csv
             } else if (body.type === 'save-subsample-to-csv') {
-                getFullSubSamplePopulation(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options)
+                getFullSubSamplePopulation(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId)
                 .then((data) => {
                     const header = data[0].join(',') + '\n'
                     fs.writeFile(body.payload.filePath, header, function (error) {
@@ -170,14 +173,14 @@ if (cluster.isMaster) {
                         response.end(JSON.stringify(data))
                     })
                 }).catch(handleError.bind(null, response))
-                                
+
 // get-expanded-gates
             } else if (body.type === 'get-expanded-gates') {
                 getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options).then((population) => {
                     const xOptions = _.clone(body.payload.options)
                     xOptions.knownPeaks = xOptions.sampleXChannelZeroPeaks
                     const xCutoffs = find1DPeaks(population.zeroDensityX.densityMap, population.maxDensity, xOptions)
-                    
+
                     const yOptions = _.clone(body.payload.options)
                     yOptions.knownPeaks = xOptions.sampleYChannelZeroPeaks
                     const yCutoffs = find1DPeaks(population.zeroDensityY.densityMap, population.maxDensity, yOptions)
@@ -205,13 +208,26 @@ if (cluster.isMaster) {
                                 if (error) {
                                     response.end(JSON.stringify({ status: constants.STATUS_FAIL, error }))
                                 } else {
-                                    console.log(path.join(directory, 'include-event-ids.json'))
                                     response.end(JSON.stringify({ status: constants.STATUS_SUCCESS }))
                                 }
                             })
                         }
                     });
                 }).catch(handleError.bind(null, response))
+
+// create-population-from-gates
+            } else if (body.type === 'create-population-from-gates') {
+                const directory = path.join(assetDirectory, 'workspaces', body.payload.workspaceId, body.payload.FCSFile.id, 'other-samples', md5(body.payload.gates.map(g => g.id).sort().join('-')))
+                mkdirp(directory, function (error) {
+                    if (error) {
+                        response.end(JSON.stringify({ status: constants.STATUS_FAIL, error }))
+                    } else {
+                        createPopulationFromGates(body.payload.workspaceId, body.payload.FCSFile, body.payload.gates, body.payload.options)
+                        .then(() => {
+                            response.end(JSON.stringify({ status: constants.STATUS_SUCCESS }))
+                        }).catch(handleError.bind(null, response))
+                    }
+                });
             }
         })
     }).listen(3145);

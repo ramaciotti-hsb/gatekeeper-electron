@@ -30,6 +30,7 @@ const getPopulationForSample = require('./lib/get-population-data.js').getPopula
 const getFullSubSamplePopulation = require('./lib/get-population-data.js').getFullSubSamplePopulation
 const getImageForPlot = require('./lib/get-image-for-plot.js').default
 const PersistentHomology = require('./lib/persistent-homology.js').default
+const createPopulationFromGates = require('./lib/create-population-from-gates.js').default
 const getFCSMetadata = require('./lib/get-fcs-metadata.js').default
 const findIncludedEvents = require('./lib/gate-utilities').findIncludedEvents
 const find1DPeaks = require('./lib/1d-homology').default
@@ -38,6 +39,7 @@ const expandToIncludeZeroes = require('./lib/gate-utilities').expandToIncludeZer
 const constants = require('../gatekeeper-utilities/constants')
 const getPlotImageKey = require('../gatekeeper-utilities/utilities').getPlotImageKey
 const fs = require('fs')
+const md5 = require('md5')
 const fcs = require('fcs')
 const _ = require('lodash')
 const path = require('path')
@@ -94,7 +96,7 @@ if (cluster.isMaster) {
                 query[key] = parseFloat(query[key])
             }
             const fileName = getPlotImageKey(query) + '.png'
-            const filePath = path.join(assetDirectory, 'workspaces', query.workspaceId, query.FCSFileId, query.sampleId, fileName)
+            const filePath = path.join(assetDirectory, 'workspaces', query.workspaceId, query.FCSFileId, query.sampleId || path.join('other-samples', query.gatingHash), fileName)
 
             fs.readFile(filePath, (error, data) => {
                 if (error) {
@@ -157,10 +159,10 @@ if (cluster.isMaster) {
 // generate-plot-image
             } else if (body.type === 'generate-plot-image') {
                 const fileName = getPlotImageKey(body.payload) + '.png'
-                fs.readFile(path.join(assetDirectory, 'workspaces', body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, fileName), (err, data) => {
+                fs.readFile(path.join(assetDirectory, 'workspaces', body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId || path.join('other-samples', body.payload.gatingHash), fileName), (err, data) => {
                     if (err) {
-                        getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload).then((population) => {
-                            getImageForPlot(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, population, body.payload)
+                        getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId || path.join('other-samples', body.payload.gatingHash), body.payload).then((population) => {
+                            getImageForPlot(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId || path.join('other-samples', body.payload.gatingHash), population, body.payload)
                             .then(() => {
                                 response.end(JSON.stringify({ status: 'success' }))
                             }).catch(handleError.bind(null, response))
@@ -169,6 +171,7 @@ if (cluster.isMaster) {
                         response.end(JSON.stringify({ status: 'success' }))
                     }
                 })
+
 // save-subsample-to-csv
             } else if (body.type === 'save-subsample-to-csv') {
                 getFullSubSamplePopulation(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId)
@@ -222,10 +225,14 @@ if (cluster.isMaster) {
                     response.end(JSON.stringify(expandedGates))
                 }).catch(handleError.bind(null, response))
 
-// get-included-events
-            } else if (body.type === 'get-included-events') {
+// get-gate-population-counts
+            } else if (body.type === 'get-gate-population-counts') {
                 getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options).then((population) => {
                     const alteredGates = findIncludedEvents(population, body.payload.gates, body.payload.options)
+                    for (let gate of alteredGates) {
+                        gate.populationCount = gate.includeEventIds.length
+                        delete gate.includeEventIds
+                    }
                     response.end(JSON.stringify(alteredGates))
                 }).catch(handleError.bind(null, response))
 
@@ -247,6 +254,20 @@ if (cluster.isMaster) {
                         }
                     });
                 }).catch(handleError.bind(null, response))
+
+// create-population-from-gates
+            } else if (body.type === 'create-population-from-gates') {
+                const directory = path.join(assetDirectory, 'workspaces', body.payload.workspaceId, body.payload.FCSFile.id, 'other-samples', md5(body.payload.gates.map(g => g.id).sort().join('-')))
+                mkdirp(directory, function (error) {
+                    if (error) {
+                        response.end(JSON.stringify({ status: constants.STATUS_FAIL, error }))
+                    } else {
+                        createPopulationFromGates(body.payload.workspaceId, body.payload.FCSFile, body.payload.gates, body.payload.options)
+                        .then(() => {
+                            response.end(JSON.stringify({ status: constants.STATUS_SUCCESS }))
+                        }).catch(handleError.bind(null, response))
+                    }
+                });
             }
         })
     }).listen(3145);

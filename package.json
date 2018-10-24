@@ -1,6 +1,6 @@
 {
   "name": "Gatekeeper",
-  "version": "0.0.24",
+  "version": "0.0.25",
   "author": "Nic Barker",
   "description": "An electron based GUI for analysing flow cytometry data.",
   "main": "main.js",
@@ -35,7 +35,9 @@
     "hsl-to-rgb-for-reals": "^1.1.0",
     "hull.js": "^0.2.10",
     "lodash": "^4.17.4",
+    "lodash.merge": "^4.6.1",
     "ls": "^0.2.1",
+    "md5": "^2.2.1",
     "memored": "^1.1.1",
     "mkdirp": "^0.5.1",
     "node-forge": "^0.7.6",

@@ -7,6 +7,7 @@ const { dialog, Menu, MenuSample } = remote
 import Workspace from '../gatekeeper-frontend/containers/workspace-container.jsx'
 import HomologyModal from '../gatekeeper-frontend/containers/homology-modal-container.jsx'
 import GatingErrorModal from '../gatekeeper-frontend/containers/gating-error-modal-container.jsx'
+import PopulationMatchingModal from '../gatekeeper-frontend/containers/population-matching-modal-container.jsx'
 
 export default class Application extends Component {
 
@@ -294,6 +295,7 @@ export default class Application extends Component {
                 </div>
                 <HomologyModal />
                 <GatingErrorModal />
+                {/*<PopulationMatchingModal />*/}
             </div>
         )
     }

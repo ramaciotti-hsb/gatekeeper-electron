@@ -418,8 +418,13 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
 
     let includeEventIds = []
     try {
-        const eventResults = await readFile(path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, sampleId, 'include-event-ids.json'))
-        includeEventIds = JSON.parse(eventResults)
+        if (options.gatingHash) {
+            const eventResults = await readFile(path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, 'other-samples', options.gatingHash, 'include-event-ids.json'))
+            includeEventIds = JSON.parse(eventResults)
+        } else {
+            const eventResults = await readFile(path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, sampleId, 'include-event-ids.json'))
+            includeEventIds = JSON.parse(eventResults)
+        }
     } catch (error) {
         // console.log(error)
     }
@@ -500,7 +505,8 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
         }
     }
 
-    const densityWidth = Math.floor((options.plotWidth + options.plotHeight) * 0.012)
+    // Density width gets larger as plot size increases, and as number of events in the file decreases
+    const densityWidth = Math.floor((options.plotWidth + options.plotHeight) * 0.012) + (Math.floor(300000 / fileData.length) * 5)
 
     const densityMap = await calculateDensity(aboveZeroPopulation, scales, densityWidth, options)
 
@@ -529,10 +535,10 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
 
     const densityScale = scaleLog()
         .range([0, 100])
-        .domain([1, realMaxDensity * 2])
+        .domain([1, realMaxDensity])
 
     const scaleValue = (value) => {
-        return Math.min(Math.max(densityScale(value), 0), 100)
+        return Math.min(Math.max(densityScale(value), 0.1), 100)
     }
 
     for (let i = 0; i < densityMap.densityMap.length; i++) {

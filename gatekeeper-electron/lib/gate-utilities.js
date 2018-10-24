@@ -18,7 +18,79 @@ export const findIncludedEvents = (population, gates, options) => {
     // Offset the entire graph and add histograms if we're looking at cytof data
     let xOffset = options.machineType === constants.MACHINE_CYTOF ? CYTOF_HISTOGRAM_WIDTH : 0
     let yOffset = options.machineType === constants.MACHINE_CYTOF ? CYTOF_HISTOGRAM_WIDTH : 0
-    
+
+    const scales = getScales({
+        selectedXScale: options.selectedXScale,
+        selectedYScale: options.selectedYScale,
+        xRange: [ options.minXValue, options.maxXValue ],
+        yRange: [ options.minYValue, options.maxYValue ],
+        width: options.plotWidth - xOffset,
+        height: options.plotHeight - yOffset
+    })
+
+    const populationCopy = population.subPopulation.slice(0)
+
+    for (let gate of _.filter(gates, g => g.type === constants.GATE_TYPE_POLYGON)) {
+        gate.includeEventIds = []
+
+        // Round polygons vertices to the nearest 0.01
+        const invertedPolygon = gate.renderedPolygon.map(p => [ Math.round(scales.xScale.invert(p[0]) * 100) / 100, Math.round(scales.yScale.invert(p[1]) * 100) / 100 ])
+        let invertedXCutoffs
+        let invertedYCutoffs
+
+        if (gate.gateCreatorData.includeXChannelZeroes) {
+            invertedXCutoffs = [ Math.round(scales.yScale.invert(gate.renderedXCutoffs[1]) * 100) / 100, Math.round(scales.yScale.invert(gate.renderedXCutoffs[0]) * 100) / 100 ]
+        }
+
+        if (gate.gateCreatorData.includeYChannelZeroes) {
+            invertedYCutoffs = [ Math.round(scales.xScale.invert(gate.renderedYCutoffs[0]) * 100) / 100, Math.round(scales.xScale.invert(gate.renderedYCutoffs[1]) * 100) / 100 ]
+        }
+
+        for (let i = 0; i < populationCopy.length; i++) {
+            const point = populationCopy[i]
+            if (!point) { continue }
+            // Double zeroes are vulnerable to logarithm minimum value problems, so if we're including double zeroes don't bother to measure them against cutoffs
+            if (gate.gateCreatorData.includeXChannelZeroes && gate.gateCreatorData.includeYChannelZeroes && point[0] === 0 && point[1] === 0) {
+                gate.includeEventIds.push(point[2])
+                populationCopy[i] = null
+            }
+            else if (invertedXCutoffs && gate.gateCreatorData.includeXChannelZeroes && point[0] === 0 && point[1] >= invertedXCutoffs[0] && point[1] <= invertedXCutoffs[1]) {
+                gate.includeEventIds.push(point[2])
+                populationCopy[i] = null
+            } else if (invertedYCutoffs && gate.gateCreatorData.includeYChannelZeroes && point[1] === 0 && point[0] >= invertedYCutoffs[0] && point[0] <= invertedYCutoffs[1]) {
+                gate.includeEventIds.push(point[2])
+                populationCopy[i] = null
+            }
+            else if (pointInsidePolygon(point, invertedPolygon)) {
+                gate.includeEventIds.push(point[2])
+                populationCopy[i] = null
+            }
+        }
+    }
+
+    let negativeGate = _.find(gates, g => g.type === constants.GATE_TYPE_NEGATIVE)
+    // Create a negative gate including all the uncaptured events if the user specified
+    if (negativeGate) {
+        negativeGate.includeEventIds = _.filter(populationCopy, p => !_.isNull(p)).map(p => p[2])
+    }
+
+    let doubleZeroGate = _.find(gates, g => g.type === constants.GATE_TYPE_DOUBLE_ZERO)
+    // Create a double zero gate including all the events with 0 in both channels
+    if (doubleZeroGate) {
+        doubleZeroGate.includeEventIds = population.doubleChannelZeroes.map(p => p[1])
+    }
+
+    return gates
+}
+
+// Find postive events included inside a particular gate (i.e. both x and y above zero)
+export const getPopulationCounts = (population, gates, options) => {
+    const CYTOF_HISTOGRAM_WIDTH = Math.round(Math.min(options.plotWidth, options.plotHeight) * 0.07)
+
+    // Offset the entire graph and add histograms if we're looking at cytof data
+    let xOffset = options.machineType === constants.MACHINE_CYTOF ? CYTOF_HISTOGRAM_WIDTH : 0
+    let yOffset = options.machineType === constants.MACHINE_CYTOF ? CYTOF_HISTOGRAM_WIDTH : 0
+
     const scales = getScales({
         selectedXScale: options.selectedXScale,
         selectedYScale: options.selectedYScale,

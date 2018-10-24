@@ -42,7 +42,7 @@ export default async (workspaceId, FCSFileId, sampleId, subPopulation, options) 
     let PNGFile
     let tempPNGFile = new pngjs.PNG({ width: options.plotWidth - xOffset, height: options.plotHeight - yOffset });
 
-    let pointRadius = Math.round(((options.plotWidth - xOffset) + (options.plotHeight - yOffset)) / 1000)
+    let pointRadius = (Math.round(((options.plotWidth - xOffset) + (options.plotHeight - yOffset)) / 1000))
 
     const scales = getScales({
         selectedXScale: options.selectedXScale,
@@ -57,8 +57,8 @@ export default async (workspaceId, FCSFileId, sampleId, subPopulation, options) 
         const point = [ Math.round(scales.xScale(subPopulation.aboveZeroPopulation[i][0])), Math.round(scales.yScale(subPopulation.aboveZeroPopulation[i][1])) ]
         if (subPopulation.densityMap.densityMap[point[1]] && !_.isUndefined(subPopulation.densityMap.densityMap[point[1]][point[0]])) {
             const color = heatMapRGBForValue(subPopulation.densityMap.densityMap[point[1]][point[0]] / subPopulation.maxDensity)
-            for (let y = point[1] - pointRadius * 2; y < point[1] + pointRadius * 2; y++) {
-                for (let x = point[0] - pointRadius * 2; x < point[0] + pointRadius * 2; x++) {
+            for (let y = point[1] - pointRadius; y < point[1] + pointRadius; y++) {
+                for (let x = point[0] - pointRadius; x < point[0] + pointRadius; x++) {
                     // Draw a circular point of pointDiameter diameter
                     const xDifference = x - point[0]
                     const yDifference = y - point[1]
