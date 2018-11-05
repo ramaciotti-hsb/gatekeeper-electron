@@ -10,7 +10,7 @@ import { createStore, applyMiddleware } from 'redux'
 import Application from './application-container.jsx'
 import applicationReducer from '../gatekeeper-frontend/reducers/application-reducer'
 import '../gatekeeper-frontend/scss/container.scss'
-import { setStore, api } from './electron-backend.js'
+import { setStore } from './electron-backend.js'
 import { initialize } from '../gatekeeper-frontend/lib/global-keyboard-listener'
 
 window.JOBS_API_URL = 'http://localhost:3145'
@@ -23,7 +23,6 @@ setStore(store)
 
 document.addEventListener("DOMContentLoaded", async () => {
     ReactDOM.render(<Provider store={store}><Application /></Provider>, document.getElementById('container-outer'))
-    store.dispatch({ type: 'SET_API', payload: { api } })
     initialize()
 })
 

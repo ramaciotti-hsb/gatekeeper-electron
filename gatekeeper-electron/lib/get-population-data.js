@@ -346,9 +346,9 @@ async function calculateDensity1D (points, scale, densityWidth = 2) {
     }
 }
 
-async function getFullSubSamplePopulation (workspaceId, FCSFileId, sampleId) {
+async function getFullSubSamplePopulation (workspaceId, FCSFileId, gateTemplateId) {
     const assetDirectory = process.argv[2]
-    const filePath = path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, sampleId, 'include-event-ids.json')
+    const filePath = path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, gateTemplateId, 'include-event-ids.json')
 
     let toReturn = []
 
@@ -376,11 +376,11 @@ async function getFullSubSamplePopulation (workspaceId, FCSFileId, sampleId) {
     return subPopulation
 }
 
-async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId, options) {
+async function getPopulationForSampleInternal (workspaceId, FCSFileId, gateTemplateId, options) {
     const assetDirectory = process.argv[2]
-    const directory = path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, sampleId)
-    const sampleKey = getPlotImageKey(options)
-    const filePath = path.join(directory, `${sampleKey}.json`)
+    const directory = path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, gateTemplateId)
+    const plotImageKey = getPlotImageKey(options)
+    const filePath = path.join(directory, `${plotImageKey}.json`)
 
     try {
         return JSON.parse(await readFile(filePath))
@@ -422,7 +422,7 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
             const eventResults = await readFile(path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, 'other-samples', options.gatingHash, 'include-event-ids.json'))
             includeEventIds = JSON.parse(eventResults)
         } else {
-            const eventResults = await readFile(path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, sampleId, 'include-event-ids.json'))
+            const eventResults = await readFile(path.join(assetDirectory, 'workspaces', workspaceId, FCSFileId, gateTemplateId, 'include-event-ids.json'))
             includeEventIds = JSON.parse(eventResults)
         }
     } catch (error) {
@@ -559,6 +559,7 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
                 }
             }
         }
+        zeroDensityX.maxDensity = scaleValue(zeroDensityX.maxDensity)
     }
 
     if (zeroDensityY) {
@@ -569,13 +570,12 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
                 }
             }
         }
+        zeroDensityY.maxDensity = scaleValue(zeroDensityY.maxDensity)
     }
 
     realMaxDensity = scaleValue(realMaxDensity)
     doubleChannelZeroDensity = scaleValue(doubleChannelZeroDensity)
     densityMap.maxDensity = scaleValue(densityMap.maxDensity)
-    zeroDensityX.maxDensity = scaleValue(zeroDensityX.maxDensity)
-    zeroDensityY.maxDensity = scaleValue(zeroDensityY.maxDensity)
 
     const toReturn = {
         subPopulation,
@@ -596,8 +596,8 @@ async function getPopulationForSampleInternal (workspaceId, FCSFileId, sampleId,
     return toReturn
 }
 
-async function getPopulationForSample (workspaceId, FCSFileId, sampleId, options) {
-    return await getPopulationForSampleInternal(workspaceId, FCSFileId, sampleId, options)
+async function getPopulationForSample (workspaceId, FCSFileId, gateTemplateId, options) {
+    return await getPopulationForSampleInternal(workspaceId, FCSFileId, gateTemplateId, options)
 }
 
 export { getFullSubSamplePopulation, getPopulationForSample }

@@ -1,11 +1,10 @@
 import React from 'react'
 import { Component } from 'react'
-import _ from 'lodash'
 import { remote } from 'electron'
 import path from 'path'
+import { api } from './electron-backend'
 const { dialog, Menu, MenuSample } = remote
 import Workspace from '../gatekeeper-frontend/containers/workspace-container.jsx'
-import HomologyModal from '../gatekeeper-frontend/containers/homology-modal-container.jsx'
 import GatingErrorModal from '../gatekeeper-frontend/containers/gating-error-modal-container.jsx'
 import PopulationMatchingModal from '../gatekeeper-frontend/containers/population-matching-modal-container.jsx'
 
@@ -129,18 +128,17 @@ export default class Application extends Component {
     }
 
     newWorkspace () {
-        this.props.api.createWorkspace({
-            title: "New Workspace",
-            samples: []
+        api.createWorkspace({
+            title: "New Workspace"
         })
     }
 
     selectWorkspace (workspaceId) {
-        this.props.api.selectWorkspace(workspaceId)
+        api.selectWorkspace(workspaceId)
     }
 
     closeWorkspace (workspaceId, event) {
-        this.props.api.removeWorkspace(workspaceId)
+        api.removeWorkspace(workspaceId)
         // Stop propagation to prevent the selectWorkspace event from firing
         event.stopPropagation()
     }
@@ -169,7 +167,7 @@ export default class Application extends Component {
                     title: filePath.split(path.sep).slice(-1)[0], // Returns just the filename without the path
                     description: 'FCS File',
                 }
-                this.props.api.createFCSFileAndAddToWorkspace(this.props.selectedWorkspaceId, FCSFile)
+                api.createFCSFileAndAddToWorkspace(FCSFile)
             }
         }
     }
@@ -182,7 +180,7 @@ export default class Application extends Component {
     }
 
     saveWorkspaceTitle () {
-        this.props.api.updateWorkspace(this.state.editingWorkspaceTitleId, { title: this.state.editingWorkspaceTitleText })
+        api.updateWorkspace(this.state.editingWorkspaceTitleId, { title: this.state.editingWorkspaceTitleText })
         this.setState({
             editingWorkspaceTitleId: null,
             editingWorkspaceTitleText: null
@@ -240,7 +238,6 @@ export default class Application extends Component {
     // }
 
     showOpenFCSFileDialog () {
-        let workspace = _.find(this.props.workspaces, workspace => workspace.id === this.props.selectedWorkspaceId)
         dialog.showOpenDialog({ title: `Open Sample File`, filters: [{ name: 'Cytometry Data Files', extensions: ['fcs', 'csv']}], message: `Open Sample File`, properties: ['openFile', 'multiSelections'] }, (filePaths) => {
             this.addNewFCSFilesToWorkspace(filePaths)
         })
@@ -253,36 +250,27 @@ export default class Application extends Component {
                     <div className='broken-message'>
                         <div className='text'>There was an error trying to load your previous session. This could have been caused by a version upgrade.</div>
                         <div className='text'>We apologise for any inconvenience. If you find time, please report this bug on our Trello board.</div>
-                        <div className='button' onClick={this.props.api.resetSession}><i className='lnr lnr-cross-circle' />Click here to reset your session</div>
+                        <div className='button' onClick={api.resetSession}><i className='lnr lnr-cross-circle' />Click here to reset your session</div>
                     </div>
                 </div>
             )
         }
 
-        let workspace = _.find(this.props.workspaces, workspace => workspace.id === this.props.selectedWorkspaceId)
-
-        const workspaceTabs = this.props.workspaces.map((workspace) => {
+        const workspaceTabs = this.props.openWorkspaces.map((workspace) => {
             let tabText
-            if (this.state.editingWorkspaceTitleId === workspace.id) {
-                tabText = <input type="text" value={this.state.editingWorkspaceTitleText} onChange={this.updateWorkspaceTitleText.bind(this)} onBlur={this.saveWorkspaceTitle.bind(this)} autoFocus onFocus={(event) => { event.target.select() }} onKeyPress={(event) => { event.key === 'Enter' && event.target.blur() }} />
-            } else {
-                tabText = <div className='text' onClick={this.enableWorkspaceTitleEditing.bind(this, workspace.id, workspace.title)}>{workspace.title}</div>
-            }
+            // if (this.state.editingWorkspaceTitleId === workspace.id) {
+            //     tabText = <input type="text" value={this.state.editingWorkspaceTitleText} onChange={this.updateWorkspaceTitleText.bind(this)} onBlur={this.saveWorkspaceTitle.bind(this)} autoFocus onFocus={(event) => { event.target.select() }} onKeyPress={(event) => { event.key === 'Enter' && event.target.blur() }} />
+            // } else {
+                //onClick={this.enableWorkspaceTitleEditing.bind(this, workspace.id, workspace.title)}
+                tabText = <div className='text'>{workspace.title}</div>
+            // }
             return (
-                <div className={`tab${this.props.selectedWorkspaceId === workspace.id ? ' selected' : ''}`} key={workspace.id} onClick={this.selectWorkspace.bind(this, workspace.id)}>
+                <div className={`tab${this.props.selectedWorkspace && this.props.selectedWorkspace.id === workspace.id ? ' selected' : ''}`} key={workspace.id} onClick={this.selectWorkspace.bind(this, workspace.id)}>
                     {tabText}
                     <div className='close-button' onClick={this.closeWorkspace.bind(this, workspace.id)}><i className='lnr lnr-cross' /></div>
                 </div>
             )
         })
-
-        let workspaceView
-
-        if (workspace) {
-            workspaceView = <Workspace workspaceId={this.props.selectedWorkspaceId} ref={'workspace-' + workspace.id}/>
-        } else {
-            workspaceView = <Workspace />
-        }
 
         return (
             <div className='container' onDrop={this.onDropFile.bind(this)}>
@@ -291,10 +279,9 @@ export default class Application extends Component {
                     {workspaceTabs}
                 </div>
                 <div className='container-inner'>
-                    {workspaceView}
+                    <Workspace />
                 </div>
-                <HomologyModal />
-                <GatingErrorModal />
+                {/*<GatingErrorModal />*/}
                 {/*<PopulationMatchingModal />*/}
             </div>
         )

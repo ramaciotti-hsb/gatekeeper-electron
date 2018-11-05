@@ -28,14 +28,13 @@ import { distanceToPolygon, distanceBetweenPoints } from 'distance-to-polygon'
 import isDev from 'electron-is-dev'
 import { breakLongLinesIntoPoints, fixOverlappingPolygonsUsingZipper } from '../gatekeeper-utilities/polygon-utilities'
 import applicationReducer from '../gatekeeper-frontend/reducers/application-reducer'
-import { setPlotDimensions, setPlotDisplayDimensions, toggleShowDisabledParameters, setUnsavedGates, showGatingModal, hideGatingModal, setGatingModalErrorMessage } from '../gatekeeper-frontend/actions/application-actions'
-import { createSample, updateSample, removeSample, setSamplePlotImage, setSampleParametersLoading } from '../gatekeeper-frontend/actions/sample-actions'
+import { addOpenWorkspace, setPlotDimensions, setPlotDisplayDimensions, toggleShowDisabledParameters } from '../gatekeeper-frontend/actions/application-actions'
 import { createGate } from '../gatekeeper-frontend/actions/gate-actions'
 import { createGateTemplate, updateGateTemplate, removeGateTemplate } from '../gatekeeper-frontend/actions/gate-template-actions'
 import { createGateTemplateGroup, updateGateTemplateGroup, removeGateTemplateGroup, addGateTemplateToGroup } from '../gatekeeper-frontend/actions/gate-template-group-actions'
 import { createFCSFile, updateFCSFile, removeFCSFile } from '../gatekeeper-frontend/actions/fcs-file-actions'
 import { createGatingError, updateGatingError, removeGatingError } from '../gatekeeper-frontend/actions/gating-error-actions'
-import { createWorkspace, selectWorkspace, removeWorkspace, updateWorkspace, selectFCSFile, invertPlotAxis, selectGateTemplate, setFCSDisabledParameters, setGatingHash } from '../gatekeeper-frontend/actions/workspace-actions'
+import { setSelectedWorkspace, updateWorkspace, selectFCSFile, invertPlotAxis, selectGateTemplate, setFCSDisabledParameters, setGatingHash,  setUnsavedGates, showGatingModal, hideGatingModal, setGatingModalErrorMessage } from '../gatekeeper-frontend/actions/workspace-actions'
 
 import request from 'request'
 let reduxStore
@@ -105,9 +104,7 @@ const createFork = async function () {
 
             if (reduxStore.getState().selectedWorkspaceId) {
                 const workspace = reduxStore.getState().workspaces.find(w => w.id === reduxStore.getState().selectedWorkspaceId)
-                for (let sample of reduxStore.getState().samples.filter(s => s.workspaceId === reduxStore.getState().selectedWorkspaceId && !s.parentSampleId)) {
-                    api.applyGateTemplatesToSample(sample.id)
-                }
+                api.recalculateGateTemplateHeirarchy()
             }
         }
         console.log(result.toString('utf8'))
@@ -239,11 +236,11 @@ const writeFile = (path, data, opts = 'utf8') => {
 // Loops through the image directories on disk and deletes images that no longer reference a sample on disk
 const cleanupImageDirectories = () => {
     for (var workspaceFile of ls(path.join(remote.app.getPath('userData'), 'workspaces', '*'))) {
-        if (!reduxStore.getState().workspaces.find(ws => ws.id === workspaceFile.file)) {
+        if (!reduxStore.getState().openWorkspaces.find(ws => ws.id === workspaceFile.file)) {
             console.log('going to delete workspace', workspaceFile.full)
             rimraf(workspaceFile.full, () => { console.log('deleted workspace', workspaceFile.full) })
         } else {
-            for (var fcsFile of ls(path.join(remote.app.getPath('userData'), 'workspaces', workspaceFile.file, '*'))) {
+            for (var fcsFile of ls(path.join(remote.app.getPath('userData'), 'workspaces', workspaceFile.file, 'fcs-files', '*'))) {
                 if (!reduxStore.getState().FCSFiles.find(fcs => fcs.id === fcsFile.file)) {
                     console.log('going to delete fcs file', fcsFile.full)
                     rimraf(fcsFile.full, () => { console.log('deleted fcs file', fcsFile.full) })
@@ -253,12 +250,12 @@ const cleanupImageDirectories = () => {
     }
 }
 
-const getFCSMetadata = async (workspaceId, FCSFileId, fileName) => {
+const getFCSMetadata = async (FCSFileId, fileName) => {
     const jobId = uuidv4()
 
     const metadata = await new Promise((resolve, reject) => {
         pushToQueue({
-            jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-fcs-metadata', payload: { workspaceId, FCSFileId, fileName } } },
+            jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: jobId, type: 'get-fcs-metadata', payload: { workspaceId: reduxStore.getState().selectedWorkspace.id, FCSFileId, fileName } } },
             jobKey: uuidv4(),
             checkValidity: () => { return true },
             callback: (data) => { resolve(data) }
@@ -283,6 +280,19 @@ export const setStore = (store) => { reduxStore = store }
 export const saveSessionToDisk = async function () {
     // Save the new state to the disk
     fs.writeFile(sessionFilePath, JSON.stringify(reduxStore.getState()), () => {})
+    if (reduxStore.getState().selectedWorkspace) {
+        const workspaceDirectory = path.join(remote.app.getPath('userData'), 'workspaces', reduxStore.getState().selectedWorkspace.id)
+        await new Promise((resolve, reject) => {
+            mkdirp(workspaceDirectory, function (error) {
+                if (error) {
+                    reject()
+                } else {
+                    resolve()
+                }
+            })
+        })
+        fs.writeFile(path.join(workspaceDirectory, 'workspace.json'), JSON.stringify(reduxStore.getState().selectedWorkspace), (error) => {})
+    }
 }
 
 // Load the workspaces and samples the user last had open when the app was used
@@ -324,9 +334,8 @@ export const api = {
         }
 
         // After reading the session, if there's no workspace, create a default one
-        if (reduxStore.getState().workspaces.length === 0) {
+        if (reduxStore.getState().openWorkspaces.length === 0) {
             const workspaceId = await api.createWorkspace({ title: 'New Workspace', description: 'New Workspace' })
-            await api.selectWorkspace(workspaceId)
         }
     },
 
@@ -340,6 +349,7 @@ export const api = {
     toggleShowDisabledParameters: async function () {
         const action = toggleShowDisabledParameters()
         reduxStore.dispatch(action)
+        window.dispatchEvent(new Event('resize'))
 
         await saveSessionToDisk()
     },
@@ -359,12 +369,15 @@ export const api = {
             filteredParameters: []
         }
 
-        const createAction = createWorkspace(newWorkspace)
-        reduxStore.dispatch(createAction)
+        const addAction = addOpenWorkspace(newWorkspace)
+        reduxStore.dispatch(addAction)
+
+        const setAction = setSelectedWorkspace(newWorkspace)
+        reduxStore.dispatch(setAction)
 
         // Add an empty Gate Template
         const gateTemplateId = uuidv4()
-        const createGateTemplateAction = createGateTemplate({ id: gateTemplateId, workspaceId, title: 'New Gating Strategy' })
+        const createGateTemplateAction = createGateTemplate({ id: gateTemplateId, title: 'New Gating Strategy' })
         reduxStore.dispatch(createGateTemplateAction)
 
         await api.selectGateTemplate(gateTemplateId, workspaceId)
@@ -375,8 +388,8 @@ export const api = {
     },
 
     selectWorkspace: async function (workspaceId) {
-        const selectAction = selectWorkspace(workspaceId)
-        reduxStore.dispatch(selectWorkspace(workspaceId))
+        const workspaceData = JSON.parse(await readFile(path.join(remote.app.getPath('userData'), 'workspaces', workspaceId, 'workspace.json')))
+        reduxStore.dispatch(setSelectedWorkspace(workspaceData))
 
         saveSessionToDisk()
     },
@@ -446,6 +459,13 @@ export const api = {
         }
     },
 
+    recalculateGateTemplateHeirarchy: async function () {
+        // const missingCombinations = []
+        // for (let FCSFile of reduxStore.getState().FCSFiles.filter(fcs => fcs.workspaceId === reduxStore.getState().selectedWorkspaceId)) {
+        //     for (let gateTemplate of reduxStore.filter(fcs => fcs.workspaceId === reduxStore.getState().selectedWorkspaceId))
+        // }
+    },
+
     applyGateTemplatesToSample: async function (sampleId) {
         const sample = reduxStore.getState().samples.find(s => s.id === sampleId)
         const FCSFile = reduxStore.getState().FCSFiles.find(fcs => sample.FCSFileId === fcs.id)
@@ -477,6 +497,8 @@ export const api = {
                     }
 
                     let homologyResult = await api.calculateHomology(sample.workspaceId, sample.FCSFileId, sample.id, options)
+
+                    console.log(homologyResult)
 
                     if (homologyResult.status === constants.STATUS_SUCCESS) {
                         let gates = api.createGatePolygons(homologyResult.data.gates)
@@ -620,15 +642,11 @@ export const api = {
         }
     },
 
-    createFCSFileAndAddToWorkspace: async function (workspaceId, FCSFileParameters) {
+    createFCSFileAndAddToWorkspace: async function (FCSFileParameters) {
         const FCSFileId = uuidv4()
-
-        // Find the associated workspace
-        let workspace = reduxStore.getState().workspaces.find(w => w.id === workspaceId)
 
         let FCSFile = {
             id: FCSFileId,
-            workspaceId: workspaceId,
             filePath: FCSFileParameters.filePath,
             title: FCSFileParameters.title,
             description: FCSFileParameters.description,
@@ -637,69 +655,54 @@ export const api = {
         const createFCSFileAction = createFCSFile(FCSFile)
         reduxStore.dispatch(createFCSFileAction)
 
-        const selectAction = selectFCSFile(FCSFileId, workspaceId)
+        const selectAction = selectFCSFile(FCSFileId)
         reduxStore.dispatch(selectAction)
 
         // Select the root gate when adding a new FCS file
-        const selectGateTemplateAction = selectGateTemplate(reduxStore.getState().gateTemplates.find(gt => gt.workspaceId === workspaceId && !gt.gateTemplateGroupId).id, workspaceId)
+        const selectGateTemplateAction = selectGateTemplate(reduxStore.getState().selectedWorkspace.gateTemplates.find(gt => !gt.parentGateTemplateId).id)
         reduxStore.dispatch(selectGateTemplateAction)
 
         // Import the fcs file
         await new Promise((resolve, reject) => {
             pushToQueue({
-                jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: uuidv4(), type: 'import-fcs-file', payload: { workspaceId, FCSFileId, filePath: FCSFile.filePath } } },
+                jobParameters: { url: 'http://127.0.0.1:3145', json: { jobId: uuidv4(), type: 'import-fcs-file', payload: { workspaceId: reduxStore.getState().selectedWorkspace.id, FCSFileId, filePath: FCSFile.filePath } } },
                 jobKey: uuidv4(),
                 checkValidity: () => { return true },
                 callback: (data) => { resolve(data) }
             }, true)
         })
 
-        const FCSMetaData = await getFCSMetadata(workspaceId, FCSFileId, FCSFile.title)
+        const FCSMetaData = await getFCSMetadata(FCSFileId, FCSFile.title)
 
         const updateAction = updateFCSFile(FCSFileId, FCSMetaData)
         reduxStore.dispatch(updateAction)
 
-        const sampleId = uuidv4()
-        const rootGateTemplate = reduxStore.getState().gateTemplates.find(gt => gt.workspaceId === workspace.id && !gt.gateTemplateGroupId)
-        const createSampleAction = createSample({
-            id: sampleId,
-            workspaceId: workspaceId,
-            FCSFileId,
-            gateTemplateId: rootGateTemplate && rootGateTemplate.id,
-            title: 'Root Sample',
-            description: 'Top level root sample for this FCS File',
-            populationCount: FCSMetaData.populationCount
-        })
-        reduxStore.dispatch(createSampleAction)
-
         const workspaceParameters = {
             selectedXScale: FCSMetaData.machineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP,
-            selectedYScale: FCSMetaData.machineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP
+            selectedYScale: FCSMetaData.machineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP,
+            selectedFCSFileId: FCSFileId
         }
 
-        const updateWorkspaceAction = updateWorkspace(workspaceId, workspaceParameters)
+        const updateWorkspaceAction = updateWorkspace(workspaceParameters)
         reduxStore.dispatch(updateWorkspaceAction)
-
-        const sample = reduxStore.getState().samples.find(s => s.id === sampleId)
 
         saveSessionToDisk()
 
         // Recursively apply the existing gating hierarchy
-        api.applyGateTemplatesToSample(sampleId)
+        api.recalculateGateTemplateHeirarchy()
 
         return FCSFileId
     },
 
     removeFCSFile: async function (FCSFileId) {
-        const FCSFilesInWorkspace = reduxStore.getState().FCSFiles.filter(fcs => fcs.workspaceId === reduxStore.getState().selectedWorkspaceId)
-        const FCSFileIndex = FCSFilesInWorkspace.findIndex(fcs => fcs.id === FCSFileId)
+        const FCSFileIndex = reduxStore.getState().selectedWorkspace.FCSFiles.findIndex(fcs => fcs.id === FCSFileId)
 
         const removeAction = removeFCSFile(FCSFileId)
         reduxStore.dispatch(removeAction)
 
-        if (reduxStore.getState().FCSFiles.length > 0) {
-            const newIndex = Math.min(Math.max(FCSFileIndex, 0), reduxStore.getState().FCSFiles.length - 1)
-            const selectAction = selectFCSFile(reduxStore.getState().FCSFiles[newIndex].id, reduxStore.getState().selectedWorkspaceId)
+        if (reduxStore.getState().selectedWorkspace.FCSFiles.length > 0) {
+            const newIndex = Math.min(Math.max(FCSFileIndex, 0), reduxStore.getState().selectedWorkspace.FCSFiles.length - 1)
+            const selectAction = selectFCSFile(reduxStore.getState().selectedWorkspace.FCSFiles[newIndex].id)
             reduxStore.dispatch(selectAction)
         }
 
@@ -799,14 +802,13 @@ export const api = {
         saveSessionToDisk()
     },
 
-    saveSampleAsCSV: function (sampleId) {
-        const sample = reduxStore.getState().samples.find(s => s.id === sampleId)
-        const FCSFile = reduxStore.getState().FCSFiles.find(fcs => fcs.id === sample.FCSFileId)
-        dialog.showSaveDialog({ title: `Save Population as CSV`, message: `Save Population as CSV`, defaultPath: `${sample.title}.csv`, filters: [{ name: 'CSV', extensions: ['csv'] }] }, (filePath) => {
+    savePopulationAsCSV: function (FCSFileId, gateTemplateId) {
+        const gateTemplate = reduxStore.getState().selectedWorkspace.gateTemplates.find(gt => gt.id === gateTemplateId)
+        dialog.showSaveDialog({ title: `Save Population as CSV`, message: `Save Population as CSV`, defaultPath: `${gateTemplate.title}.csv`, filters: [{ name: 'CSV', extensions: ['csv'] }] }, (filePath) => {
             if (filePath) {
                 new Promise((resolve, reject) => {
                     pushToQueue({
-                        jobParameters: { url: 'http://127.0.0.1:3145', json: { type: 'save-subsample-to-csv', payload: { workspaceId: sample.workspaceId, FCSFileId: sample.FCSFileId, sampleId, filePath } } },
+                        jobParameters: { url: 'http://127.0.0.1:3145', json: { type: 'save-population-as-csv', payload: { workspaceId: reduxStore.getState().selectedWorkspace.id, FCSFileId, gateTemplateId, filePath } } },
                         jobKey: uuidv4(),
                         checkValidity: () => { return true },
                         callback: (data) => { resolve(data) }
@@ -816,8 +818,8 @@ export const api = {
         })
     },
 
-    selectFCSFile: async function (FCSFileId, workspaceId) {
-        const selectAction = selectFCSFile(FCSFileId, workspaceId)
+    selectFCSFile: async function (FCSFileId) {
+        const selectAction = selectFCSFile(FCSFileId)
         reduxStore.dispatch(selectAction)
 
         saveSessionToDisk()
@@ -832,19 +834,16 @@ export const api = {
 
         // If the machine type was updated, recalculate gates and images
         if (parameters.machineType) {
-            if (reduxStore.getState().selectedWorkspaceId) {
-                const workspace = reduxStore.getState().workspaces.find(w => w.id === reduxStore.getState().selectedWorkspaceId)
-                const workspaceParameters = {
-                    selectedXScale: parameters.machineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP,
-                    selectedYScale: parameters.machineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP
-                }
-
-                await api.updateWorkspace(workspace.id, workspaceParameters)
-
-                for (let sample of reduxStore.getState().samples) {
-                    api.applyGateTemplatesToSample(sample.id)
-                }
+            const workspaceParameters = {
+                selectedXScale: parameters.machineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP,
+                selectedYScale: parameters.machineType === constants.MACHINE_CYTOF ? constants.SCALE_LOG : constants.SCALE_BIEXP
             }
+
+            await api.updateWorkspace(workspaceParameters)
+
+            // for (let sample of reduxStore.getState().samples) {
+            //     api.applyGateTemplatesToSample(sample.id)
+            // }
         }
     },
 
@@ -864,23 +863,16 @@ export const api = {
         saveSessionToDisk()
     },
 
-    setFCSDisabledParameters: async function (workspaceId, parameters) {
-        const workspace = reduxStore.getState().workspaces.find(w => w.id === workspaceId)
-
-        const setAction = setFCSDisabledParameters(workspaceId, parameters)
+    setFCSDisabledParameters: async function (parameters) {
+        const setAction = setFCSDisabledParameters(parameters)
         reduxStore.dispatch(setAction)
 
         saveSessionToDisk()
     },
 
-    createUnsavedGatesUsingHomology: async function (workspaceId, FCSFileId, sampleId, options) {
+    createUnsavedGatesUsingHomology: async function (workspaceId, FCSFileId, gateTemplateId, options) {
         // Dispatch a redux action to mark the gate template as loading
-        let loadingMessage = 'Creating gates using Persistent Homology...'
-
-        let loadingAction = setSampleParametersLoading(sampleId, options.selectedXParameter + '_' + options.selectedYParameter, { loading: true, loadingMessage: loadingMessage})
-        reduxStore.dispatch(loadingAction)
-
-        let homologyResult = await api.calculateHomology(workspaceId, FCSFileId, sampleId, options)
+        let homologyResult = await api.calculateHomology(workspaceId, FCSFileId, gateTemplateId, options)
 
         if (homologyResult.status === constants.STATUS_SUCCESS) {
             const gates = api.createGatePolygons(homologyResult.data.gates)
@@ -892,9 +884,6 @@ export const api = {
             const createErrorAction = setGatingModalErrorMessage(homologyResult.error)
             reduxStore.dispatch(createErrorAction)
         }
-
-        const loadingFinishedAction = setSampleParametersLoading(sampleId, options.selectedXParameter + '_' + options.selectedYParameter, { loading: false, loadingMessage: null })
-        reduxStore.dispatch(loadingFinishedAction)
     },
 
     resetUnsavedGates () {
@@ -912,13 +901,12 @@ export const api = {
     //        selectedYScale,
     //        machineType
     //    }
-    calculateHomology: async function (workspaceId, FCSFileId, sampleId, options) {
-        const sample = reduxStore.getState().samples.find(s => s.id === sampleId)
-        const FCSFile = reduxStore.getState().FCSFiles.find(fcs => fcs.id === sample.FCSFileId)
+    calculateHomology: async function (FCSFileId, gateTemplateId, options) {
+        const FCSFile = reduxStore.getState().selectedWorkspace.FCSFiles.find(fcs => fcs.id === FCSFileId)
 
-        let gateTemplate = reduxStore.getState().gateTemplates.find(gt => gt.id === sample.gateTemplateId)
-        let gateTemplateGroup = reduxStore.getState().gateTemplateGroups.find((group) => {
-            return group.parentGateTemplateId === sample.gateTemplateId
+        let gateTemplate = reduxStore.getState().selectedWorkspace.gateTemplates.find(gt => gt.id === gateTemplateId)
+        let gateTemplateGroup = reduxStore.getState().selectedWorkspace.gateTemplateGroups.find((group) => {
+            return group.parentGateTemplateId === gateTemplateId
                 && group.selectedXParameter === options.selectedXParameter
                 && group.selectedYParameter === options.selectedYParameter
                 && group.selectedXScale === options.selectedXScale
@@ -926,9 +914,7 @@ export const api = {
                 && group.machineType === FCSFile.machineType
         })
 
-        if (!sample) { console.log('Error in calculateHomology(): no sample with id ', sampleId, 'was found'); return }
-
-        let homologyOptions = { workspaceId, FCSFileId, sampleId, options }
+        let homologyOptions = { workspaceId: reduxStore.getState().selectedWorkspace.id, FCSFileId, gateTemplateId, options }
 
         homologyOptions.options.plotWidth = reduxStore.getState().plotWidth
         homologyOptions.options.plotHeight = reduxStore.getState().plotHeight
@@ -941,13 +927,13 @@ export const api = {
 
         // If there are already gating templates defined for this parameter combination
         if (gateTemplateGroup) {
-            const gateTemplates = reduxStore.getState().gateTemplates.filter(gt => gt.gateTemplateGroupId === gateTemplateGroup.id)
+            const gateTemplates = reduxStore.getState().selectedWorkspace.gateTemplates.filter(gt => gt.gateTemplateGroupId === gateTemplateGroup.id)
             homologyOptions.options = Object.assign({}, homologyOptions.options, gateTemplateGroup.typeSpecificData)
             homologyOptions.gateTemplates = gateTemplates.map(g => Object.assign({}, g))
         }
 
         // const intervalToken = setInterval(() => {
-        //     loadingAction = setSampleParametersLoading(sampleId, options.selectedXParameter + '_' + options.selectedYParameter, { loading: true, loadingMessage: 'update'})
+        //     loadingAction = setSampleParametersLoading(gateTemplateId, options.selectedXParameter + '_' + options.selectedYParameter, { loading: true, loadingMessage: 'update'})
         //     reduxStore.dispatch(loadingAction)
         // }, 500)
 
@@ -960,16 +946,16 @@ export const api = {
         }
 
         const checkValidity = () => {
-            const sample = reduxStore.getState().samples.find(s => s.id === sampleId)
-            // If the sample or gate template group has been deleted while homology has been calculating, just do nothing
-            if (!sample || (gateTemplateGroup && !reduxStore.getState().gateTemplateGroups.find((group) => {
-                return group.parentGateTemplateId === sample.gateTemplateId
+            const gateTemplate = reduxStore.getState().selectedWorkspace.gateTemplates.find(gt => gt.id === gateTemplateId)
+            // If the gateTemplate or gate template group has been deleted while homology has been calculating, just do nothing
+            if (!gateTemplate || (gateTemplateGroup && !reduxStore.getState().selectedWorkspace.gateTemplateGroups.find((group) => {
+                return group.parentGateTemplateId === gateTemplateId
                     && group.selectedXParameter === options.selectedXParameter
                     && group.selectedYParameter === options.selectedYParameter
                     && group.selectedXScale === options.selectedXScale
                     && group.selectedYScale === options.selectedYScale
                     && group.machineType === FCSFile.machineType
-            }))) { console.log('Error calculating homology, sample or gate template group has been deleted'); return false }
+            }))) { return false }
 
             return true
         }
@@ -986,7 +972,7 @@ export const api = {
         if (!checkValidity()) {
             return {
                 status: constants.STATUS_FAIL,
-                message: 'Error calculating homology, sample or gate template group has been deleted'
+                message: 'Error calculating homology, gate template or gate template group has been deleted'
             }
         }
 
@@ -1015,8 +1001,7 @@ export const api = {
                     xGroup: peak.xGroup,
                     yGroup: peak.yGroup,
                     FCSFileId: FCSFile.id,
-                    sampleId: sampleId,
-                    gateTemplateId: peak.gateTemplateId,
+                    gateTemplateId: peak.gateTemplateId || gateTemplateId,
                     populationCount: 0,
                     selectedXParameter: options.selectedXParameter,
                     selectedYParameter: options.selectedYParameter,
@@ -1049,11 +1034,11 @@ export const api = {
         return homologyResult
     },
 
-    showGatingModal (sampleId, selectedXParameter, selectedYParameter) {
-        const showGatingModalAction = showGatingModal(sampleId, selectedXParameter, selectedYParameter)
+    showGatingModal (selectedXParameter, selectedYParameter) {
+        const showGatingModalAction = showGatingModal(selectedXParameter, selectedYParameter)
         reduxStore.dispatch(showGatingModalAction)
 
-        if (reduxStore.getState().unsavedGates && reduxStore.getState().unsavedGates.length > 0) {
+        if (reduxStore.getState().selectedWorkspace.unsavedGates && reduxStore.getState().selectedWorkspace.unsavedGates.length > 0) {
             api.updateUnsavedGateDerivedData()
         }
     },
@@ -1314,8 +1299,7 @@ export const api = {
     },
 
     getGatePopulationCounts: async function (gates) {
-        const sample = reduxStore.getState().samples.find(s => s.id === gates[0].sampleId)
-        const FCSFile = reduxStore.getState().FCSFiles.find(fcs => fcs.id === gates[0].FCSFileId)
+        const FCSFile = reduxStore.getState().selectedWorkspace.FCSFiles.find(fcs => fcs.id === gates[0].FCSFileId)
 
         const options = {
             selectedXParameterIndex: FCSFile.FCSParameters[gates[0].selectedXParameter].index,
@@ -1333,7 +1317,7 @@ export const api = {
 
         let newUnsavedGates = await new Promise((resolve, reject) => {
             pushToQueue({
-                jobParameters: { url: 'http://127.0.0.1:3145', json: { type: 'get-gate-population-counts', payload: { workspaceId: sample.workspaceId, FCSFileId: sample.FCSFileId, sampleId: sample.id, gates, options } } },
+                jobParameters: { url: 'http://127.0.0.1:3145', json: { type: 'get-gate-population-counts', payload: { workspaceId: reduxStore.getState().selectedWorkspace.id, FCSFileId: FCSFile.id, gateTemplateId: gates[0].gateTemplateId, gates, options } } },
                 jobKey: uuidv4(),
                 checkValidity: () => { return true },
                 callback: (data) => { resolve(data) }
@@ -1349,16 +1333,16 @@ export const api = {
             reduxStore.dispatch(setUnsavedGatesAction)
         }
 
-        const toSave = api.createGatePolygons(reduxStore.getState().unsavedGates)
+        const toSave = api.createGatePolygons(reduxStore.getState().selectedWorkspace.unsavedGates)
         saveGates(toSave)
 
-        await api.getGatePopulationCounts(reduxStore.getState().unsavedGates).then((newUnsavedGates) => {
-            if (!reduxStore.getState().unsavedGates) {
+        await api.getGatePopulationCounts(reduxStore.getState().selectedWorkspace.unsavedGates).then((newUnsavedGates) => {
+            if (!reduxStore.getState().selectedWorkspace.unsavedGates) {
                 return
             }
 
             const toSave = newUnsavedGates.map((gate) => {
-                const updatedGate = reduxStore.getState().unsavedGates.find(g => g.id === gate.id)
+                const updatedGate = reduxStore.getState().selectedWorkspace.unsavedGates.find(g => g.id === gate.id)
                 updatedGate.populationCount = gate.populationCount
                 return updatedGate
             })
@@ -1366,7 +1350,7 @@ export const api = {
             // Update event counts on combo gates
             for (let gate of toSave) {
                 if (gate.type === constants.GATE_TYPE_COMBO) {
-                    const includedGates = reduxStore.getState().unsavedGates.filter(g => gate.gateCreatorData.gateIds.includes(g.id))
+                    const includedGates = reduxStore.getState().selectedWorkspace.unsavedGates.filter(g => gate.gateCreatorData.gateIds.includes(g.id))
                     gate.populationCount = includedGates.reduce((accumulator, current) => { return accumulator + current.populationCount }, [])
                 }
             }

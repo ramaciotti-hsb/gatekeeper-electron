@@ -96,7 +96,7 @@ if (cluster.isMaster) {
                 query[key] = parseFloat(query[key])
             }
             const fileName = getPlotImageKey(query) + '.png'
-            const filePath = path.join(assetDirectory, 'workspaces', query.workspaceId, query.FCSFileId, query.sampleId || path.join('other-samples', query.gatingHash), fileName)
+            const filePath = path.join(assetDirectory, 'workspaces', query.workspaceId, query.FCSFileId, query.gateTemplateId || path.join('other-samples', query.gatingHash), fileName)
 
             fs.readFile(filePath, (error, data) => {
                 if (error) {
@@ -159,10 +159,10 @@ if (cluster.isMaster) {
 // generate-plot-image
             } else if (body.type === 'generate-plot-image') {
                 const fileName = getPlotImageKey(body.payload) + '.png'
-                fs.readFile(path.join(assetDirectory, 'workspaces', body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId || path.join('other-samples', body.payload.gatingHash), fileName), (err, data) => {
+                fs.readFile(path.join(assetDirectory, 'workspaces', body.payload.workspaceId, body.payload.FCSFileId, body.payload.gateTemplateId || path.join('other-samples', body.payload.gatingHash), fileName), (err, data) => {
                     if (err) {
-                        getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId || path.join('other-samples', body.payload.gatingHash), body.payload).then((population) => {
-                            getImageForPlot(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId || path.join('other-samples', body.payload.gatingHash), population, body.payload)
+                        getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.gateTemplateId || path.join('other-samples', body.payload.gatingHash), body.payload).then((population) => {
+                            getImageForPlot(body.payload.workspaceId, body.payload.FCSFileId, body.payload.gateTemplateId || path.join('other-samples', body.payload.gatingHash), population, body.payload)
                             .then(() => {
                                 response.end(JSON.stringify({ status: 'success' }))
                             }).catch(handleError.bind(null, response))
@@ -173,8 +173,8 @@ if (cluster.isMaster) {
                 })
 
 // save-subsample-to-csv
-            } else if (body.type === 'save-subsample-to-csv') {
-                getFullSubSamplePopulation(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId)
+            } else if (body.type === 'save-population-as-csv') {
+                getFullSubSamplePopulation(body.payload.workspaceId, body.payload.FCSFileId, body.payload.gateTemplateId)
                 .then((data) => {
                     const header = data[0].join(',') + '\n'
                     fs.writeFile(body.payload.filePath, header, function (error) {
@@ -186,7 +186,7 @@ if (cluster.isMaster) {
 
 // find-peaks
             } else if (body.type === 'find-peaks') {
-                getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options).then((population) => {
+                getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.gateTemplateId, body.payload.options).then((population) => {
                     const homology = new PersistentHomology(population, body.payload.options)
                     let percentageComplete = 0
                     homology.findPeaks((message) => {
@@ -199,7 +199,7 @@ if (cluster.isMaster) {
 
 // find-peaks-with-templates
             } else if (body.type === 'find-peaks-with-template') {
-                getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options).then((population) => {
+                getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.gateTemplateId, body.payload.options).then((population) => {
                     const homology = new PersistentHomology(population, body.payload.options)
                     let percentageComplete = 0
                     homology.findPeaksWithTemplate((message) => {
@@ -212,7 +212,7 @@ if (cluster.isMaster) {
 
 // get-expanded-gates
             } else if (body.type === 'get-expanded-gates') {
-                getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options).then((population) => {
+                getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.gateTemplateId, body.payload.options).then((population) => {
                     const xOptions = _.clone(body.payload.options)
                     xOptions.knownPeaks = xOptions.sampleXChannelZeroPeaks
                     const xCutoffs = find1DPeaks(population.zeroDensityX.densityMap, population.maxDensity, xOptions)
@@ -227,7 +227,7 @@ if (cluster.isMaster) {
 
 // get-gate-population-counts
             } else if (body.type === 'get-gate-population-counts') {
-                getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.sampleId, body.payload.options).then((population) => {
+                getPopulationForSample(body.payload.workspaceId, body.payload.FCSFileId, body.payload.gateTemplateId, body.payload.options).then((population) => {
                     const alteredGates = findIncludedEvents(population, body.payload.gates, body.payload.options)
                     for (let gate of alteredGates) {
                         gate.populationCount = gate.includeEventIds.length
